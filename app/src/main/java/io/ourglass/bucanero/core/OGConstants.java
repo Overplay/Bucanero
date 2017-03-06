@@ -162,6 +162,8 @@ public class OGConstants {
                 "  \"title\": \"X Games\"\n" +
                 "}";
 
-
-
+    /**
+     * SocketIO constants
+     */
+    public static String SOCKET_IO_ADDRESS = "http://129.65.48.86:3000";
 }

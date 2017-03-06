@@ -8,11 +8,17 @@ import android.view.ViewTreeObserver;
 import android.view.WindowManager;
 import android.widget.RelativeLayout;
 
+import org.json.JSONArray;
+import org.json.JSONException;
+import org.json.JSONObject;
+
 import io.ourglass.bucanero.R;
 import io.ourglass.bucanero.core.OGSystem;
+import io.ourglass.bucanero.core.SocketIOManager;
 import io.ourglass.bucanero.tv.Fragments.OGWebViewFragment;
 import io.ourglass.bucanero.tv.Support.Frame;
 import io.ourglass.bucanero.tv.Support.Size;
+import io.socket.emitter.Emitter;
 
 
 public class MainFrameActivity extends Activity {
@@ -74,9 +80,5 @@ public class MainFrameActivity extends Activity {
             }
         });
 
-
-
-
     }
-
 }
