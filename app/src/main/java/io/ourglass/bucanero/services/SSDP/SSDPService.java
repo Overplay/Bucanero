@@ -14,7 +14,8 @@ import java.util.HashMap;
 import java.util.HashSet;
 import java.util.Map;
 
-import io.ourglass.amstelbright2.core.ABApplication;
+import io.ourglass.bucanero.core.ABApplication;
+
 
 /**
  * Created by mitch on 11/10/16.

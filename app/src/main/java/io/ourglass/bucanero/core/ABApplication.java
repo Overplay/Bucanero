@@ -18,6 +18,7 @@ import java.io.IOException;
 import java.text.SimpleDateFormat;
 import java.util.Calendar;
 
+import io.ourglass.bucanero.services.SocketIO.SocketIOManager;
 import io.realm.Realm;
 import io.realm.RealmConfiguration;
 import okhttp3.OkHttpClient;
@@ -33,6 +34,7 @@ public class ABApplication extends Application {
     // Shared by all!
     public static final OkHttpClient okclient = new OkHttpClient();
     public static final Bus ottobus = new Bus(ThreadEnforcer.MAIN);
+    public static final SocketIOManager siomanager = SocketIOManager.getInstance();
 
     @Override
     public void onCreate() {

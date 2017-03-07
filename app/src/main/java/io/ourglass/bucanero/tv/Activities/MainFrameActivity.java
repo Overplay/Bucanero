@@ -90,31 +90,6 @@ public class MainFrameActivity extends Activity {
 
         super.onResume();
 
-        SocketIOManager siom = SocketIOManager.getInstance();
-        siom.connect();
-
-        JSONObject jsonObject = new JSONObject();
-
-        try {
-            jsonObject.put("url", "/ogdevice/joinroom?deviceUDID="+OGSystem.getUDID());
-            jsonObject.put("deviceUDID",OGSystem.getUDID() );
-        } catch (JSONException e) {
-            e.printStackTrace();
-        }
-
-        siom.mSocket.emit("post", jsonObject, new Ack() {
-            @Override
-            public void call(Object... args) {
-                Log.d(TAG, "records: " + args[0].toString());
-            }
-        });
-
-        siom.mSocket.on("DEV-DM", new Emitter.Listener() {
-            @Override
-            public void call(Object... args) {
-                Log.d(TAG, "Got sum shit!");
-            }
-        });
 
 
     }
