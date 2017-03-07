@@ -8,7 +8,6 @@ import android.view.ViewTreeObserver;
 import android.view.WindowManager;
 import android.widget.RelativeLayout;
 
-import org.json.JSONArray;
 import org.json.JSONException;
 import org.json.JSONObject;
 
@@ -18,6 +17,8 @@ import io.ourglass.bucanero.core.SocketIOManager;
 import io.ourglass.bucanero.tv.Fragments.OGWebViewFragment;
 import io.ourglass.bucanero.tv.Support.Frame;
 import io.ourglass.bucanero.tv.Support.Size;
+import io.socket.client.Ack;
+import io.socket.client.Socket;
 import io.socket.emitter.Emitter;
 
 
@@ -27,6 +28,8 @@ public class MainFrameActivity extends Activity {
     private RelativeLayout mMainLayout;
     private int mScreenWidth;
     private int mScreenHeight;
+    public Socket mSocket;
+
 
     @Override
     protected void onCreate(final Bundle savedInstanceState) {
@@ -38,7 +41,7 @@ public class MainFrameActivity extends Activity {
         setContentView(R.layout.activity_main_frame);
 
         mMainLayout = (RelativeLayout) findViewById(R.id.activity_main_frame);
-        Log.d(TAG, "MainframeLayout id is: "+mMainLayout.getId());
+        Log.d(TAG, "MainframeLayout id is: " + mMainLayout.getId());
         mMainLayout.getViewTreeObserver().addOnGlobalLayoutListener(new ViewTreeObserver.OnGlobalLayoutListener() {
             @Override
             public void onGlobalLayout() {
@@ -63,7 +66,7 @@ public class MainFrameActivity extends Activity {
                     }
 
                     OGWebViewFragment ogwvf = OGWebViewFragment.newInstance("http://10.0.2.2:2001/blueline/opp/io.ourglass.bltest/app/tv",
-                            new Frame(new Point(500,250), new Size(320, 180)));
+                            new Frame(new Point(500, 250), new Size(320, 180)));
 
 
                     // In case this activity was started with special instructions from an
@@ -79,6 +82,45 @@ public class MainFrameActivity extends Activity {
 
             }
         });
+
+    }
+
+    @Override
+    public void onResume() {
+
+        super.onResume();
+
+        SocketIOManager siom = SocketIOManager.getInstance();
+        siom.connect();
+
+        JSONObject jsonObject = new JSONObject();
+
+        try {
+            jsonObject.put("url", "/ogdevice/joinroom?deviceUDID="+OGSystem.getUDID());
+            jsonObject.put("deviceUDID",OGSystem.getUDID() );
+        } catch (JSONException e) {
+            e.printStackTrace();
+        }
+
+        siom.mSocket.emit("post", jsonObject, new Ack() {
+            @Override
+            public void call(Object... args) {
+                Log.d(TAG, "records: " + args[0].toString());
+            }
+        });
+
+        siom.mSocket.on("DEV-DM", new Emitter.Listener() {
+            @Override
+            public void call(Object... args) {
+                Log.d(TAG, "Got sum shit!");
+            }
+        });
+
+
+    }
+
+    private void subscribeDeviceRoom(JSONObject jsonObject) {
+
 
     }
 }

@@ -165,5 +165,5 @@ public class OGConstants {
     /**
      * SocketIO constants
      */
-    public static String SOCKET_IO_ADDRESS = "http://129.65.48.86:3000";
+    public static String SOCKET_IO_ADDRESS = "http://10.0.2.2:2001";
 }

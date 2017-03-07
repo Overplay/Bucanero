@@ -18,11 +18,14 @@ public class SocketIOManager {
 
     private static SocketIOManager instance = new SocketIOManager();
 
-    private static Socket mSocket;
+    public static Socket mSocket;
 
     private SocketIOManager() {
+        IO.Options opts = new IO.Options();
+        //opts.forceNew = true;
+        opts.query = "__sails_io_sdk_version=0.11.0";
         try {
-            mSocket = IO.socket(OGConstants.SOCKET_IO_ADDRESS);
+            mSocket = IO.socket(OGConstants.SOCKET_IO_ADDRESS, opts);
         } catch (URISyntaxException e) {
             Log.e(TAG, e.getLocalizedMessage());
         }
