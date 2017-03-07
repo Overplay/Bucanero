@@ -8,6 +8,9 @@ import android.os.Environment;
 import android.util.Log;
 import android.widget.Toast;
 
+import com.squareup.otto.Bus;
+import com.squareup.otto.ThreadEnforcer;
+
 import net.danlew.android.joda.JodaTimeAndroid;
 
 import java.io.File;
@@ -29,6 +32,7 @@ public class ABApplication extends Application {
 
     // Shared by all!
     public static final OkHttpClient okclient = new OkHttpClient();
+    public static final Bus ottobus = new Bus(ThreadEnforcer.MAIN);
 
     @Override
     public void onCreate() {

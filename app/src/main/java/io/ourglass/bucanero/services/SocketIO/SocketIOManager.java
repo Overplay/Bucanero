@@ -1,9 +1,10 @@
-package io.ourglass.bucanero.core;
+package io.ourglass.bucanero.services.SocketIO;
 
 import android.util.Log;
 
 import java.net.URISyntaxException;
 
+import io.ourglass.bucanero.core.OGConstants;
 import io.socket.client.IO;
 import io.socket.client.Socket;
 import io.socket.emitter.Emitter;

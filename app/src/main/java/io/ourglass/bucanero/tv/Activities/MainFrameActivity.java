@@ -13,7 +13,7 @@ import org.json.JSONObject;
 
 import io.ourglass.bucanero.R;
 import io.ourglass.bucanero.core.OGSystem;
-import io.ourglass.bucanero.core.SocketIOManager;
+import io.ourglass.bucanero.services.SocketIO.SocketIOManager;
 import io.ourglass.bucanero.tv.Fragments.OGWebViewFragment;
 import io.ourglass.bucanero.tv.Support.Frame;
 import io.ourglass.bucanero.tv.Support.Size;
