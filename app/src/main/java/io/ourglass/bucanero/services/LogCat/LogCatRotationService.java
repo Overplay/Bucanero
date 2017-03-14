@@ -100,8 +100,8 @@ public class LogCatRotationService extends IntentService {
                     boolean redirectSuccess = startLoggingToNewFile(newLTFFile);
                     if(redirectSuccess){
                         /*
-                        todo doesn't appear that there is any need to close file as the logcat command handles all of this
-                        todo verify this
+                        doesn't appear that there is any need to close file as the logcat command handles all of this
+                        leaving this in in case there is a problem with this in the future, however at present there is no evident problem
                          */
 
                         //set the current file reference to the new file
