@@ -15,7 +15,7 @@ public class OGConstants {
     public static final boolean TEST_MODE = true;
     public static final boolean CRASH_TEST_DUMMY = true; // enable force crash on '5' button
     public static final boolean SHOW_DB_TOASTS = false;
-    public static final boolean LOGCAT_TO_FILE = false;
+    public static final boolean LOGCAT_TO_FILE = true;
 
     public static final boolean USE_HTTPS = false;
     public static final String SSL_KEY_PASSWORD = "password";
@@ -69,6 +69,8 @@ public class OGConstants {
 
     public static final String ASAHI_ADDRESS = USE_DEMO_ASAHI ? "http://107.170.209.248" : "http://104.131.145.36";
 //    public static final String ASAHI_ADDRESS = "http://192.168.1.220:1337";
+
+    public static final String BELLINI_ADDRESS = "http://138.68.230.239:2001";
 
     public static final String ASAHI_API_ENDPOINT = "/api/v1/";
     public static final String ASAHI_ACCEPTED_AD_ENDPOINT = "/ad/getAccepted";
