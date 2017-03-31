@@ -1,8 +1,10 @@
 package io.ourglass.bucanero.tv.Fragments;
 
+import android.annotation.SuppressLint;
 import android.app.Activity;
 import android.content.Context;
 import android.graphics.Color;
+import android.graphics.Point;
 import android.os.Bundle;
 import android.util.Log;
 import android.view.ViewGroup;
@@ -15,28 +17,49 @@ import android.webkit.WebView;
 import android.webkit.WebViewClient;
 import android.webkit.WebViewFragment;
 
+import com.squareup.otto.Subscribe;
+
 import org.json.JSONObject;
 
+import io.ourglass.bucanero.api.BelliniDMAPI;
+import io.ourglass.bucanero.core.ABApplication;
+import io.ourglass.bucanero.core.OGConstants;
 import io.ourglass.bucanero.core.OGSystem;
+import io.ourglass.bucanero.messages.KillAppMessage;
+import io.ourglass.bucanero.messages.MoveAppMessage;
 import io.ourglass.bucanero.tv.Support.Frame;
 import io.ourglass.bucanero.tv.Support.OGAnimations;
+import io.ourglass.bucanero.tv.Support.Size;
 
 
 public class OGWebViewFragment extends WebViewFragment {
 
     private static final String TAG = "OGWebViewFragment";
+    private static final float INITIAL_ALPHA = 0.5f; //this would normally be zero
+    private static final boolean ANIMATE_MOTION = true;
+
     private WebView webView;
     private Context mContext;
     private Frame mFrame;
     private String mUrl;
+    private int mLayoutSlot = 0;
+    public String appType;
+
+    private String mAppId;
+
+    // Here for nudging to be added later
+    private int mXInset = 0;
+    private int mYInset = 0;
 
     private OGWebViewListener mListener;
 
-    public static OGWebViewFragment newInstance(String initialUrl, Frame initialFrame) {
+    // TODO Not sure all the factory params are needed
+    public static OGWebViewFragment newInstance(String appType, int layoutSlot, Frame initialFrame) {
         OGWebViewFragment fragment = new OGWebViewFragment();
         Bundle args = new Bundle();
         args.putSerializable("FRAME", initialFrame);
-        args.putString("URL", initialUrl);
+        args.putString("APPTYPE", appType);
+        args.putInt("SLOT", layoutSlot);
         fragment.setArguments(args);
         return fragment;
     }
@@ -49,10 +72,13 @@ public class OGWebViewFragment extends WebViewFragment {
         super.onCreate(savedInstanceState);
         Log.d(TAG, "In onCreate");
         if (getArguments() != null) {
-            mUrl = getArguments().getString("URL");
+            appType = getArguments().getString("APPTYPE");
             mFrame = (Frame) getArguments().getSerializable("FRAME");
-
+            mLayoutSlot = getArguments().getInt("SLOT");
         }
+
+        // Register to receive messages
+        ABApplication.ottobus.register(this);
     }
 
     @Override
@@ -77,15 +103,99 @@ public class OGWebViewFragment extends WebViewFragment {
         Log.d(TAG, "In onResume");
     }
 
+    public void setType(String appType){
+        this.appType = appType;
+    }
+
+    private Point calculateLocationForSlot(int slotNum){
+
+        float newX = 0, newY = 0;
+
+        // TODO this is gross logic...maybe use some enums to do the calcs
+        switch (appType){
+            case "widget":
+                if (mLayoutSlot==0 || mLayoutSlot==3){
+                    // Left edge, so only zero plus the nudge inset
+                    newX = mXInset;
+                } else {
+                    // Right edge
+                    newX = OGSystem.getTVResolution().width - mFrame.size.width - mXInset;
+                }
+
+                if (mLayoutSlot<2){
+                    // At the top
+                    newY = OGSystem.getTVResolution().height* OGConstants.WIDGET_Y_INSET+mYInset;
+                } else {
+                    // At the bottom
+                    newY = OGSystem.getTVResolution().height - OGSystem.getTVResolution().height* OGConstants.WIDGET_Y_INSET -
+                            mYInset - mFrame.size.height;
+                }
+                break;
+
+            case "crawler":
+
+                newX = 0;
+                if (mLayoutSlot==0){
+                    newY = mYInset;
+                } else {
+                    newY = OGSystem.getTVResolution().height - mFrame.size.height - mYInset;
+                }
+                break;
+        }
+
+        return new Point((int)newX, (int)newY);
+
+    }
+
+    public void moveToNextLayoutSlot(){
+        int numSlots = appType.equalsIgnoreCase("widget") ? 4:2;
+        mLayoutSlot = (mLayoutSlot+1) % numSlots;
+        setFrameForSlot(mLayoutSlot);
+    }
+
+    public void setFrameForSlot(int layoutSlot){
+        mFrame.location = calculateLocationForSlot(layoutSlot);
+        updateFrame();
+    }
+
     public void setFrame(Frame frame) {
         mFrame = frame;
+        updateFrame();
+    }
+
+    public void setSize(Size size){
+        mFrame.size = size;
+        updateFrame();
+    }
+
+    public void setSizeAsPctOfScreen(Size pctSize){
+        Size tvRes = OGSystem.getTVResolution();
+        float width = appType.equalsIgnoreCase("crawler") ? tvRes.width : tvRes.width * pctSize.width/100;
+        Size appSize = new Size( (int)width, tvRes.height * pctSize.height/100);
+        setSize(appSize);
+    }
+
+    private void animateFrameChanges(Frame destinationFrame){
+
+    }
+
+    private void updateFrame(){
+
         ViewGroup.LayoutParams params = getWebView().getLayoutParams();
         // Changes the height and width to the specified *pixels*
-        params.height = frame.size.height;
-        params.width = frame.size.width;
+        params.height = mFrame.size.height;
+        params.width = mFrame.size.width;
         getWebView().setLayoutParams(params);
-        getWebView().setTranslationX(frame.location.x);
-        getWebView().setTranslationY(frame.location.y);
+
+        if (ANIMATE_MOTION){
+            OGAnimations.moveView(getWebView(), mFrame.location, OGAnimations.MoveAnimation.FLASHY);
+
+        } else {
+            getWebView().setTranslationX(mFrame.location.x);
+            getWebView().setTranslationY(mFrame.location.y);
+        }
+
+
     }
 
     @Override
@@ -95,12 +205,16 @@ public class OGWebViewFragment extends WebViewFragment {
 
     }
 
+    @SuppressLint("SetJavaScriptEnabled")
     @Override
     public void onStart() {
         //WebView is available here
         super.onStart();
 
+        setFrameForSlot(mLayoutSlot);
         WebView wv = getWebView();
+
+        wv.setAlpha(INITIAL_ALPHA);
 
         if (mFrame != null)
             setFrame(mFrame);
@@ -148,14 +262,31 @@ public class OGWebViewFragment extends WebViewFragment {
 
     }
 
-    public void loadUrl(String url) {
+    public void fadeOut(){
+        OGAnimations.animateAlphaOut(getView());
+    }
 
+    public void fadeIn(){
+        OGAnimations.animateAlphaIn(getView(), 1f);
+    }
+
+    public void hide(){
+        getWebView().setAlpha(0);
+    }
+
+    public void show(){
+        getWebView().setAlpha(1);
+    }
+
+    public void loadUrl(String url) {
         getWebView().setAlpha(0f);
         Log.wtf(TAG, "loadUrl called");
         getWebView().loadUrl(url);
+    }
 
-        //injectSystemGlobals(OGSystem.getSystemInfo());
-
+    public void launchApp(String appId){
+        mAppId = appId;
+        loadUrl(BelliniDMAPI.fullUrlForApp(appId));
     }
 
     class SystemJsonObject {
@@ -170,5 +301,24 @@ public class OGWebViewFragment extends WebViewFragment {
         getWebView().loadUrl("javascript:SET_SYSTEM_GLOBALS_JSON(" + jsonObject.toString() + ")");
     }
 
+    @Subscribe
+    public void inboundKill(KillAppMessage killMsg) {
+        // TODO: React to the event somehow!
+        Log.d(TAG, "Got a launch kill, yo!");
+        String appToDie = killMsg.appId;
+
+        // TODO Animate and Eventually turn off JS/URL
+        if (appToDie.equalsIgnoreCase(mAppId)){
+            getWebView().setAlpha(0f);
+        }
+    }
+
+    @Subscribe public void inboundMove(MoveAppMessage moveMsg) {
+        // TODO: React to the event somehow!
+        Log.d(TAG, "Got a move message, yo!");
+        if (moveMsg.appId.equalsIgnoreCase(mAppId)){
+            moveToNextLayoutSlot();
+        }
+    }
 
 }

@@ -9,6 +9,22 @@ import java.util.regex.Pattern;
  */
 public class OGConstants {
 
+    // Bucanero stuff
+
+    /**
+     * SocketIO constants
+     */
+    public static final Boolean USE_LOCAL_SERVER = true;
+
+    public static String BELLINI_DM_ADDRESS = USE_LOCAL_SERVER ? "http://10.0.2.2:2001" : "http://138.68.230.239:2001";
+    public static String SOCKET_IO_ADDRESS = BELLINI_DM_ADDRESS; //alias
+
+    // Force automatic venue registration to the OG Office in Campbell
+    public static final Boolean AUTO_REG_TO_OGOFFICE = true;
+
+    // How far down from top is the widget limit (or up from bottom)
+    public static final float WIDGET_Y_INSET = 0.12f;
+
     // Set to true to use the most stable ASAHI server
     public static final boolean USE_DEMO_ASAHI = true;
 
@@ -162,8 +178,5 @@ public class OGConstants {
                 "  \"title\": \"X Games\"\n" +
                 "}";
 
-    /**
-     * SocketIO constants
-     */
-    public static String SOCKET_IO_ADDRESS = "http://10.0.2.2:2001";
+
 }

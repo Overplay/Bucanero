@@ -7,11 +7,35 @@
     tools:context=".tv.Activities.MainFrameActivity"
     android:orientation="vertical">
 
-    <!--<WebView-->
+    <!--<SurfaceView-->
         <!--android:layout_width="match_parent"-->
         <!--android:layout_height="match_parent"-->
-        <!--android:layout_centerVertical="true"-->
-        <!--android:layout_centerHorizontal="true"-->
-        <!--android:id="@+id/webView" />-->
+        <!--android:id="@+id/surfaceView"-->
+        <!--android:layout_centerHorizontal="true" />-->
+
+    <TextView
+        android:layout_width="400dip"
+        android:layout_height="wrap_content"
+        android:textAppearance="?android:attr/textAppearanceLarge"
+        android:text="MESSAGES"
+        android:id="@+id/textViewMsg"
+        android:textSize="20sp"
+        android:gravity="center"
+        android:layout_alignParentBottom="true"
+        android:layout_centerHorizontal="true"
+        android:layout_marginBottom="100dip"
+        android:background="@drawable/popup_bkg"
+        android:focusable="false"
+        android:padding="15dip"
+        android:textColor="#ffffff" />
+
+    <ImageView
+        android:layout_width="300dip"
+        android:layout_height="wrap_content"
+        android:id="@+id/bootBugIV"
+        android:src="@drawable/bug600x500"
+        android:layout_above="@+id/textViewMsg"
+        android:layout_centerHorizontal="true"
+        />
 
 </RelativeLayout>

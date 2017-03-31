@@ -8,9 +8,6 @@ import android.os.Environment;
 import android.util.Log;
 import android.widget.Toast;
 
-import com.squareup.otto.Bus;
-import com.squareup.otto.ThreadEnforcer;
-
 import net.danlew.android.joda.JodaTimeAndroid;
 
 import java.io.File;
@@ -18,6 +15,8 @@ import java.io.IOException;
 import java.text.SimpleDateFormat;
 import java.util.Calendar;
 
+import io.ourglass.bucanero.api.BelliniDMAPI;
+import io.ourglass.bucanero.messages.MainThreadBus;
 import io.ourglass.bucanero.services.SocketIO.SocketIOManager;
 import io.realm.Realm;
 import io.realm.RealmConfiguration;
@@ -33,7 +32,7 @@ public class ABApplication extends Application {
 
     // Shared by all!
     public static final OkHttpClient okclient = new OkHttpClient();
-    public static final Bus ottobus = new Bus(ThreadEnforcer.MAIN);
+    public static final MainThreadBus ottobus = new MainThreadBus();
     public static final SocketIOManager siomanager = SocketIOManager.getInstance();
 
     @Override
@@ -96,6 +95,12 @@ public class ABApplication extends Application {
         }
 
         JodaTimeAndroid.init(this);
+
+        BelliniDMAPI.registerDeviceWithBellini();
+
+        if (OGConstants.AUTO_REG_TO_OGOFFICE){
+            BelliniDMAPI.associateDeviceWithVenueUUID(BelliniDMAPI.TEMP_OG_OFFICE_VUUID);
+        }
 
     }
 
@@ -184,5 +189,7 @@ public class ABApplication extends Application {
 //
 //        bringUpEth.exec("su -c /system/bin/busybox ifconfig eth0 10.21.200.1 netmask 255.255.255.0");
     }
+
+
 
 }
