@@ -1,10 +1,13 @@
 package io.ourglass.bucanero.core;
 
+import android.Manifest;
 import android.app.Application;
 import android.content.Context;
+import android.content.Intent;
 import android.content.pm.PackageInfo;
 import android.content.pm.PackageManager;
 import android.os.Environment;
+import android.support.v4.content.ContextCompat;
 import android.util.Log;
 import android.widget.Toast;
 
@@ -17,6 +20,7 @@ import java.util.Calendar;
 
 import io.ourglass.bucanero.api.BelliniDMAPI;
 import io.ourglass.bucanero.messages.MainThreadBus;
+import io.ourglass.bucanero.services.LogCat.LogCatRotationService;
 import io.ourglass.bucanero.services.SocketIO.SocketIOManager;
 import io.realm.Realm;
 import io.realm.RealmConfiguration;
@@ -65,33 +69,8 @@ public class ABApplication extends Application {
 
         // Logcat messages go to a file...
         if ( isExternalStorageWritable() && OGConstants.LOGCAT_TO_FILE ) {
-
-            File appDirectory = new File( Environment.getExternalStorageDirectory() + "/ABLogs" );
-            File logDirectory = new File( appDirectory + "/log" );
-            Calendar now = Calendar.getInstance();
-            SimpleDateFormat sdf = new SimpleDateFormat("HH-mm-ss-SSS");
-            String time = sdf.format(now.getTime());
-
-            File logFile = new File( logDirectory, "logcat" + time + ".txt" );
-
-            // create app folder
-            if ( !appDirectory.exists() ) {
-                appDirectory.mkdir();
-            }
-
-            // create log folder
-            if ( !logDirectory.exists() ) {
-                logDirectory.mkdir();
-            }
-
-            // clear the previous logcat and then write the new one to the file
-            try {
-                Process process = Runtime.getRuntime().exec( "logcat -c");
-                process = Runtime.getRuntime().exec( "logcat -f " + logFile + "");
-            } catch ( IOException e ) {
-                e.printStackTrace();
-            }
-
+            Intent logCatServiceIntent = new Intent(this, LogCatRotationService.class);
+            startService(logCatServiceIntent);
         }
 
         JodaTimeAndroid.init(this);
@@ -189,7 +168,5 @@ public class ABApplication extends Application {
 //
 //        bringUpEth.exec("su -c /system/bin/busybox ifconfig eth0 10.21.200.1 netmask 255.255.255.0");
     }
-
-
 
 }
