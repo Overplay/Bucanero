@@ -199,6 +199,12 @@ public class OGWebViewFragment extends WebViewFragment {
     }
 
     @Override
+    public void onPause(){
+        ABApplication.ottobus.unregister(this);
+        super.onPause();
+    }
+
+    @Override
     public void onDetach() {
         super.onDetach();
         Log.d(TAG, "In onDetach");
@@ -248,7 +254,7 @@ public class OGWebViewFragment extends WebViewFragment {
 
             public void onPageFinished(WebView view, String url) {
                 Log.e(TAG, "Page done loading!");
-                OGAnimations.animateAlphaIn(getWebView(), 1f);
+                OGAnimations.animateAlphaTo(getWebView(), 1f);
             }
 
         });
@@ -262,12 +268,14 @@ public class OGWebViewFragment extends WebViewFragment {
 
     }
 
+    public void halfFade() { OGAnimations.animateAlphaTo(getView(), 0.35f);}
+
     public void fadeOut(){
-        OGAnimations.animateAlphaOut(getView());
+        OGAnimations.animateAlphaTo(getView(), 0f);
     }
 
     public void fadeIn(){
-        OGAnimations.animateAlphaIn(getView(), 1f);
+        OGAnimations.animateAlphaTo(getView(), 1f);
     }
 
     public void hide(){
@@ -310,6 +318,7 @@ public class OGWebViewFragment extends WebViewFragment {
         // TODO Animate and Eventually turn off JS/URL
         if (appToDie.equalsIgnoreCase(mAppId)){
             getWebView().setAlpha(0f);
+            BelliniDMAPI.appKillAck(mAppId);
         }
     }
 
@@ -318,6 +327,8 @@ public class OGWebViewFragment extends WebViewFragment {
         Log.d(TAG, "Got a move message, yo!");
         if (moveMsg.appId.equalsIgnoreCase(mAppId)){
             moveToNextLayoutSlot();
+            BelliniDMAPI.appMoveAck(mAppId, mLayoutSlot);
+
         }
     }
 

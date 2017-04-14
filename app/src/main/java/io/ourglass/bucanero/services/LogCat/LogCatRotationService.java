@@ -231,7 +231,7 @@ public class LogCatRotationService extends IntentService {
         do {
             oldestFile = logFiles[i];
             oldestFilesDate = extractDateFromFileName(oldestFile);
-        } while(oldestFilesDate == null && i++ < logFiles.length);
+        } while(oldestFilesDate == null && ++i < logFiles.length);
 
         for(; i < logFiles.length; i++){
             Date logFilesDate = extractDateFromFileName(logFiles[i]);

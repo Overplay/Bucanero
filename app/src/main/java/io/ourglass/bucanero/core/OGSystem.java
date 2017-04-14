@@ -3,16 +3,24 @@ package io.ourglass.bucanero.core;
 
 import android.content.Context;
 import android.content.SharedPreferences;
-import android.net.wifi.WifiInfo;
-import android.net.wifi.WifiManager;
 import android.os.Build;
 import android.provider.Settings;
 import android.util.Log;
 
+import com.google.gson.Gson;
+
 import org.json.JSONException;
 import org.json.JSONObject;
 
+import io.ourglass.bucanero.api.BelliniDMAPI;
+import io.ourglass.bucanero.objects.SetTopBox;
+import io.ourglass.bucanero.objects.TVShow;
+import io.ourglass.bucanero.services.Connectivity.NetworkingUtils;
+import io.ourglass.bucanero.services.STB.DirecTV.DirecTVAPI;
+import io.ourglass.bucanero.services.STB.DirecTV.DirecTVSetTopBox;
 import io.ourglass.bucanero.tv.Support.Size;
+
+import static io.ourglass.bucanero.services.Connectivity.NetworkingUtils.getWiFiMACAddress;
 
 /**
  * Created by mkahn on 2/12/17.
@@ -21,6 +29,9 @@ import io.ourglass.bucanero.tv.Support.Size;
 public class OGSystem {
 
     private static final String TAG = "OGSystem";
+
+    private static SetTopBox mPairedSTB;
+    private static TVShow mCurrentTVShow;
 
     /*
      *
@@ -178,35 +189,51 @@ public class OGSystem {
         putStringToPrefs("pairedSTBType", stbType);
     }
 
-//    // TODO: This should use Serializable interface and save the object directly
-//    public static void setPairedSTB(DirecTVSetTopBox stb) {
-//        setPairedSTBIpAddress(stb.ipAddress);
-//        putStringToPrefs("ssdpResponse", stb.ssdpResponse);
-//        setPairedSTBType("DIRECTV");
-//        pairedSTB = stb;
-//    }
-//
-//    /**
-//     * Returns the current STB or a blank SetTopBox that needs to have it's networking functions run to load current state
-//     *
-//     * @return
-//     */
-//    public static DirecTVSetTopBox getPairedSTB() {
-//
-//        if (!isPairedToSTB()) {
-//            return null;
-//        }
-//
-//        if (pairedSTB != null)
-//            return pairedSTB;
-//
-//        // need to dearchive
-//        String ipAddr = getPairedSTBIpAddress();
-//        String ssdpResponse = getStringFromPrefs("ssdpResponse", "");
-//        pairedSTB = new DirecTVSetTopBox(null, ipAddr, SetTopBox.STBConnectionType.IPGENERIC, ssdpResponse);
-//        return pairedSTB;
-//
-//    }
+    public static void setPairedSTB(SetTopBox stb) {
+        putStringToPrefs("pairedSTB", stb.toJsonString());
+    }
+
+    /**
+     * Returns the current STB or a blank SetTopBox that needs to have it's networking functions run to load current state
+     *
+     * @return
+     */
+    public static SetTopBox getPairedSTB() {
+
+        if (!isPairedToSTB()) {
+            return null;
+        }
+
+        if (mPairedSTB != null)
+            return mPairedSTB;
+
+        // need to dearchive
+        String json = mPrefs.getString("pairedSTB", "");
+        if (json.equalsIgnoreCase("")){
+            Log.wtf(TAG, "In a weird pairing state where mPairedSTB is null but isPaired is true and in SharedPrefs");
+            mPairedSTB = null;
+            return null;
+        }
+
+        Gson gson = new Gson();
+
+        // Can't dearchive to a abstract class, so any concrete will do for now
+        DirecTVSetTopBox dtvstb = gson.fromJson(json, DirecTVSetTopBox.class);
+
+        switch (dtvstb.carrier){
+            case DIRECTV:
+                Log.d(TAG, "Dearchived DirecTV STB from prefs");
+                mPairedSTB = dtvstb;
+                return mPairedSTB;
+
+            case XFINITY:
+            default:
+                Log.wtf(TAG, "Got an unsupported Carrier from archived STB!!!");
+                mPairedSTB = dtvstb;
+                return mPairedSTB;
+        }
+
+    }
 
     // "ab" stands for AmstelBright which was the original codename of this project
     public static void setABVersionName(String vName) {
@@ -225,28 +252,33 @@ public class OGSystem {
         return getIntFromPrefs("abVersionCode");
     }
 
+
+
     public static JSONObject getSystemInfo() {
         JSONObject deviceJSON = new JSONObject();
         try {
             deviceJSON.put("name", getSystemName());
             deviceJSON.put("locationWithinVenue", getSystemLocation());
             deviceJSON.put("randomFactoid", "Bunnies are cute");
+            deviceJSON.put("codeRevName", OGConstants.CODE_REV_NAME);
 
-            WifiManager manager = (WifiManager) ABApplication.sharedContext.getSystemService(Context.WIFI_SERVICE);
-            WifiInfo info = manager.getConnectionInfo();
-            String macAddress = info.getMacAddress();
 
-            if (macAddress == null) {
-                macAddress = "undefined";
-            }
 
-            deviceJSON.put("wifiMacAddress", macAddress);
+            deviceJSON.put("wifiMacAddress", getWiFiMACAddress());
             //deviceJSON.put("settings", device.settings);
             //deviceJSON.put("apiToken", device.apiToken);
             //deviceJSON.put("uuid", device.uuid);
             String pairIp = getPairedSTBIpAddress();
             deviceJSON.put("isPairedToSTB", isPairedToSTB());
             deviceJSON.put("pairedSTBIP", pairIp);
+
+            if (isPairedToSTB()){
+                if (mCurrentTVShow!=null){
+                    deviceJSON.put("nowShowing", new JSONObject(getCurrentTVShow().toJsonString()));
+                } else {
+                    deviceJSON.put("nowShowing", new JSONObject()); // usually a poll hasn't happened yet
+                }
+            }
 
 //            if (isPairedToSTB() && OGCore.currentlyOnTV != null) {
 //                deviceJSON.put("channel", OGCore.currentlyOnTV.networkName);
@@ -272,6 +304,41 @@ public class OGSystem {
         }
 
         return deviceJSON;
+    }
+
+    public static String getSystemInfoString(){
+        StringBuilder sb = new StringBuilder();
+
+        sb.append("System Name: " + getSystemName() + "\n");
+        sb.append("System UUID: " + getUDID() + "\n");
+        if (getVenueId().equalsIgnoreCase("")){
+            sb.append("Venue ID: Not assigned to a venue"+"\n");
+        } else {
+            sb.append("Venue ID: " + getVenueId()+"\n");
+        }
+        sb.append("-----------\n");
+        sb.append("Code Name Rev: " + OGConstants.CODE_REV_NAME+"\n");
+        sb.append("Version: " + getABVersionName() + "\n");
+        sb.append("OS Version: " + getOsVersion()  + "\n");
+        sb.append("-----------\n");
+        sb.append("WiFi IP Address: " + NetworkingUtils.getWiFiIPAddressString()+"\n");
+        sb.append("Ethernet IP Address:" + NetworkingUtils.getEthernetIPAddressString() + "\n");
+        sb.append("-----------\n");
+        if ( isPairedToSTB() ){
+            sb.append("System Paired to STB at: "+ getPairedSTBIpAddress()+ "\n");
+            if (mCurrentTVShow!=null){
+                sb.append("Showing: "+mCurrentTVShow.toString()+"\n");
+            } else {
+                sb.append("Showing: *** not yet available ***\n");
+            }
+        } else {
+            sb.append("System is not paired to STB"+ "\n");
+        }
+
+        sb.append("Output Resolution: " + getTVResolution().toString()+ "\n");
+
+        return sb.toString();
+
     }
 
     public static void setVenueId(String venueId) {
@@ -317,8 +384,6 @@ public class OGSystem {
     }
 
 
-
-
     /***********************************
      * HARD PAIR CODE
      ***********************************/
@@ -330,44 +395,56 @@ public class OGSystem {
 
         String pairedSTBAddr = getPairedSTBIpAddress();
         if (pairedSTBAddr == null) return false;
-        return pairedSTBAddr.equalsIgnoreCase("10.21.200.2");
-    }
-
-//    public static void checkHardSTBConnection() {
-//
-//        Runnable checkHardRunnable = new Runnable() {
-//            @Override
-//            public void run() {
-//                Log.d(TAG, "Checking hard pair thread running");
-//                JSONObject stbJson = DirecTVAPI.stbInfo("10.21.200.2");
-//                if (stbJson != null) {
-//                    Log.d(TAG, "We are hard paired!");
-//                    OGSystem.setPairedSTBIpAddress("10.21.200.2");
-//                    DirecTVSetTopBox newSTB = new DirecTVSetTopBox(null, "10.21.200.2",
-//                            SetTopBox.STBConnectionType.IPGENERIC, null);
-//                    OGSystem.setPairedSTB(newSTB);
-//                    //Toast.makeText(ABApplication.sharedContext, "Hard Paired!", Toast.LENGTH_LONG).show();
-//
-//
-//                } else {
-//                    Log.d(TAG, "Hard pair check failed!");
-//                    //Toast.makeText(ABApplication.sharedContext, "Hard Pair FAILED!", Toast.LENGTH_LONG).show();
-//
-//                }
-//            }
-//        };
-//
-//        Thread cht = new Thread(checkHardRunnable);
-//        cht.start();
-//
-//
-//    }
-
-    public static void bringUpEthernetPort() {
-
+        return pairedSTBAddr.equalsIgnoreCase(OGConstants.ETHERNET_HARD_PAIR_IP_ADDRESS);
 
     }
 
+
+    public static void setCurrentTVShow(TVShow currentlyOnTV) {
+
+        if (mCurrentTVShow==null || !mCurrentTVShow.equals(currentlyOnTV)){
+            mCurrentTVShow = currentlyOnTV;
+            ABApplication.ottobus.post(mCurrentTVShow);
+            // Send it upstream
+            new Thread(new Runnable() {
+                @Override
+                public void run() {
+                    BelliniDMAPI.programChange(mCurrentTVShow);
+                }
+            }).start();
+        } else {
+            Log.d(TAG, "Got a TV show update, but it is the same as what I have, so ignoring");
+        }
+    }
+
+    public static TVShow getCurrentTVShow() {
+        return mCurrentTVShow;
+    }
+
+    public static void changeTVChannel(final int channel){
+
+        if (isPairedToSTB()){
+
+            switch (mPairedSTB.carrier){
+
+                case DIRECTV:
+
+                    new Thread(new Runnable() {
+                        @Override
+                        public void run() {
+                            Log.d(TAG, "Changing channel to: "+channel);
+                            DirecTVAPI.changeChannel(getPairedSTBIpAddress(), channel);
+                        }
+                    }).start();
+
+                    break;
+
+                default:
+
+                    Log.wtf(TAG, "Unsupported carrier for channel change");
+            }
+        }
+    }
 
 }
 

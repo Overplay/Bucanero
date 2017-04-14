@@ -1,26 +1,23 @@
 package io.ourglass.bucanero.core;
 
-import android.Manifest;
 import android.app.Application;
 import android.content.Context;
 import android.content.Intent;
 import android.content.pm.PackageInfo;
 import android.content.pm.PackageManager;
 import android.os.Environment;
-import android.support.v4.content.ContextCompat;
 import android.util.Log;
 import android.widget.Toast;
 
 import net.danlew.android.joda.JodaTimeAndroid;
 
-import java.io.File;
-import java.io.IOException;
-import java.text.SimpleDateFormat;
-import java.util.Calendar;
-
 import io.ourglass.bucanero.api.BelliniDMAPI;
 import io.ourglass.bucanero.messages.MainThreadBus;
+import io.ourglass.bucanero.services.Connectivity.ConnectivityService;
+import io.ourglass.bucanero.services.Connectivity.EthernetPort;
+import io.ourglass.bucanero.services.Connectivity.NetworkingUtils;
 import io.ourglass.bucanero.services.LogCat.LogCatRotationService;
+import io.ourglass.bucanero.services.STB.STBPollingService;
 import io.ourglass.bucanero.services.SocketIO.SocketIOManager;
 import io.realm.Realm;
 import io.realm.RealmConfiguration;
@@ -46,8 +43,6 @@ public class ABApplication extends Application {
         Log.d(TAG, "Loading AB application");
 
         sharedContext = getApplicationContext();
-
-        bringUpEthernet();
 
         RealmConfiguration config = new RealmConfiguration.Builder(this)
                 .name("ab.realm")
@@ -75,11 +70,29 @@ public class ABApplication extends Application {
 
         JodaTimeAndroid.init(this);
 
+        // Bring up eth0 for connection to DTV
+        EthernetPort.bringUpEthernetPort();
+
+        // System registers its existance every time it fires up
         BelliniDMAPI.registerDeviceWithBellini();
 
+        // This is a test mode that automatically associates a box/emu with the OG Office in Campbell
         if (OGConstants.AUTO_REG_TO_OGOFFICE){
             BelliniDMAPI.associateDeviceWithVenueUUID(BelliniDMAPI.TEMP_OG_OFFICE_VUUID);
         }
+
+        NetworkingUtils.getDeviceIpAddresses();
+        startServices();
+
+    }
+
+    private void startServices(){
+
+        Intent connectivityIntent = new Intent(this, ConnectivityService.class);
+        startService(connectivityIntent);
+
+        Intent stbIntent = new Intent(this, STBPollingService.class);
+        startService(stbIntent);
 
     }
 
@@ -98,75 +111,5 @@ public class ABApplication extends Application {
         return false;
     }
 
-//    public void launchUDHCPd(){
-//
-//        Log.d(TAG, "Firing up UDHCPD");
-//
-//        ShellExecutor bringUpUdhcpd = new ShellExecutor(new ShellExecutor.ShellExecutorListener() {
-//            @Override
-//            public void results(String results) {
-//                Log.d(TAG, "UDHCPD>>>>> "+results);
-//                try {
-//                    Thread.sleep(5000);
-//                } catch (InterruptedException e) {
-//                    e.printStackTrace();
-//                }
-//
-//                OGSystem.checkHardSTBConnection();
-//
-//                try {
-//                    Thread.sleep(5000);
-//                } catch (InterruptedException e) {
-//                    e.printStackTrace();
-//                }
-//
-//                OGSystem.checkHardSTBConnection();
-//
-//                try {
-//                    Thread.sleep(15000);
-//                } catch (InterruptedException e) {
-//                    e.printStackTrace();
-//                }
-//
-//                OGSystem.checkHardSTBConnection();
-//
-//                try {
-//                    Thread.sleep(60000);
-//                } catch (InterruptedException e) {
-//                    e.printStackTrace();
-//                }
-//
-//                OGSystem.checkHardSTBConnection();
-//
-//                try {
-//                    Thread.sleep(120000);
-//                } catch (InterruptedException e) {
-//                    e.printStackTrace();
-//                }
-//
-//                OGSystem.checkHardSTBConnection();
-//
-//
-//            }
-//        });
-//
-//        bringUpUdhcpd.exec("su -c /system/bin/busybox udhcpd /mnt/sdcard/wwwaqui/conf/udhcpd.conf");
-//
-//    }
-
-    public void bringUpEthernet(){
-
-        Log.d(TAG, "Bringing up ethernet interface.");
-
-//        ShellExecutor bringUpEth = new ShellExecutor(new ShellExecutor.ShellExecutorListener() {
-//            @Override
-//            public void results(String results) {
-//                Log.d(TAG, "IFUP>>>>> "+results);
-//                launchUDHCPd();
-//            }
-//        });
-//
-//        bringUpEth.exec("su -c /system/bin/busybox ifconfig eth0 10.21.200.1 netmask 255.255.255.0");
-    }
 
 }

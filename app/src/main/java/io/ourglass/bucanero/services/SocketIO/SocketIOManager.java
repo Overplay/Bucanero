@@ -19,6 +19,8 @@ import io.ourglass.bucanero.messages.BadOttoMessageException;
 import io.ourglass.bucanero.messages.KillAppMessage;
 import io.ourglass.bucanero.messages.LaunchAppMessage;
 import io.ourglass.bucanero.messages.MoveAppMessage;
+import io.ourglass.bucanero.messages.TVControlMessage;
+import io.ourglass.bucanero.objects.TVShow;
 import io.socket.client.Ack;
 import io.socket.client.IO;
 import io.socket.client.Socket;
@@ -184,6 +186,10 @@ public class SocketIOManager {
                 moveApp(robj);
                 break;
 
+            case "tune":
+                changeChannel(robj);
+                break;
+
             default:
                 Log.d(TAG, "Did not recognize inbound action");
         }
@@ -237,6 +243,12 @@ public class SocketIOManager {
         }
     }
 
+    private void changeChannel(JSONObject tuneObj) {
+        TVControlMessage tvcm = new TVControlMessage(tuneObj);
+        bus.post(tvcm); // in case anyone cares
+        OGSystem.changeTVChannel(tvcm.toChannel);
+    }
+
     public static SocketIOManager getInstance() {
         return instance;
     }
@@ -251,6 +263,11 @@ public class SocketIOManager {
         // TODO: React to the event somehow!
         Log.d(TAG, "Got a launch ack message, yo!");
         BelliniDMAPI.appLaunchAck(msg.appId, msg.layoutSlot);
+    }
+
+    @Subscribe
+    public void programChange(TVShow newShow){
+        Log.d(TAG, "Got a program change bus message!");
 
     }
 

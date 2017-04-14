@@ -1,11 +1,7 @@
 package io.ourglass.bucanero.services.SSDP;
 
 import android.app.Service;
-import android.content.BroadcastReceiver;
-import android.content.Context;
 import android.content.Intent;
-import android.content.IntentFilter;
-import android.os.Binder;
 import android.os.IBinder;
 import android.support.annotation.Nullable;
 import android.util.Log;
@@ -15,6 +11,7 @@ import java.util.HashSet;
 import java.util.Map;
 
 import io.ourglass.bucanero.core.ABApplication;
+import io.ourglass.bucanero.messages.MainThreadBus;
 
 
 /**
@@ -53,46 +50,31 @@ import io.ourglass.bucanero.core.ABApplication;
 public class SSDPService extends Service implements SSDPHandlerThread.SSDPListener {
 
     public static final String TAG = "OGDiscoService";
-    public static final long CONSIDERED_FRESH = 15000; // This is conservative
-
-    // Binder mode is not well tested!
-    private final IBinder mBinder = new LocalBinder();
-
-    public class LocalBinder extends Binder {
-        public SSDPService getService() {
-            // Return this instance of OGDiscoService so clients can call public methods
-            return SSDPService.this;
-        }
-    }
+    public static final long CONSIDERED_FRESH = 10 * 1000; // 10 seconds
 
     private SSDPHandlerThread mSSDPDicoveryThread;
 
     public HashMap<String, String> mAllDevices = new HashMap<>();
     public HashSet<String> mAllAddresses = new HashSet<>();
 
-    private long mLastDiscovery = 0;
     private String mDeviceFilter = null;
 
-    private final BroadcastReceiver mBroadcastRcvr = new BroadcastReceiver() {
-        @Override
-        public void onReceive(Context context, Intent intent) {
-            processIntent(intent);
-        }
-    };
+    private long mLastDiscovery;
+
+    private MainThreadBus bus = ABApplication.ottobus;
 
     // Stock stuff that needs to be here for all services
 
     @Nullable
     @Override
     public IBinder onBind(Intent intent) {
-        return mBinder;
+        return null;
     }
 
     @Override
     public void onCreate() {
         Log.d(TAG, "onCreate");
-        IntentFilter filter = new IntentFilter("tv.ourglass.amstelbrightserver.ssdpdiscovery");
-        registerReceiver(mBroadcastRcvr, filter);
+        super.onCreate();
     }
 
     @Override
@@ -109,22 +91,11 @@ public class SSDPService extends Service implements SSDPHandlerThread.SSDPListen
 
     private void processIntent(Intent intent){
 
-        // TODO: This does dick-all
-        boolean noDisco = intent.getBooleanExtra("noDisco", false);
         mDeviceFilter = intent.getStringExtra("deviceFilter");
-
-        if (!noDisco)
-            discover();
+        discover();
 
     }
 
-    private void prepThread(){
-
-        if (mSSDPDicoveryThread==null){
-            mSSDPDicoveryThread = new SSDPHandlerThread("ssdpdicso");
-            mSSDPDicoveryThread.start(this, this);
-        }
-    }
     // Triggers a discovery pass
     public void discover(){
 
@@ -141,6 +112,15 @@ public class SSDPService extends Service implements SSDPHandlerThread.SSDPListen
         }
 
     }
+
+    private void prepThread(){
+
+        if (mSSDPDicoveryThread==null){
+            mSSDPDicoveryThread = new SSDPHandlerThread("ssdpdicso");
+            mSSDPDicoveryThread.start(this, this);
+        }
+    }
+
 
     public HashSet<String> getFilteredAddresses(String filterTerm){
 
@@ -183,20 +163,23 @@ public class SSDPService extends Service implements SSDPHandlerThread.SSDPListen
         if (mSSDPDicoveryThread!=null)
             mSSDPDicoveryThread.quit();
 
-        if (mBroadcastRcvr!=null)
-            unregisterReceiver(mBroadcastRcvr);
-
         super.onDestroy();
 
     }
 
     private void notifyNewDevices(){
 
-        Intent intent = new Intent();
-        intent.setAction("tv.ourglass.amstelbrightserver.ssdpresponse");
-        intent.putExtra("devices", getFilteredDevices(mDeviceFilter));
-        intent.putExtra("addresses", getFilteredAddresses(mDeviceFilter));
-        ABApplication.sharedContext.sendBroadcast(intent);
+        SSDPResult result = new SSDPResult();
+        result.addresses = getFilteredAddresses(mDeviceFilter);
+        result.devices = getFilteredDevices(mDeviceFilter);
+        result.filtered = true;
+        bus.post(result);
+
+//        Intent intent = new Intent();
+//        intent.setAction("tv.ourglass.amstelbrightserver.ssdpresponse");
+//        intent.putExtra("devices", getFilteredDevices(mDeviceFilter));
+//        intent.putExtra("addresses", getFilteredAddresses(mDeviceFilter));
+//        ABApplication.sharedContext.sendBroadcast(intent);
 
     }
 

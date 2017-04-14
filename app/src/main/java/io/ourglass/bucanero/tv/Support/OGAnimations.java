@@ -1,5 +1,6 @@
 package io.ourglass.bucanero.tv.Support;
 
+import android.animation.Animator;
 import android.animation.AnimatorSet;
 import android.animation.ObjectAnimator;
 import android.graphics.Point;
@@ -13,20 +14,14 @@ public class OGAnimations {
 
     public enum MoveAnimation { INSTANT, SLIDE, FLASHY };
 
-    public static void animateAlphaIn(View v, float finalAlpha) {
-
-        ObjectAnimator anim = ObjectAnimator.ofFloat(v, "alpha", 0f, finalAlpha);
+    private static void doAnim(Animator anim){
         anim.setDuration(500);
         anim.start();
-
     }
 
-    public static void animateAlphaOut(View v) {
-
-        ObjectAnimator anim = ObjectAnimator.ofFloat(v, "alpha", v.getAlpha(), 0);
-        anim.setDuration(500);
-        anim.start();
-
+    public static void animateAlphaTo(View v, Float endingAlpha) {
+        ObjectAnimator anim = ObjectAnimator.ofFloat(v, "alpha", v.getAlpha(), endingAlpha);
+        doAnim(anim);
     }
 
     public static void moveView(View v, Point destination, MoveAnimation animType){

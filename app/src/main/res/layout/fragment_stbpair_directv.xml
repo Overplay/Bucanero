@@ -1,0 +1,152 @@
+<?xml version="1.0" encoding="utf-8"?>
+<RelativeLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    android:layout_width="match_parent"
+    android:layout_height="match_parent"
+    android:background="@color/OGGREEN"
+    android:orientation="vertical">
+
+    <!-- HEADER -->
+    <LinearLayout
+        android:id="@+id/header_wrapper"
+        android:layout_width="match_parent"
+        android:layout_height="@dimen/overlay_header_block_height"
+        android:layout_alignParentTop="true"
+        android:background="#333333"
+        android:orientation="vertical">
+
+        <!--Title/Header-->
+        <TextView
+            android:id="@+id/directv_pair_title"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:layout_marginLeft="@dimen/overlay_inset"
+            android:layout_marginRight="@dimen/overlay_inset"
+            android:paddingTop="@dimen/overlay_title_pad_top"
+            android:text="TV SETTOP BOX PAIRING"
+            android:textAllCaps="true"
+            android:textColor="@color/White"
+            android:textSize="@dimen/overlay_title_font_size"
+            android:textStyle="bold" />
+
+        <!-- Status Message -->
+        <TextView
+            android:id="@+id/current_pair"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:layout_below="@+id/headerTV"
+            android:layout_marginBottom="@dimen/overlay_subtitle_margin_bot"
+            android:layout_marginLeft="@dimen/overlay_inset_plus"
+            android:layout_marginRight="@dimen/overlay_inset"
+            android:layout_marginTop="@dimen/overlay_subtitle_margin_top"
+            android:text="Currently paired to: w.x.y.z"
+            android:textColor="@color/LightSteelBlue"
+            android:textSize="@dimen/overlay_subtitle_font_size"
+            android:textStyle="bold" />
+
+    </LinearLayout>
+
+    <!-- STB Picker List and Empty List Message -->
+
+    <RelativeLayout
+        android:id="@+id/listHolder"
+        android:layout_width="match_parent"
+        android:layout_height="match_parent"
+        android:layout_below="@+id/header_wrapper">
+
+        <ListView
+            android:id="@+id/directv_devices_list"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:layout_alignParentTop="true"
+            android:layout_marginBottom="30dip"
+            android:layout_marginLeft="100dip"
+            android:layout_marginRight="100dip"
+            android:layout_marginTop="30dip"
+            android:listSelector="#00000000"></ListView>
+
+        <TextView
+            android:id="@+id/empty_list_message"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:layout_below="@+id/directv_devices_list"
+            android:textAlignment="center"
+            android:textColor="@color/White"
+            android:textSize="30dip"
+            android:visibility="gone" />
+
+    </RelativeLayout>
+
+
+    <RelativeLayout
+        android:id="@+id/scanningHolder"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:layout_centerInParent="true">
+
+        <com.github.rahatarmanahmed.cpv.CircularProgressView xmlns:app="http://schemas.android.com/apk/res-auto"
+            android:id="@+id/progress_view"
+            android:layout_width="120dp"
+            android:layout_height="120dp"
+            android:layout_marginLeft="30dip"
+            app:cpv_animAutostart="true"
+            app:cpv_color="@color/White"
+            app:cpv_indeterminate="true" />
+
+        <ImageView
+            android:id="@+id/imageView"
+            android:layout_width="80dp"
+            android:layout_height="80dp"
+            android:layout_marginLeft="50dp"
+            android:layout_marginTop="20dp"
+            android:contentDescription="Wifi Icon"
+            android:src="@drawable/white_wifi_256" />
+
+        <TextView
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:layout_below="@+id/progress_view"
+            android:layout_marginTop="10dip"
+            android:text="Scanning for devices"
+            android:textSize="20dip" />
+
+
+    </RelativeLayout>
+
+    <RelativeLayout
+        android:id="@+id/confirmationHolder"
+        android:layout_width="600dip"
+        android:layout_height="wrap_content"
+        android:layout_centerInParent="true">
+
+
+        <TextView
+            android:id="@+id/confirmationPromptTV"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:layout_marginBottom="30dip"
+            android:text="Pair to set top box at IP address w.x.y.z?"
+            android:textAlignment="center"
+            android:textColor="@color/White"
+            android:textSize="30dip" />
+
+        <Button
+            android:id="@+id/buttonOK"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:layout_below="@+id/confirmationPromptTV"
+            android:layout_marginBottom="10dip"
+            android:background="@color/Black"
+            android:text="OK" />
+
+        <Button
+            android:id="@+id/buttonCancel"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:layout_below="@+id/buttonOK"
+            android:background="@color/DimGray"
+            android:text="CANCEL" />
+
+    </RelativeLayout>
+
+</RelativeLayout>
+

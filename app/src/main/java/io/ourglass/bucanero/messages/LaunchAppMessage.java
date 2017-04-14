@@ -10,7 +10,7 @@ import io.ourglass.bucanero.tv.Support.Size;
  */
 
 /**
- * Inboound JSON should looks like { action: "launch", payload: { appId: "io.ourglass.blah", fullUrl: "path-to-app", appType: "widget|crawler" }}
+ * Inboound JSON should looks like { action: "launch", appId: "io.ourglass.blah", fullUrl: "path-to-app", appType: "widget|crawler" }
  */
 public class LaunchAppMessage extends AppControlOttoMessage {
 

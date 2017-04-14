@@ -14,7 +14,8 @@ public class OGConstants {
     /**
      * SocketIO constants
      */
-    public static final Boolean USE_LOCAL_SERVER = true;
+    public static final Boolean USE_LOCAL_SERVER = false;
+    public static final String CODE_REV_NAME = "Bucanero";
 
     public static String BELLINI_DM_ADDRESS = USE_LOCAL_SERVER ? "http://10.0.2.2:2001" : "http://138.68.230.239:2001";
     public static String SOCKET_IO_ADDRESS = BELLINI_DM_ADDRESS; //alias
@@ -31,14 +32,11 @@ public class OGConstants {
     public static final boolean TEST_MODE = true;
     public static final boolean CRASH_TEST_DUMMY = true; // enable force crash on '5' button
     public static final boolean SHOW_DB_TOASTS = false;
-    public static final boolean LOGCAT_TO_FILE = true;
+    public static final boolean LOGCAT_TO_FILE = false; // Off until I am sure it works [mak]
 
-    public static final boolean USE_HTTPS = false;
-    public static final String SSL_KEY_PASSWORD = "password";
-    public static final String SSL_KEYSTORE = "src/main/resources/keystore2.jks";
 
     //normally this is FALSE, set to test effects of hard pairing
-    public static final boolean SIMULATE_HARD_PAIR = false;
+    public static final boolean SIMULATE_HARD_PAIR = true;
 
     /**
      * PROGRAM GUIDE CONSTANTS FOR ALPHA
@@ -123,14 +121,8 @@ public class OGConstants {
         }
     }
 
+    public static final String ETHERNET_HARD_PAIR_IP_ADDRESS = "10.21.200.2";
 
-    /**
-     * Endpoints for STBs
-     */
-
-    public static final String DIRECTV_CHANNEL_GET_ENDPOINT = "/tv/getTuned";
-    public static final int DIRECTV_PORT = 8080;
-    public static final int DIRECTV_API_CONNECTION_TIMEOUT = 15000;
     public static final int DIRECTV_PAIR_CANCELED_RESULT_CODE = 0;
     public static final int DIRECTV_PAIR_CONFIRMED_RESULT_CODE = 1;
 

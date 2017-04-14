@@ -1,0 +1,58 @@
+<?xml version="1.0" encoding="utf-8"?>
+<LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    android:layout_width="match_parent"
+    android:layout_height="match_parent"
+    android:background="@color/OGGREEN"
+    android:orientation="vertical">
+
+    <LinearLayout
+        android:id="@+id/header_wrapper"
+        android:layout_width="match_parent"
+        android:layout_height="@dimen/overlay_header_block_height"
+        android:background="#333333"
+        android:orientation="vertical">
+
+        <!--Title/Header-->
+        <TextView
+            android:id="@+id/headerTV"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:layout_marginLeft="@dimen/overlay_inset"
+            android:layout_marginRight="@dimen/overlay_inset"
+            android:paddingTop="@dimen/overlay_title_pad_top"
+            android:text="HEADER"
+            android:textAllCaps="true"
+            android:textColor="@color/White"
+            android:textSize="@dimen/overlay_title_font_size"
+            android:textStyle="bold" />
+
+        <!-- SubTitle -->
+        <TextView
+            android:id="@+id/subHeaderTV"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:layout_below="@+id/headerTV"
+            android:layout_marginBottom="@dimen/overlay_subtitle_margin_bot"
+            android:layout_marginLeft="@dimen/overlay_inset_plus"
+            android:layout_marginRight="@dimen/overlay_inset"
+            android:layout_marginTop="@dimen/overlay_subtitle_margin_top"
+            android:text="I am a subheader for shizzle"
+            android:textColor="@color/LightSteelBlue"
+            android:textSize="@dimen/overlay_subtitle_font_size"
+            android:textStyle="bold" />
+
+    </LinearLayout>
+
+
+    <TextView
+        android:id="@+id/infoTV"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:layout_marginLeft="72px"
+        android:layout_marginRight="70px"
+        android:layout_marginTop="30px"
+        android:text="TextView"
+        android:textColor="@color/White"
+        android:textSize="28px" />
+
+</LinearLayout>

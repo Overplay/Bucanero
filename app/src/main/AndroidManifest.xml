@@ -41,6 +41,19 @@
         <service
             android:name=".services.LogCat.LogCatRotationService"
             android:exported="false"></service>
+
+        <service
+            android:name=".services.SSDP.SSDPService"
+            android:exported="false"></service>
+
+        <service
+            android:name=".services.Connectivity.ConnectivityService"
+            android:exported="false"></service>
+
+        <service
+            android:name=".services.STB.STBPollingService"
+            android:exported="false"></service>
+
     </application>
 
 </manifest>
