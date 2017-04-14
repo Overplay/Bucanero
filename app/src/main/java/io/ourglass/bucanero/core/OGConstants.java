@@ -36,7 +36,7 @@ public class OGConstants {
 
 
     //normally this is FALSE, set to test effects of hard pairing
-    public static final boolean SIMULATE_HARD_PAIR = true;
+    public static final boolean SIMULATE_HARD_PAIR = false;
 
     /**
      * PROGRAM GUIDE CONSTANTS FOR ALPHA

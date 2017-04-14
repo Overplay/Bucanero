@@ -10,8 +10,10 @@ import android.view.LayoutInflater;
 import android.view.View;
 import android.view.ViewGroup;
 import android.widget.AdapterView;
+import android.widget.Button;
 import android.widget.ListView;
 import android.widget.TextView;
+import android.widget.Toast;
 
 import com.squareup.otto.Subscribe;
 
@@ -46,9 +48,12 @@ public class PairDirecTVFragment extends Fragment {
     TextView mCurrentPair;
     ListView mDirectvDevicesList;
     TextView mEmptyListMessage;
+    TextView mConfirmationPrompt;
+
     View mScanningHolder;
     View mConfirmationHolder;
     View mListHolder;
+    View mHPHolder;
 
     ArrayList<SetTopBox> mFoundBoxes = new ArrayList<>();
     SetTopBoxAdapter mSTBArrayAdapter;
@@ -60,7 +65,7 @@ public class PairDirecTVFragment extends Fragment {
 
     private MainThreadBus bus = ABApplication.ottobus;
 
-    private enum PairMode { SEARCH, LIST, CONFIRM };
+    private enum PairMode { SEARCH, LIST, CONFIRM, HARD_PAIRED };
     private PairMode mMode = PairMode.SEARCH;
 
 
@@ -94,15 +99,18 @@ public class PairDirecTVFragment extends Fragment {
         mCurrentPair = (TextView) getView().findViewById(R.id.current_pair);
         mDirectvDevicesList = (ListView) getView().findViewById(R.id.directv_devices_list);
         mEmptyListMessage = (TextView) getView().findViewById(R.id.empty_list_message);
+        mConfirmationPrompt = (TextView) getView().findViewById(R.id.confirmationPromptTV);
 
         mTitle.setTypeface(OGUi.getBoldFont());
         //mErrorMsg.setTypeface(OGUi.getRegularFont());
         mCurrentPair.setTypeface(OGUi.getRegularFont());
         mEmptyListMessage.setTypeface(OGUi.getBoldFont());
+        mConfirmationPrompt.setTypeface(OGUi.getBoldFont());
 
         mConfirmationHolder = getView().findViewById(R.id.confirmationHolder);
         mScanningHolder = getView().findViewById(R.id.scanningHolder);
         mListHolder = getView().findViewById(R.id.listHolder);
+        mHPHolder = getView().findViewById(R.id.hardPairHolder);
 
         mSTBArrayAdapter = new SetTopBoxAdapter(getContext(), mFoundBoxes);
         mDirectvDevicesList.setAdapter(mSTBArrayAdapter);
@@ -115,17 +123,34 @@ public class PairDirecTVFragment extends Fragment {
                     public void onItemClick(AdapterView<?> parent, View view, int position, long id) {
 
                         Log.d(TAG, "User selected STB @ position "+ position);
-                        SetTopBox selectedBox = mFoundBoxes.get(position);
-                        lastSTBClicked = selectedBox;
-                        final String ip = selectedBox.ipAddress;
-                        final String name = selectedBox.modelName;
-                        Log.d(TAG, "User selected STB @ IP Address "+ ip);
+                        lastSTBClicked = mFoundBoxes.get(position);
+                        confirmSTBChoice();
 
                     }
                 });
 
             }
         });
+
+        ((Button)getView().findViewById(R.id.buttonOK)).setOnClickListener(new View.OnClickListener() {
+            @Override
+            public void onClick(View v) {
+                OGSystem.setPairedSTB(lastSTBClicked);
+                Toast.makeText(getContext(), "Set Tup Box Paired", Toast.LENGTH_LONG).show();
+                mMode = PairMode.LIST;
+                updateUI();
+            }
+        });
+
+        ((Button)getView().findViewById(R.id.buttonCancel)).setOnClickListener(new View.OnClickListener() {
+            @Override
+            public void onClick(View v) {
+                Toast.makeText(getContext(), "Set Tup Box Pairing Canceled", Toast.LENGTH_LONG).show();
+                mMode = PairMode.LIST;
+                updateUI();
+            }
+        });
+
     }
 
     @Override
@@ -133,11 +158,17 @@ public class PairDirecTVFragment extends Fragment {
         super.onResume();
 
         bus.register(this);
-        mMode = PairMode.SEARCH;
-        Intent ssdpi = new Intent(getContext(), SSDPService.class);
-        ssdpi.putExtra("deviceFilter", "DIRECTV");
-        getActivity().startService(ssdpi);
-        updateCurrentPairText();
+
+        // If hard-paired, just show a message
+        mMode = OGSystem.isHardPaired() ? PairMode.HARD_PAIRED : PairMode.SEARCH;
+
+        // Only kick off search if not hard-paired
+        if (mMode==PairMode.SEARCH){
+            Intent ssdpi = new Intent(getContext(), SSDPService.class);
+            ssdpi.putExtra("deviceFilter", "DIRECTV");
+            getActivity().startService(ssdpi);
+        }
+
         updateUI();
     }
 
@@ -147,17 +178,41 @@ public class PairDirecTVFragment extends Fragment {
         super.onPause();
     }
 
+    private void confirmSTBChoice(){
+
+        Log.d(TAG, "User selected STB @ IP Address "+ lastSTBClicked.ipAddress);
+        mMode = PairMode.CONFIRM;
+        mConfirmationPrompt.setText("Are you sure you want to pair to the Set Top Box at IP Address: "
+                + lastSTBClicked.ipAddress+"?");
+        updateUI();
+
+    }
+
     private void updateUI(){
 
         switch (mMode){
 
+            case HARD_PAIRED:
+                mHPHolder.setVisibility(View.VISIBLE);
+                mScanningHolder.setVisibility(View.INVISIBLE);
+                mConfirmationHolder.setVisibility(View.INVISIBLE);
+                mListHolder.setVisibility(View.INVISIBLE);
+
+                break;
+
             case SEARCH:
-                mEmptyListMessage.setVisibility(View.INVISIBLE);
+                mHPHolder.setVisibility(View.INVISIBLE);
                 mScanningHolder.setVisibility(View.VISIBLE);
                 mConfirmationHolder.setVisibility(View.INVISIBLE);
+                mListHolder.setVisibility(View.INVISIBLE);
+
                 break;
 
             case LIST:
+
+                mHPHolder.setVisibility(View.INVISIBLE);
+                mListHolder.setVisibility(View.VISIBLE);
+
 
                 if (mSTBArrayAdapter.getCount()>0){
                     mEmptyListMessage.setText("");
@@ -180,12 +235,15 @@ public class PairDirecTVFragment extends Fragment {
                 break;
 
             case CONFIRM:
-                mEmptyListMessage.setVisibility(View.INVISIBLE);
+                mHPHolder.setVisibility(View.INVISIBLE);
+                mListHolder.setVisibility(View.INVISIBLE);
                 mScanningHolder.setVisibility(View.INVISIBLE);
                 mConfirmationHolder.setVisibility(View.VISIBLE);
 
                 break;
         }
+
+        updateCurrentPairText();
 
     }
 

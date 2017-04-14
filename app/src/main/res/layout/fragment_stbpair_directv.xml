@@ -6,6 +6,7 @@
     android:orientation="vertical">
 
     <!-- HEADER -->
+
     <LinearLayout
         android:id="@+id/header_wrapper"
         android:layout_width="match_parent"
@@ -22,7 +23,7 @@
             android:layout_marginLeft="@dimen/overlay_inset"
             android:layout_marginRight="@dimen/overlay_inset"
             android:paddingTop="@dimen/overlay_title_pad_top"
-            android:text="TV SETTOP BOX PAIRING"
+            android:text="TV SET TOP BOX PAIRING"
             android:textAllCaps="true"
             android:textColor="@color/White"
             android:textSize="@dimen/overlay_title_font_size"
@@ -132,19 +133,55 @@
         <Button
             android:id="@+id/buttonOK"
             android:layout_width="match_parent"
-            android:layout_height="wrap_content"
+            android:layout_height="@dimen/overlay_button_height"
             android:layout_below="@+id/confirmationPromptTV"
             android:layout_marginBottom="10dip"
-            android:background="@color/Black"
+            android:background="#333333"
+            android:textColor="@color/White"
             android:text="OK" />
 
         <Button
             android:id="@+id/buttonCancel"
             android:layout_width="match_parent"
-            android:layout_height="wrap_content"
+            android:layout_height="@dimen/overlay_button_height"
             android:layout_below="@+id/buttonOK"
-            android:background="@color/DimGray"
+            android:background="@color/LightGrey"
+            android:textColor="@color/Black"
             android:text="CANCEL" />
+
+
+    </RelativeLayout>
+
+    <RelativeLayout
+        android:id="@+id/hardPairHolder"
+        android:layout_width="600dip"
+        android:layout_height="wrap_content"
+        android:layout_centerInParent="true">
+
+
+        <TextView
+            android:id="@+id/hardPairPromptTV"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:layout_marginBottom="30dip"
+            android:text="This Ourglass System is hard-paired over Ethernet."
+            android:textAlignment="center"
+            android:textColor="@color/White"
+            android:textSize="30dip" />
+
+        <TextView
+            android:id="@+id/hardPairSubPromptTV"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:layout_below="@+id/hardPairPromptTV"
+            android:layout_marginBottom="30dip"
+            android:text="If you wish to pair over WiFi, please disconnect the Ethernet cable between the Ourglass system and the Set Top Box."
+            android:textAlignment="center"
+            android:textColor="@color/White"
+            android:textSize="20dip"
+            android:textStyle="italic" />
+
+
 
     </RelativeLayout>
 

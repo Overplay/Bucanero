@@ -190,6 +190,8 @@ public class OGSystem {
     }
 
     public static void setPairedSTB(SetTopBox stb) {
+        setPairedSTBIpAddress(stb.ipAddress);
+        ///setPairedSTBType(stb.carrier);
         putStringToPrefs("pairedSTB", stb.toJsonString());
     }
 

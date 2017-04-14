@@ -12,6 +12,7 @@ import android.widget.TextView;
 import java.util.ArrayList;
 
 import io.ourglass.bucanero.R;
+import io.ourglass.bucanero.core.OGSystem;
 import io.ourglass.bucanero.core.OGUi;
 import io.ourglass.bucanero.objects.SetTopBox;
 
@@ -35,6 +36,11 @@ public class SetTopBoxAdapter extends ArrayAdapter<SetTopBox> {
         this.font = OGUi.getRegularFont();
         this.indexFont = OGUi.getBoldFont();
     }
+
+    // TODO JEA: You should be coloring the currently selected STB in here by checking the ip addr
+    // of the entry view you are building, vs the currently paired STB ip addr. If they match, invert
+    // the colors of the text and backgrounds. This is much simpler than the way you were doing it,
+    // and cleaner.
 
     @Override
     public View getView(int position, View convertView, ViewGroup parent){
@@ -76,6 +82,11 @@ public class SetTopBoxAdapter extends ArrayAdapter<SetTopBox> {
 
         //format to contain leading 0 for better aesthetics
         idx.setText(String.format("%02d", position + 1));
+
+        // TODO JEA: here's where you can modify the colors...
+        if (ip.equalsIgnoreCase(OGSystem.getPairedSTBIpAddress())){
+            // This box is the one paired, change the color
+        }
 
         return convertView;
     }
