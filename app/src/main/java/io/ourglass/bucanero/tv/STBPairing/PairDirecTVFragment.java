@@ -31,13 +31,14 @@ import io.ourglass.bucanero.services.SSDP.SSDPBroadcastReceiver;
 import io.ourglass.bucanero.services.SSDP.SSDPResult;
 import io.ourglass.bucanero.services.SSDP.SSDPService;
 import io.ourglass.bucanero.services.STB.DirecTV.DirecTVSetTopBox;
+import io.ourglass.bucanero.tv.Fragments.OverlayFragment;
 
 /**
  * A simple {@link Fragment} subclass.
  * Use the {@link PairDirecTVFragment#newInstance} factory method to
  * create an instance of this fragment.
  */
-public class PairDirecTVFragment extends Fragment {
+public class PairDirecTVFragment extends OverlayFragment {
 
     public static final String TAG = "PairDirecTVFragment";
 
@@ -151,6 +152,8 @@ public class PairDirecTVFragment extends Fragment {
             }
         });
 
+        // TODO this should actually be self-resetting based on activity in the fragment
+        dismissMeAfter(5*60*1000);
     }
 
     @Override

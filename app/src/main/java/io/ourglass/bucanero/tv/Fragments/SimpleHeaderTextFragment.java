@@ -2,7 +2,6 @@ package io.ourglass.bucanero.tv.Fragments;
 
 import android.content.Context;
 import android.os.Bundle;
-import android.support.v4.app.Fragment;
 import android.view.LayoutInflater;
 import android.view.View;
 import android.view.ViewGroup;
@@ -12,7 +11,7 @@ import io.ourglass.bucanero.R;
 import io.ourglass.bucanero.core.OGUi;
 
 
-public class SimpleHeaderTextFragment extends Fragment {
+public class SimpleHeaderTextFragment extends OverlayFragment {
 
     private static final String ARG_TITLE = "TITLE";
     private static final String ARG_SUBTITLE = "SUBTITLE";

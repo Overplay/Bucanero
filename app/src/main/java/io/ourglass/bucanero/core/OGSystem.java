@@ -69,6 +69,18 @@ public class OGSystem {
 
     }
 
+    public static void putBoolToPrefs(String key, boolean bool) {
+
+        mEditor.putBoolean(key, bool);
+        mEditor.apply();
+    }
+
+    public static boolean getBoolFromPrefs(String key) {
+
+        return mPrefs.getBoolean(key, false);
+
+    }
+
     /*
      * TV Resolution
      */
@@ -254,7 +266,15 @@ public class OGSystem {
         return getIntFromPrefs("abVersionCode");
     }
 
+    // Fast boot mode just fires everything off at once and does not signal any messages
+    // Slow boot is more dramatic and looks like "work is being done" :)
+    public static boolean getFastBootMode(){
+        return getBoolFromPrefs("fastBootMode");
+    }
 
+    public static void setFastBootMode(boolean isFast){
+        putBoolToPrefs("fastBootMode", true);
+    }
 
     public static JSONObject getSystemInfo() {
         JSONObject deviceJSON = new JSONObject();
@@ -392,9 +412,6 @@ public class OGSystem {
 
     public static boolean isHardPaired() {
 
-        if (OGConstants.SIMULATE_HARD_PAIR == true)
-            return true;
-
         String pairedSTBAddr = getPairedSTBIpAddress();
         if (pairedSTBAddr == null) return false;
         return pairedSTBAddr.equalsIgnoreCase(OGConstants.ETHERNET_HARD_PAIR_IP_ADDRESS);
@@ -403,6 +420,12 @@ public class OGSystem {
 
 
     public static void setCurrentTVShow(TVShow currentlyOnTV) {
+
+        // FIXME this must be a bug in the poll service!!
+        if (currentlyOnTV == null){
+            Log.wtf(TAG, "Who the fuck is sending null tv updates??? FIXME");
+            return;
+        }
 
         if (mCurrentTVShow==null || !mCurrentTVShow.equals(currentlyOnTV)){
             mCurrentTVShow = currentlyOnTV;

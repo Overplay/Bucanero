@@ -59,7 +59,7 @@ public class STBPollingService extends Service {
             public void run() {
                 Log.d(TAG, "Checking hard pair thread running");
                 JSONObject stbJson = DirecTVAPI.stbInfo(OGConstants.ETHERNET_HARD_PAIR_IP_ADDRESS);
-                if (stbJson != null) {
+                if (stbJson != null || OGConstants.SIMULATE_HARD_PAIR) {
                     Log.d(TAG, "We are hard paired!");
                     OGSystem.setPairedSTBIpAddress("10.21.200.2");
                     DirecTVSetTopBox newSTB = new DirecTVSetTopBox(null,

@@ -23,6 +23,7 @@ public class SystemInfoFragment extends SimpleHeaderTextFragment {
         mTitle = "System Information";
         mSubtitle = "More than you really need to know about this OG!";
         mBody = OGSystem.getSystemInfoString();
+        dismissMeAfter(60000);
         super.onStart();
     }
 

@@ -249,6 +249,11 @@ public class BelliniDMAPI {
     // TODO should we do something other than throw this on the floor if it fails?
     public static void programChange(TVShow newShow){
 
+        if (newShow==null){
+            Log.wtf(TAG, "Fix null newShow bullshit, mitch");
+            return;
+        }
+
         JSONObject params = new JSONObject();
 
         try {

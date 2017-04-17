@@ -1,0 +1,57 @@
+<?xml version="1.0" encoding="utf-8"?>
+<RelativeLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:tools="http://schemas.android.com/tools"
+    android:id="@+id/activity_main_frame"
+    android:layout_width="match_parent"
+    android:layout_height="match_parent"
+    tools:context=".tv.Activities.MainFrameActivity"
+    android:orientation="vertical">
+
+    <!--<SurfaceView-->
+        <!--android:layout_width="match_parent"-->
+        <!--android:layout_height="match_parent"-->
+        <!--android:id="@+id/surfaceView"-->
+        <!--android:layout_centerHorizontal="true" />-->
+
+    <!-- This weird view is here for the Zidoo to properly size the window at startup -->
+    <ImageView
+        android:layout_width="match_parent"
+        android:layout_height="match_parent"
+        android:id="@+id/gapMaker"
+        android:src="@drawable/nbabackdrop"
+        android:layout_alignParentTop="true" />
+
+    <TextView
+        android:layout_width="400dip"
+        android:layout_height="wrap_content"
+        android:textAppearance="?android:attr/textAppearanceLarge"
+        android:text="MESSAGES"
+        android:id="@+id/textViewMsg"
+        android:textSize="20sp"
+        android:gravity="center"
+        android:layout_alignParentBottom="true"
+        android:layout_centerHorizontal="true"
+        android:layout_marginBottom="100dip"
+        android:background="@drawable/popup_bkg"
+        android:focusable="false"
+        android:padding="15dip"
+        android:textColor="#ffffff" />
+
+    <ImageView
+        android:layout_width="300dip"
+        android:layout_height="wrap_content"
+        android:id="@+id/bootBugIV"
+        android:src="@drawable/bug600x500"
+        android:layout_above="@+id/textViewMsg"
+        android:layout_centerHorizontal="true"
+        />
+
+    <RelativeLayout
+        android:id="@+id/overlayFragmentHolder"
+        android:layout_width="match_parent"
+        android:layout_height="match_parent"
+        android:layout_margin="80px">
+
+    </RelativeLayout>
+
+</RelativeLayout>

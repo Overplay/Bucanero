@@ -17,6 +17,8 @@ public class OGConstants {
     public static final Boolean USE_LOCAL_SERVER = false;
     public static final String CODE_REV_NAME = "Bucanero";
 
+    public static final int BOOT_DELAY = 5000; //ms between boot steps in Slow Boot Mode
+
     public static String BELLINI_DM_ADDRESS = USE_LOCAL_SERVER ? "http://10.0.2.2:2001" : "http://138.68.230.239:2001";
     public static String SOCKET_IO_ADDRESS = BELLINI_DM_ADDRESS; //alias
 
@@ -26,8 +28,7 @@ public class OGConstants {
     // How far down from top is the widget limit (or up from bottom)
     public static final float WIDGET_Y_INSET = 0.12f;
 
-    // Set to true to use the most stable ASAHI server
-    public static final boolean USE_DEMO_ASAHI = true;
+    public static final boolean ENABLE_RESTART_ON_UNCAUGHT_EXCEPTIONS = false;
 
     public static final boolean TEST_MODE = true;
     public static final boolean CRASH_TEST_DUMMY = true; // enable force crash on '5' button
@@ -35,8 +36,7 @@ public class OGConstants {
     public static final boolean LOGCAT_TO_FILE = false; // Off until I am sure it works [mak]
 
 
-    //normally this is FALSE, set to test effects of hard pairing
-    public static final boolean SIMULATE_HARD_PAIR = false;
+
 
     /**
      * PROGRAM GUIDE CONSTANTS FOR ALPHA
@@ -48,21 +48,6 @@ public class OGConstants {
     /**
      * Networking constants
      */
-
-    public static final int HTTP_PORT = 9090;
-
-    // Turn off UPNP to work with the old iOS app
-    public static final boolean USE_UPNP_DISCOVERY = true;
-
-    public static final int UDP_BEACON_PORT = 9092;
-    public static final boolean SEND_UDP_BEACONS = false;  // don't need any more, I hope :)
-
-    // MAK: Created a new port so both discovery methods can be used at same time
-    // These were moved back into the protocol service now that they've stabilized
-//    public static final int UDP_LISTEN_AND_RESPOND_PORT = 9091;
-    public static final int UDP_BEACON_FREQ = 2000;
-
-    public static final int CLOUD_SCRAPE_INTERVAL = 1000*5*60;
     public static final int TV_POLL_INTERVAL = 5000;
     public static final int TV_DISCOVER_INTERVAL = 1000 * 60;
     public static  final int LOG_UPLOAD_INTERVAL = 1000 * 60 * 2; // 2 minutes
@@ -81,8 +66,6 @@ public class OGConstants {
     ST: ssdp:all
      */
 
-    public static final String ASAHI_ADDRESS = USE_DEMO_ASAHI ? "http://107.170.209.248" : "http://104.131.145.36";
-//    public static final String ASAHI_ADDRESS = "http://192.168.1.220:1337";
 
     public static final String BELLINI_ADDRESS = "http://138.68.230.239:2001";
 
@@ -121,6 +104,8 @@ public class OGConstants {
         }
     }
 
+    //normally this is FALSE, set to test effects of hard pairing
+    public static final boolean SIMULATE_HARD_PAIR = false;
     public static final String ETHERNET_HARD_PAIR_IP_ADDRESS = "10.21.200.2";
 
     public static final int DIRECTV_PAIR_CANCELED_RESULT_CODE = 0;

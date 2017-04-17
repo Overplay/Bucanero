@@ -13,6 +13,8 @@ import net.danlew.android.joda.JodaTimeAndroid;
 
 import io.ourglass.bucanero.api.BelliniDMAPI;
 import io.ourglass.bucanero.messages.MainThreadBus;
+import io.ourglass.bucanero.messages.OnScreenNotificationMessage;
+import io.ourglass.bucanero.messages.SystemStatusMessage;
 import io.ourglass.bucanero.services.Connectivity.ConnectivityService;
 import io.ourglass.bucanero.services.Connectivity.EthernetPort;
 import io.ourglass.bucanero.services.Connectivity.NetworkingUtils;
@@ -63,30 +65,43 @@ public class ABApplication extends Application {
         }
 
         // Logcat messages go to a file...
-        if ( isExternalStorageWritable() && OGConstants.LOGCAT_TO_FILE ) {
+        if (isExternalStorageWritable() && OGConstants.LOGCAT_TO_FILE) {
             Intent logCatServiceIntent = new Intent(this, LogCatRotationService.class);
             startService(logCatServiceIntent);
         }
 
         JodaTimeAndroid.init(this);
 
-        // Bring up eth0 for connection to DTV
-        EthernetPort.bringUpEthernetPort();
-
-        // System registers its existance every time it fires up
-        BelliniDMAPI.registerDeviceWithBellini();
-
-        // This is a test mode that automatically associates a box/emu with the OG Office in Campbell
-        if (OGConstants.AUTO_REG_TO_OGOFFICE){
-            BelliniDMAPI.associateDeviceWithVenueUUID(BelliniDMAPI.TEMP_OG_OFFICE_VUUID);
-        }
-
-        NetworkingUtils.getDeviceIpAddresses();
-        startServices();
+        boot();
 
     }
 
-    private void startServices(){
+    public static void dbToast(Context context, String message) {
+        if (OGConstants.SHOW_DB_TOASTS) {
+            Toast.makeText(context, message, Toast.LENGTH_SHORT).show();
+        }
+    }
+
+    /* Checks if external storage is available for read and write */
+    public boolean isExternalStorageWritable() {
+        String state = Environment.getExternalStorageState();
+        if (Environment.MEDIA_MOUNTED.equals(state)) {
+            return true;
+        }
+        return false;
+    }
+
+    public void boot() {
+        if (OGSystem.getFastBootMode()) {
+            Log.d(TAG, "Fast booting...");
+            bootWithDelay(0);
+        } else {
+            Log.d(TAG, "Slow booting...");
+            bootWithDelay(OGConstants.BOOT_DELAY);
+        }
+    }
+
+    private void startServices() {
 
         Intent connectivityIntent = new Intent(this, ConnectivityService.class);
         startService(connectivityIntent);
@@ -96,19 +111,66 @@ public class ABApplication extends Application {
 
     }
 
-    public static void dbToast(Context context, String message){
-        if (OGConstants.SHOW_DB_TOASTS){
-            Toast.makeText(context, message, Toast.LENGTH_SHORT).show();
-        }
+    private void sendBootMessage(String message){
+        if (OGSystem.getFastBootMode()) return; //skip messages in FB mode
+        new OnScreenNotificationMessage(message).post();
     }
 
-    /* Checks if external storage is available for read and write */
-    public boolean isExternalStorageWritable() {
-        String state = Environment.getExternalStorageState();
-        if ( Environment.MEDIA_MOUNTED.equals( state ) ) {
-            return true;
-        }
-        return false;
+    private void bootWithDelay(final int delay) {
+
+        new Thread(new Runnable() {
+            @Override
+            public void run() {
+                try {
+                    Thread.sleep(delay);
+
+                    sendBootMessage("Setting up Networking");
+                    EthernetPort.bringUpEthernetPort();
+
+                    Thread.sleep(delay);
+                    sendBootMessage("Contacting OG Cloud");
+                    // System registers its existance every time it fires up
+                    BelliniDMAPI.registerDeviceWithBellini();
+                    // This is a test mode that automatically associates a box/emu with the OG Office in Campbell
+                    if (OGConstants.AUTO_REG_TO_OGOFFICE) {
+                        BelliniDMAPI.associateDeviceWithVenueUUID(BelliniDMAPI.TEMP_OG_OFFICE_VUUID);
+                    }
+
+                    Thread.sleep(delay);
+                    NetworkingUtils.getDeviceIpAddresses();
+
+                    sendBootMessage("Starting Services");
+                    startServices();
+
+                    Thread.sleep(delay);
+                    sendBootMessage("All Done!");
+
+                    // Longer delay if fast boot
+                    sendBootComplete(delay == 0 ? 5000: 500);
+
+
+                } catch (InterruptedException e) {
+                    e.printStackTrace();
+                }
+
+            }
+        }).start();
+
+
+    }
+
+    private void sendBootComplete(final int afterMs) {
+        new Thread(new Runnable() {
+            @Override
+            public void run() {
+                try {
+                    Thread.sleep(afterMs);
+                } catch (InterruptedException e) {
+                    e.printStackTrace();
+                }
+                new SystemStatusMessage(SystemStatusMessage.SystemStatus.BOOT_COMPLETE).post();
+            }
+        }).start();
     }
 
 

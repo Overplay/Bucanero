@@ -9,7 +9,6 @@ import android.support.v4.app.FragmentTransaction;
 import android.util.Log;
 import android.view.KeyEvent;
 import android.view.SurfaceView;
-import android.view.ViewGroup;
 import android.view.ViewTreeObserver;
 import android.view.WindowManager;
 import android.widget.ImageView;
@@ -31,16 +30,20 @@ import io.ourglass.bucanero.core.OGHardware;
 import io.ourglass.bucanero.core.OGSystem;
 import io.ourglass.bucanero.core.OGSystemExceptionHander;
 import io.ourglass.bucanero.messages.LaunchAppMessage;
+import io.ourglass.bucanero.messages.OnScreenNotificationMessage;
+import io.ourglass.bucanero.messages.SystemStatusMessage;
 import io.ourglass.bucanero.tv.Fragments.OGWebViewFragment;
-import io.ourglass.bucanero.tv.STBPairing.PairDirecTVFragment;
+import io.ourglass.bucanero.tv.Fragments.OverlayFragmentListener;
 import io.ourglass.bucanero.tv.Fragments.SystemInfoFragment;
+import io.ourglass.bucanero.tv.STBPairing.PairDirecTVFragment;
 import io.ourglass.bucanero.tv.Support.Frame;
+import io.ourglass.bucanero.tv.Support.OGAnimations;
 import io.ourglass.bucanero.tv.Support.OGApp;
 import io.ourglass.bucanero.tv.Support.Size;
 import io.socket.client.Socket;
 
 
-public class MainFrameActivity extends FragmentActivity  {
+public class MainFrameActivity extends FragmentActivity implements OverlayFragmentListener {
 
     private static final String TAG = "MainFrameActivity";
     private RelativeLayout mMainLayout;
@@ -55,34 +58,47 @@ public class MainFrameActivity extends FragmentActivity  {
     private TextView mPopupSystemMessageTV;
     private ImageView mBootBugImageView;
     RelativeLayout mOverlayFragmentHolder;
+    SurfaceView mTVSurface;
+
 
 
     private enum OverlayMode {NONE, SYSINFO, STBPAIR, WIFI, SETUP, OTHER}
 
     private OverlayMode mOverlayMode = OverlayMode.NONE;
 
+    private boolean mBooting = true;
 
     @Override
     protected void onCreate(final Bundle savedInstanceState) {
+
         super.onCreate(savedInstanceState);
-
-        getWindow().setFlags(WindowManager.LayoutParams.FLAG_FULLSCREEN,
-                WindowManager.LayoutParams.FLAG_FULLSCREEN);
-
-        setContentView(R.layout.activity_main_frame);
-
-        Thread.setDefaultUncaughtExceptionHandler(new OGSystemExceptionHander(this,
-                MainFrameActivity.class));
-
-
-        getWindow().setFlags(WindowManager.LayoutParams.FLAG_FULLSCREEN,
-                WindowManager.LayoutParams.FLAG_FULLSCREEN);
 
         Log.d(TAG, "OS Level: " + OGSystem.getOsVersion());
         Log.d(TAG, "Is demo H/W? " + (OGSystem.isTronsmart() ? "YES" : "NO"));
         Log.d(TAG, "Is real OG H/W? " + (OGSystem.isRealOG() ? "YES" : "NO"));
         Log.d(TAG, "Is emulated H/W? " + (OGSystem.isEmulator() ? "YES" : "NO"));
 
+        if (OGSystem.isTronsmart()) {
+            setContentView(R.layout.activity_main_frame_tronsmart);
+        } else if (OGSystem.isEmulator()) {
+            setContentView(R.layout.activity_main_frame_emulator);
+        } else if (OGSystem.isRealOG()) {
+            Log.d(TAG, "We're running on a real OG, but this logic is not implemented yet");
+            finish();
+        } else {
+            Log.wtf(TAG, "Hmmm, this is not any recognized hardware. Exiting");
+            finish();
+        }
+
+        getWindow().setFlags(WindowManager.LayoutParams.FLAG_FULLSCREEN,
+                WindowManager.LayoutParams.FLAG_FULLSCREEN);
+
+        enableHDMISurface();
+
+        if (OGConstants.ENABLE_RESTART_ON_UNCAUGHT_EXCEPTIONS) {
+            Thread.setDefaultUncaughtExceptionHandler(new OGSystemExceptionHander(this,
+                    MainFrameActivity.class));
+        }
 
         // Register to receive messages
         ABApplication.ottobus.register(this);
@@ -93,8 +109,9 @@ public class MainFrameActivity extends FragmentActivity  {
 
         mOverlayFragmentHolder = (RelativeLayout) findViewById(R.id.overlayFragmentHolder);
 
+        mTVSurface = (SurfaceView) findViewById(R.id.surfaceView);
 
-        mMainLayout = (RelativeLayout) findViewById(R.id.activity_main_frame);
+        mMainLayout = (RelativeLayout) findViewById(R.id.mainframeLayout);
         Log.d(TAG, "MainframeLayout id is: " + mMainLayout.getId());
         mMainLayout.getViewTreeObserver().addOnGlobalLayoutListener(new ViewTreeObserver.OnGlobalLayoutListener() {
             @Override
@@ -110,7 +127,7 @@ public class MainFrameActivity extends FragmentActivity  {
 
                 // Check that the activity is using the layout version with
                 // the fragment_container FrameLayout
-                if (findViewById(R.id.activity_main_frame) != null) {
+                if (findViewById(R.id.mainframeLayout) != null) {
 
                     // However, if we're being restored from a previous state,
                     // then we don't need to do anything and should return or else
@@ -127,19 +144,16 @@ public class MainFrameActivity extends FragmentActivity  {
 
                     // Add the fragment to the 'fragment_container' FrameLayout
                     getFragmentManager().beginTransaction()
-                            .add(R.id.activity_main_frame, mWidgetWebViewFrag).commit();
+                            .add(R.id.mainframeLayout, mWidgetWebViewFrag).commit();
 
                     getFragmentManager().beginTransaction()
-                            .add(R.id.activity_main_frame, mCrawlerWebViewFrag).commit();
+                            .add(R.id.mainframeLayout, mCrawlerWebViewFrag).commit();
 
-                    getSavedStateFromCloud();
 
                 }
 
             }
         });
-
-        enableHDMISurface();
 
         mBootBugImageView = (ImageView) findViewById(R.id.bootBugIV);
         Log.d(TAG, "onCreate done");
@@ -148,25 +162,9 @@ public class MainFrameActivity extends FragmentActivity  {
 
     private void enableHDMISurface() {
 
-        if (OGSystem.isEmulator()) {
-
-            Log.d(TAG, "Inserting backdrop for emulator");
-            ImageView backdrop = new ImageView(this);
-            backdrop.setImageResource(R.drawable.nbabackdrop);
-            backdrop.setLayoutParams(new ViewGroup.LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT,
-                    ViewGroup.LayoutParams.MATCH_PARENT));
-            mMainLayout.addView(backdrop, 0);
-
-
-        } else if (OGSystem.isTronsmart()) {
-
-            Log.d(TAG, "Inserting Surface for Tronsmart/Zidoo");
-            SurfaceView backdrop = new SurfaceView(this);
-            backdrop.setLayoutParams(new ViewGroup.LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT,
-                    ViewGroup.LayoutParams.MATCH_PARENT));
-            mMainLayout.addView(backdrop, 0);
+        if (OGSystem.isTronsmart()) {
+            Log.d(TAG, "Enabling Video for Tronsmart/Zidoo");
             OGHardware.enableTronsmartHDMI();
-
         } else if (OGSystem.isRealOG()) {
 
 
@@ -189,7 +187,7 @@ public class MainFrameActivity extends FragmentActivity  {
             public void error(Error err) {
                 //TODO some intelligent handling!
                 Log.e(TAG, "FAILED getting app status from cloud!");
-
+                showSystemToast("Error restoring app state!", null);
             }
         });
     }
@@ -220,17 +218,10 @@ public class MainFrameActivity extends FragmentActivity  {
     public void onResume() {
 
         super.onResume();
-        mBootBugImageView.animate()
-                .scaleX(0f)
-                .scaleY(0f)
-                .rotationY(90f)
-                .setDuration(1000)
-                .setStartDelay(5000)
-                .start();
 
         mDebouncing = false;
 
-
+        showSystemToast("Starting up...", null);
         Log.d(TAG, "onResume done");
 
 
@@ -240,6 +231,22 @@ public class MainFrameActivity extends FragmentActivity  {
     public void onPause() {
 
         super.onPause();
+    }
+
+    public void endBoot() {
+
+        mBooting = false;
+
+        mBootBugImageView.animate()
+                .scaleX(0f)
+                .scaleY(0f)
+                .rotationY(90f)
+                .setDuration(1000)
+                .setStartDelay(1000)
+                .start();
+
+        getSavedStateFromCloud();
+
     }
 
     private void endDebounce() {
@@ -273,7 +280,7 @@ public class MainFrameActivity extends FragmentActivity  {
     public boolean onKeyDown(int keyCode, KeyEvent event) {
 
         // The remote control does not debounce and we can get multiple onKeyDown per click
-        if (mDebouncing) {
+        if (mDebouncing || mBooting) {
             return false;
         }
         mDebouncing = true;
@@ -290,20 +297,22 @@ public class MainFrameActivity extends FragmentActivity  {
 
         // Launch settings from button 0 on remote
         if (keyCode == 7 || keyCode == 4) {
-            startActivityForResult(new Intent(android.provider.Settings.ACTION_SETTINGS),0);
+            startActivityForResult(new Intent(android.provider.Settings.ACTION_SETTINGS), 0);
         }
 
+        // Button One on Remote
         if (keyCode == 8) {
             launchSTBPairFragment();
         }
 
+        // Button Two on Remote
         if (keyCode == 9) {
             launchSysInfoFragment();
         }
 
         if (keyCode == 10) {
-            Log.d(TAG, "Dissmissing overlay fragment");
-            dismissOverlayFragment();
+//            Log.d(TAG, "Dissmissing overlay fragment");
+//            dismissOverlayFragment();
         }
 
         if (keyCode == 11) {
@@ -389,6 +398,18 @@ public class MainFrameActivity extends FragmentActivity  {
 
     }
 
+    private void showSystemToast(String message, String subMessage) {
+        // submessage not used right now
+        mPopupSystemMessageTV.setText(message);
+        OGAnimations.animateAlphaTo(mPopupSystemMessageTV, 1.0f);
+        mPopupSystemMessageTV.postDelayed(new Runnable() {
+            @Override
+            public void run() {
+                OGAnimations.animateAlphaTo(mPopupSystemMessageTV, 0.0f);
+            }
+        }, 2000);
+    }
+
     @Subscribe
     public void inboundLaunch(LaunchAppMessage launchMsg) {
         Log.d(TAG, "Got a launch message, yo!");
@@ -402,9 +423,26 @@ public class MainFrameActivity extends FragmentActivity  {
         //TODO add slot info
         BelliniDMAPI.appLaunchAck(launchMsg.appId, 0);
 
-
     }
 
+    @Subscribe
+    public void inboundSystemStatusMsg(SystemStatusMessage status) {
+        if (status.status == SystemStatusMessage.SystemStatus.BOOT_COMPLETE) {
+            endBoot();
+        }
+    }
+
+    @Subscribe
+    public void inboundOnScreenNotificationMessage(OnScreenNotificationMessage message) {
+        showSystemToast(message.message, message.subMessage);
+    }
+
+
+    @Override
+    public void dismissMe() {
+        mDebouncing = false;
+        removeOverlayFragment();
+    }
 
 
 }
