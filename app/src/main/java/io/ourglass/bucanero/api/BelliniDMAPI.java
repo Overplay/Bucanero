@@ -5,19 +5,14 @@ import android.util.Log;
 import org.json.JSONException;
 import org.json.JSONObject;
 
-import java.io.IOException;
-
-import io.ourglass.bucanero.core.ABApplication;
 import io.ourglass.bucanero.core.JSONCallback;
 import io.ourglass.bucanero.core.OGConstants;
 import io.ourglass.bucanero.core.OGSystem;
+import io.ourglass.bucanero.objects.NetworkException;
+import io.ourglass.bucanero.objects.SetTopBox;
 import io.ourglass.bucanero.objects.TVShow;
-import okhttp3.Call;
-import okhttp3.Callback;
 import okhttp3.MediaType;
-import okhttp3.Request;
 import okhttp3.RequestBody;
-import okhttp3.Response;
 
 /**
  * Created by mkahn on 3/13/17.
@@ -26,7 +21,10 @@ import okhttp3.Response;
 public class BelliniDMAPI {
 
     public static final String TAG = "BelliniDMAPI";
+    // This will only work until 138 is reset
+    // TODO do a fetch and save or create an auto-reg endpoint for OG Office
     public static final String TEMP_OG_OFFICE_VUUID = "7dbfe156-5ffc-4513-99ee-ba5af5704390";
+    public static final String LIMBO_VUUID = "limbo-limbo-limbo";
     public static final MediaType JSON
             = MediaType.parse("application/json; charset=utf-8");
 
@@ -34,7 +32,7 @@ public class BelliniDMAPI {
         return OGConstants.BELLINI_DM_ADDRESS + "/blueline/opp/" + appId + "/app/tv";
     }
 
-    public static void registerDeviceWithBellini(){
+    public static void registerDeviceWithBellini(final JSONCallback cb){
 
         JSONObject params = new JSONObject();
 
@@ -44,30 +42,8 @@ public class BelliniDMAPI {
             e.printStackTrace();
         }
 
-        RequestBody body = RequestBody.create(JSON, params.toString());
+        HTTPTransaction.post(OGConstants.BELLINI_DM_ADDRESS+"/ogdevice/register", params, cb);
 
-        Request request = new Request.Builder()
-                .url(OGConstants.BELLINI_DM_ADDRESS+"/ogdevice/register")
-                .post(body)
-                .build();
-
-        ABApplication.okclient.newCall(request).enqueue(new Callback() {
-
-            @Override public void onFailure(Call call, IOException e) {
-                e.printStackTrace();
-                Log.wtf(TAG, "OGDevice failed to register with Bellini");
-            }
-
-            @Override public void onResponse(Call call, Response response) throws IOException {
-
-                if (response.code() == 200){
-                    Log.d(TAG, "OGDevice successfully registered with Bellini, yay!");
-                } else {
-                    Log.e(TAG, "OGDevice FAILED registering with Bellini. CODE: "+response.code());
-
-                }
-            }
-        });
     }
 
     public static void associateDeviceWithVenueUUID(String venueUUID){
@@ -81,97 +57,29 @@ public class BelliniDMAPI {
             e.printStackTrace();
         }
 
-        RequestBody body = RequestBody.create(JSON, params.toString());
-
-        Request request = new Request.Builder()
-                .url(OGConstants.BELLINI_DM_ADDRESS+"/ogdevice/associateWithVenue")
-                .post(body)
-                .build();
-
-        ABApplication.okclient.newCall(request).enqueue(new Callback() {
-
-            @Override public void onFailure(Call call, IOException e) {
-                e.printStackTrace();
-                Log.wtf(TAG, "OGDevice failed to associate with Venue with Bellini");
+        HTTPTransaction.post(OGConstants.BELLINI_DM_ADDRESS + "/ogdevice/associateWithVenue", params, new JSONCallback() {
+            @Override
+            public void jsonCallback(JSONObject jsonData) {
+                Log.d(TAG, "OGDevice successfully associated with Venue with Bellini, yay!");
             }
 
-            @Override public void onResponse(Call call, Response response) throws IOException {
-                if (response.code() == 200){
-                    Log.d(TAG, "OGDevice successfully associated with Venue with Bellini, yay!");
-                } else {
-                    Log.e(TAG, "OGDevice FAILED associating venue with Bellini. CODE: "+response.code());
+            @Override
+            public void error(NetworkException e) {
+                Log.e(TAG, "OGDevice FAILED associating venue with Bellini. CODE: "+e.statusCode);
 
-                }
             }
         });
+
+
     }
 
     public static void getAppStatusFromCloud(final JSONCallback callback){
-
-        Request request = new Request.Builder()
-                .url(OGConstants.BELLINI_DM_ADDRESS+"/ogdevice/appstatus?deviceUDID="+OGSystem.getUDID())
-                .build();
-
-        ABApplication.okclient.newCall(request).enqueue(new Callback() {
-
-            @Override public void onFailure(Call call, IOException e) {
-                e.printStackTrace();
-                Log.wtf(TAG, "Failed trying to get app status from Bellini");
-            }
-
-            @Override public void onResponse(Call call, Response response) throws IOException {
-
-                String respString = response.body().string();
-
-                if (response.isSuccessful()) {
-                    try {
-                        JSONObject rval = new JSONObject(respString);
-                        callback.jsonCallback(rval);
-                    } catch (JSONException e) {
-                        e.printStackTrace();
-                        callback.error(new Error("Malformed return JSON"));
-                    }
-                } else {
-                    callback.error(new Error("Something bad happened"));
-                }
-
-
-            }
-        });
-
+        String url = OGConstants.BELLINI_DM_ADDRESS+"/ogdevice/appstatus?deviceUDID="+OGSystem.getUDID();
+        HTTPTransaction.get(url, callback);
     }
 
     public static void pingCloud(final JSONCallback callback){
-
-        Request request = new Request.Builder()
-                .url(OGConstants.BELLINI_DM_ADDRESS+"/ogdevice/pingcloud")
-                .build();
-
-        ABApplication.okclient.newCall(request).enqueue(new Callback() {
-
-            @Override public void onFailure(Call call, IOException e) {
-                e.printStackTrace();
-                Log.wtf(TAG, "Failed trying to ping Bellini");
-            }
-
-            @Override public void onResponse(Call call, Response response) throws IOException {
-
-                String respString = response.body().string();
-
-                if (response.isSuccessful()) {
-                    try {
-                        JSONObject rval = new JSONObject(respString);
-                        callback.jsonCallback(rval);
-                    } catch (JSONException e) {
-                        e.printStackTrace();
-                        callback.error(new Error("Malformed return JSON"));
-                    }
-                }
-
-
-            }
-        });
-
+        HTTPTransaction.get(OGConstants.BELLINI_DM_ADDRESS+"/ogdevice/pingcloud", callback);
     }
 
     public static void appLaunchAck(String appId, int layoutSlot){
@@ -190,14 +98,8 @@ public class BelliniDMAPI {
             e.printStackTrace();
         }
 
-        RequestBody body = RequestBody.create(JSON, params.toString());
+        HTTPTransaction.post(OGConstants.BELLINI_DM_ADDRESS+"/ogdevice/commandack", params, null);
 
-        Request request = new Request.Builder()
-                .url(OGConstants.BELLINI_DM_ADDRESS+"/ogdevice/commandack")
-                .post(body)
-                .build();
-
-        execRequest(request);
     }
 
     public static void appKillAck(String appId){
@@ -213,14 +115,8 @@ public class BelliniDMAPI {
             e.printStackTrace();
         }
 
-        RequestBody body = RequestBody.create(JSON, params.toString());
+        HTTPTransaction.post(OGConstants.BELLINI_DM_ADDRESS+"/ogdevice/commandack", params, null);
 
-        Request request = new Request.Builder()
-                .url(OGConstants.BELLINI_DM_ADDRESS+"/ogdevice/commandack")
-                .post(body)
-                .build();
-
-        execRequest(request);
     }
 
     public static void appMoveAck(String appId, int slot){
@@ -236,14 +132,8 @@ public class BelliniDMAPI {
             e.printStackTrace();
         }
 
-        RequestBody body = RequestBody.create(JSON, params.toString());
+        HTTPTransaction.post(OGConstants.BELLINI_DM_ADDRESS+"/ogdevice/commandack", params, null);
 
-        Request request = new Request.Builder()
-                .url(OGConstants.BELLINI_DM_ADDRESS+"/ogdevice/commandack")
-                .post(body)
-                .build();
-
-        execRequest(request);
     }
 
     // TODO should we do something other than throw this on the floor if it fails?
@@ -263,32 +153,14 @@ public class BelliniDMAPI {
             e.printStackTrace();
         }
 
-        RequestBody body = RequestBody.create(JSON, params.toString());
+        HTTPTransaction.post(OGConstants.BELLINI_DM_ADDRESS+"/ogdevice/programchange", params, null);
 
-        Request request = new Request.Builder()
-                .url(OGConstants.BELLINI_DM_ADDRESS+"/ogdevice/programchange")
-                .post(body)
-                .build();
-
-        execRequest(request);
     }
 
-    private static void execRequest(Request request){
-        ABApplication.okclient.newCall(request).enqueue(new Callback() {
-
-            @Override public void onFailure(Call call, IOException e) {
-                e.printStackTrace();
-                Log.wtf(TAG, "Was not able to execute request (1)");
-            }
-
-            @Override public void onResponse(Call call, Response response) throws IOException {
-                if (response.code() == 200){
-                    Log.d(TAG, "Request successful with Bellini, yay!");
-                } else {
-                    Log.d(TAG, "Was not able to execute request (2). Code: "+response.code());
-
-                }
-            }
-        });
+    public static void registerSTBPairing(SetTopBox setTopBox){
+        String url = OGConstants.BELLINI_DM_ADDRESS+"/ogdevice/regstbpairing?deviceUDID="+OGSystem.getUDID();
+        RequestBody body = RequestBody.create(JSON, setTopBox.toJsonString());
+        HTTPTransaction.post(url, body, null);
     }
+
 }

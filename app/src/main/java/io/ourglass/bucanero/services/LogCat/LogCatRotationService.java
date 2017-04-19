@@ -43,7 +43,7 @@ public class LogCatRotationService extends IntentService {
     private static Handler wakeUpAndWorkHandler;
     private static File currentLTFFile;
 
-    private final static String LOG_UPLOAD_ENDPOINT = OGConstants.ASAHI_MEDIA_ENDPOINT;
+    private final static String LOG_UPLOAD_ENDPOINT = OGConstants.BELLINI_MEDIA_ENDPOINT;
 
     private static File appDirectory;
     private static File logDirectory;

@@ -205,6 +205,7 @@ public class OGSystem {
         setPairedSTBIpAddress(stb.ipAddress);
         ///setPairedSTBType(stb.carrier);
         putStringToPrefs("pairedSTB", stb.toJsonString());
+        BelliniDMAPI.registerSTBPairing(stb);
     }
 
     /**
@@ -274,6 +275,14 @@ public class OGSystem {
 
     public static void setFastBootMode(boolean isFast){
         putBoolToPrefs("fastBootMode", true);
+    }
+
+    public static void setOGCloudDBId(String dbId) {
+        putStringToPrefs("OGCloudDBId", dbId);
+    }
+
+    public static String getOGCloudDBId() {
+        return getStringFromPrefs("OGCloudDBId", null);
     }
 
     public static JSONObject getSystemInfo() {

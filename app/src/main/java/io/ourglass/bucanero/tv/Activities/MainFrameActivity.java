@@ -32,6 +32,7 @@ import io.ourglass.bucanero.core.OGSystemExceptionHander;
 import io.ourglass.bucanero.messages.LaunchAppMessage;
 import io.ourglass.bucanero.messages.OnScreenNotificationMessage;
 import io.ourglass.bucanero.messages.SystemStatusMessage;
+import io.ourglass.bucanero.objects.NetworkException;
 import io.ourglass.bucanero.tv.Fragments.OGWebViewFragment;
 import io.ourglass.bucanero.tv.Fragments.OverlayFragmentListener;
 import io.ourglass.bucanero.tv.Fragments.SystemInfoFragment;
@@ -184,7 +185,7 @@ public class MainFrameActivity extends FragmentActivity implements OverlayFragme
             }
 
             @Override
-            public void error(Error err) {
+            public void error(NetworkException e) {
                 //TODO some intelligent handling!
                 Log.e(TAG, "FAILED getting app status from cloud!");
                 showSystemToast("Error restoring app state!", null);
@@ -229,7 +230,6 @@ public class MainFrameActivity extends FragmentActivity implements OverlayFragme
 
     @Override
     public void onPause() {
-
         super.onPause();
     }
 
@@ -241,6 +241,7 @@ public class MainFrameActivity extends FragmentActivity implements OverlayFragme
                 .scaleX(0f)
                 .scaleY(0f)
                 .rotationY(90f)
+                .translationY(-1000)
                 .setDuration(1000)
                 .setStartDelay(1000)
                 .start();

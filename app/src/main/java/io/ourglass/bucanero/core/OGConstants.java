@@ -1,7 +1,5 @@
 package io.ourglass.bucanero.core;
 
-import android.graphics.Color;
-
 import java.util.regex.Pattern;
 
 /**
@@ -69,13 +67,13 @@ public class OGConstants {
 
     public static final String BELLINI_ADDRESS = "http://138.68.230.239:2001";
 
-    public static final String ASAHI_API_ENDPOINT = "/api/v1/";
+    public static final String BELLINI_API_PREFIX = "/api/v1/";
     public static final String ASAHI_ACCEPTED_AD_ENDPOINT = "/ad/getAccepted";
     public static final String ASAHI_VENUE_AD_ENDPOINT = "/ad/forVenue/";
-    public static final String ASAHI_MEDIA_ENDPOINT = "/media/download/";
+    public static final String BELLINI_MEDIA_ENDPOINT = "/media/download/";
 
-    public static final String INTERNAL_PATH_TO_MEDIA = "/data/data/io.ourglass.amstelbright2/media/";
-    public static final String EXTERNAL_PATH_TO_MEDIA = "/api/admedia/";
+//    public static final String INTERNAL_PATH_TO_MEDIA = "/data/data/io.ourglass.amstelbright2/media/";
+//    public static final String EXTERNAL_PATH_TO_MEDIA = "/api/admedia/";
 
     // When using git, use the one below
     //public static final String PATH_TO_ABWL = "/Android/data/me.sheimi.sgit/files/repo/AmstelBrightLimeWWW";
@@ -107,13 +105,6 @@ public class OGConstants {
     //normally this is FALSE, set to test effects of hard pairing
     public static final boolean SIMULATE_HARD_PAIR = false;
     public static final String ETHERNET_HARD_PAIR_IP_ADDRESS = "10.21.200.2";
-
-    public static final int DIRECTV_PAIR_CANCELED_RESULT_CODE = 0;
-    public static final int DIRECTV_PAIR_CONFIRMED_RESULT_CODE = 1;
-
-    public static final int DIRECTV_PAIR_ACTIVITY_BACKGROUND_GREEN = Color.parseColor("#51B85E");
-
-    public static final int WIFI_MANAGE_ACTIVITY_BACKGROUND_ORANGE = Color.parseColor("#F6921E");
 
     public static final String[] WIFI_STRENGTH_LEVELS = new String[]{"None", "Poor", "Fair", "Good", "Excellent"};
 

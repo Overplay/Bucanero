@@ -1,7 +1,7 @@
 <?xml version="1.0" encoding="utf-8"?>
 <RelativeLayout xmlns:android="http://schemas.android.com/apk/res/android"
     xmlns:tools="http://schemas.android.com/tools"
-    android:id="@+id/activity_main_frame"
+    android:id="@+id/mainframeLayout"
     android:layout_width="match_parent"
     android:layout_height="match_parent"
     tools:context=".tv.Activities.MainFrameActivity"
@@ -38,12 +38,12 @@
         android:textColor="#ffffff" />
 
     <ImageView
-        android:layout_width="300dip"
+        android:layout_width="500dip"
         android:layout_height="wrap_content"
         android:id="@+id/bootBugIV"
-        android:src="@drawable/bug600x500"
-        android:layout_above="@+id/textViewMsg"
+        android:src="@drawable/ourglass_logo"
         android:layout_centerHorizontal="true"
+        android:layout_centerVertical="true"
         />
 
     <RelativeLayout

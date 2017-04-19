@@ -231,7 +231,11 @@ public class PairDirecTVFragment extends OverlayFragment {
                 mSTBArrayAdapter.refreshDevices(new SetTopBoxAdapter.UpdateListener() {
                     @Override
                     public void done() {
-                        uiListRefresh();
+                        try {
+                            uiListRefresh();
+                        } catch (Exception e){
+                            Log.d(TAG, "Exception on refresh upon STB list background refresh. Probably dead frag.");
+                        }
                     }
                 });
 

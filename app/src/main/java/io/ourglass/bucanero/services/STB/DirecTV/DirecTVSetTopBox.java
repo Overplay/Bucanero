@@ -4,6 +4,7 @@ import android.util.Log;
 
 import com.google.gson.Gson;
 
+import org.json.JSONException;
 import org.json.JSONObject;
 
 import io.ourglass.bucanero.objects.SetTopBox;
@@ -131,6 +132,7 @@ public class DirecTVSetTopBox extends SetTopBox {
         String json = gson.toJson(this);
         return json;
     }
+
 
 }
 

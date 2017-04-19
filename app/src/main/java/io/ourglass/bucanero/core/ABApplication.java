@@ -129,11 +129,17 @@ public class ABApplication extends Application {
 
                     Thread.sleep(delay);
                     sendBootMessage("Contacting OG Cloud");
-                    // System registers its existance every time it fires up
-                    BelliniDMAPI.registerDeviceWithBellini();
+
+
+                    // System registers its existance if it hasn't already
+                    if (OGSystem.getOGCloudDBId()==null)
+                        BelliniDMAPI.registerDeviceWithBellini(null);
+
                     // This is a test mode that automatically associates a box/emu with the OG Office in Campbell
                     if (OGConstants.AUTO_REG_TO_OGOFFICE) {
                         BelliniDMAPI.associateDeviceWithVenueUUID(BelliniDMAPI.TEMP_OG_OFFICE_VUUID);
+                    } else if (OGSystem.getVenueId().isEmpty()){
+                        BelliniDMAPI.associateDeviceWithVenueUUID(BelliniDMAPI.LIMBO_VUUID);
                     }
 
                     Thread.sleep(delay);
@@ -155,6 +161,15 @@ public class ABApplication extends Application {
 
             }
         }).start();
+
+
+    }
+
+
+    private void bootSyncWithCloud(){
+
+        // 1. Run a registration pass. If this box is already registered, we get back the last settings
+        // saved in the cloud which we sync into this box.
 
 
     }
