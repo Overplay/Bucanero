@@ -61,7 +61,7 @@ public class STBPollingService extends Service {
                 JSONObject stbJson = DirecTVAPI.stbInfo(OGConstants.ETHERNET_HARD_PAIR_IP_ADDRESS);
                 if (stbJson != null || OGConstants.SIMULATE_HARD_PAIR) {
                     Log.d(TAG, "We are hard paired!");
-                    OGSystem.setPairedSTBIpAddress("10.21.200.2");
+                    //OGSystem.setPairedSTBIpAddress("10.21.200.2");
                     DirecTVSetTopBox newSTB = new DirecTVSetTopBox(null,
                             OGConstants.ETHERNET_HARD_PAIR_IP_ADDRESS,
                             SetTopBox.STBConnectionType.IPGENERIC,
@@ -70,6 +70,10 @@ public class STBPollingService extends Service {
                     bus.post(newSTB);
                 } else {
                     Log.d(TAG, "Hard pair check failed!");
+                    if (OGSystem.isHardPaired()){
+                        Log.d(TAG, "System thinks it is hard paired, but no response from STB, unpairing.");
+                        OGSystem.unpairSTB();
+                    }
                 }
             }
         };

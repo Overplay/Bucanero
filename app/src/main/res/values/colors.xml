@@ -3,8 +3,13 @@
 <resources>
     <!-- OG color palette -->
 
-    <color name="OGGREEN">#51B85E</color>
+    <color name="OGGREEN">#52B85E</color>
     <color name="OGDARKGRAY">#333333</color>
+    <color name="OGLIGHTGRAY">#4e4e4e</color>
+    <color name="OGHURRICANE_BLUE">#27B9EC</color>
+    <color name="OGOLDFASH_ORANGE">#F69320</color>
+    <color name="OGVODKACRAN_RED">#EF4839</color>
+
 
     <color name="BLALPHA85">#d7000000</color>
     <color name="BLALPHA75">#be000000</color>

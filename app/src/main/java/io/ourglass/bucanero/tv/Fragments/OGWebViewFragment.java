@@ -188,7 +188,7 @@ public class OGWebViewFragment extends WebViewFragment {
         getWebView().setLayoutParams(params);
 
         if (ANIMATE_MOTION){
-            OGAnimations.moveView(getWebView(), mFrame.location, OGAnimations.MoveAnimation.FLASHY);
+            OGAnimations.moveView(getWebView(), mFrame.location, OGAnimations.MoveAnimation.SLIDE);
 
         } else {
             getWebView().setTranslationX(mFrame.location.x);

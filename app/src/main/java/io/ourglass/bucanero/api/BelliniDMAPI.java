@@ -24,7 +24,7 @@ public class BelliniDMAPI {
     // This will only work until 138 is reset
     // TODO do a fetch and save or create an auto-reg endpoint for OG Office
     public static final String TEMP_OG_OFFICE_VUUID = "7dbfe156-5ffc-4513-99ee-ba5af5704390";
-    public static final String LIMBO_VUUID = "limbo-limbo-limbo";
+    public static final String BULLPEN_VUUID = "bullpen-hey-battabatta";
     public static final MediaType JSON
             = MediaType.parse("application/json; charset=utf-8");
 
@@ -46,7 +46,25 @@ public class BelliniDMAPI {
 
     }
 
-    public static void associateDeviceWithVenueUUID(String venueUUID){
+    private static JSONCallback getFYICallback(final String message) {
+        return new JSONCallback() {
+            @Override
+            public void jsonCallback(JSONObject jsonData) {
+                Log.d(TAG, "FYI: " + message);
+            }
+
+            @Override
+            public void error(NetworkException e) {
+                Log.e(TAG, "FYI FAILED: " + message + " CODE: " + e.statusCode);
+
+            }
+        };
+    }
+
+    public static void associateDeviceWithVenueUUID(String venueUUID, JSONCallback cb){
+
+        if (cb==null)
+            cb = getFYICallback("OGDevice associate with Venue with Bellini");
 
         JSONObject params = new JSONObject();
 
@@ -57,21 +75,27 @@ public class BelliniDMAPI {
             e.printStackTrace();
         }
 
-        HTTPTransaction.post(OGConstants.BELLINI_DM_ADDRESS + "/ogdevice/associateWithVenue", params, new JSONCallback() {
-            @Override
-            public void jsonCallback(JSONObject jsonData) {
-                Log.d(TAG, "OGDevice successfully associated with Venue with Bellini, yay!");
-            }
-
-            @Override
-            public void error(NetworkException e) {
-                Log.e(TAG, "OGDevice FAILED associating venue with Bellini. CODE: "+e.statusCode);
-
-            }
-        });
-
+        HTTPTransaction.post(OGConstants.BELLINI_DM_ADDRESS + "/ogdevice/associateWithVenue", params, cb);
 
     }
+
+    public static void getRegCode(JSONCallback cb){
+
+        if (cb==null)
+            cb = getFYICallback("OGDevice wants a code without a callback, this is dumb!");
+
+        JSONObject params = new JSONObject();
+
+        try {
+            params.put("deviceUDID", OGSystem.getUDID());
+        } catch (JSONException e) {
+            e.printStackTrace();
+        }
+
+        HTTPTransaction.post(OGConstants.BELLINI_DM_ADDRESS + "/ogdevice/regcode", params, cb);
+
+    }
+
 
     public static void getAppStatusFromCloud(final JSONCallback callback){
         String url = OGConstants.BELLINI_DM_ADDRESS+"/ogdevice/appstatus?deviceUDID="+OGSystem.getUDID();
@@ -163,4 +187,8 @@ public class BelliniDMAPI {
         HTTPTransaction.post(url, body, null);
     }
 
+    public static void getMe(JSONCallback callback){
+        String url = OGConstants.BELLINI_DM_ADDRESS+"/ogdevice/findByUDID?deviceUDID="+OGSystem.getUDID();
+        HTTPTransaction.get(url, callback);
+    }
 }

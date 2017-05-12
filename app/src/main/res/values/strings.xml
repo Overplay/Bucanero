@@ -3,4 +3,12 @@
 
     <!-- TODO: Remove or change this placeholder text -->
     <string name="hello_blank_fragment">Hello blank fragment</string>
+
+    <string name="venue_pair_instructions">Please enter the code below into your Ourglass app,
+        or through the Ourglass web site, to register this OG System with your account. The
+    code will automatically expire in 5 minutes, so get busy.</string>
+
+    <string name="venue_code_placeholder">----</string>
+    <string name="venue_already_paired">This OG System is already registered. If you wish to de-register this
+    device and move it to a new venue, you must do this via your account at ourglass.tv.</string>
 </resources>

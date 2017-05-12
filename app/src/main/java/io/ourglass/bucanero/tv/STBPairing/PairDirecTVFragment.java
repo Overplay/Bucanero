@@ -27,7 +27,6 @@ import io.ourglass.bucanero.core.OGSystem;
 import io.ourglass.bucanero.core.OGUi;
 import io.ourglass.bucanero.messages.MainThreadBus;
 import io.ourglass.bucanero.objects.SetTopBox;
-import io.ourglass.bucanero.services.SSDP.SSDPBroadcastReceiver;
 import io.ourglass.bucanero.services.SSDP.SSDPResult;
 import io.ourglass.bucanero.services.SSDP.SSDPService;
 import io.ourglass.bucanero.services.STB.DirecTV.DirecTVSetTopBox;
@@ -42,10 +41,7 @@ public class PairDirecTVFragment extends OverlayFragment {
 
     public static final String TAG = "PairDirecTVFragment";
 
-    static final int REQUEST_CODE = 43;
-
     TextView mTitle;
-    //TextView mErrorMsg;
     TextView mCurrentPair;
     ListView mDirectvDevicesList;
     TextView mEmptyListMessage;
@@ -59,9 +55,6 @@ public class PairDirecTVFragment extends OverlayFragment {
     ArrayList<SetTopBox> mFoundBoxes = new ArrayList<>();
     SetTopBoxAdapter mSTBArrayAdapter;
 
-    SSDPBroadcastReceiver mSsdpBR;
-
-    public String lastIpAddressClicked;
     public SetTopBox lastSTBClicked;
 
     private MainThreadBus bus = ABApplication.ottobus;

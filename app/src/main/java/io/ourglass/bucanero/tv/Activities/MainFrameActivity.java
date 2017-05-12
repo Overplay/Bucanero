@@ -9,6 +9,7 @@ import android.support.v4.app.FragmentTransaction;
 import android.util.Log;
 import android.view.KeyEvent;
 import android.view.SurfaceView;
+import android.view.View;
 import android.view.ViewTreeObserver;
 import android.view.WindowManager;
 import android.widget.ImageView;
@@ -30,6 +31,7 @@ import io.ourglass.bucanero.core.OGHardware;
 import io.ourglass.bucanero.core.OGSystem;
 import io.ourglass.bucanero.core.OGSystemExceptionHander;
 import io.ourglass.bucanero.messages.LaunchAppMessage;
+import io.ourglass.bucanero.messages.OGLogMessage;
 import io.ourglass.bucanero.messages.OnScreenNotificationMessage;
 import io.ourglass.bucanero.messages.SystemStatusMessage;
 import io.ourglass.bucanero.objects.NetworkException;
@@ -37,10 +39,14 @@ import io.ourglass.bucanero.tv.Fragments.OGWebViewFragment;
 import io.ourglass.bucanero.tv.Fragments.OverlayFragmentListener;
 import io.ourglass.bucanero.tv.Fragments.SystemInfoFragment;
 import io.ourglass.bucanero.tv.STBPairing.PairDirecTVFragment;
+import io.ourglass.bucanero.tv.SettingsAndSetup.SettingsFragment;
+import io.ourglass.bucanero.tv.SettingsAndSetup.WelcomeFragment;
 import io.ourglass.bucanero.tv.Support.Frame;
 import io.ourglass.bucanero.tv.Support.OGAnimations;
 import io.ourglass.bucanero.tv.Support.OGApp;
 import io.ourglass.bucanero.tv.Support.Size;
+import io.ourglass.bucanero.tv.VenuePairing.PairVenueFragment;
+import io.ourglass.bucanero.tv.WiFi.WiFiPickerFragment;
 import io.socket.client.Socket;
 
 
@@ -63,7 +69,7 @@ public class MainFrameActivity extends FragmentActivity implements OverlayFragme
 
 
 
-    private enum OverlayMode {NONE, SYSINFO, STBPAIR, WIFI, SETUP, OTHER}
+    private enum OverlayMode {NONE, SYSINFO, STBPAIR, WIFI, SETUP, OTHER, VENUEPAIR, SETTINGS, WELCOME}
 
     private OverlayMode mOverlayMode = OverlayMode.NONE;
 
@@ -78,11 +84,19 @@ public class MainFrameActivity extends FragmentActivity implements OverlayFragme
         Log.d(TAG, "Is demo H/W? " + (OGSystem.isTronsmart() ? "YES" : "NO"));
         Log.d(TAG, "Is real OG H/W? " + (OGSystem.isRealOG() ? "YES" : "NO"));
         Log.d(TAG, "Is emulated H/W? " + (OGSystem.isEmulator() ? "YES" : "NO"));
+        Log.d(TAG, "Is Nexus 10?: "+ (OGSystem.isNexus()  ? "YES" : "NO" ));
 
         if (OGSystem.isTronsmart()) {
             setContentView(R.layout.activity_main_frame_tronsmart);
-        } else if (OGSystem.isEmulator()) {
+        } else if (OGSystem.isEmulator() || OGSystem.isNexus()) {
             setContentView(R.layout.activity_main_frame_emulator);
+            ((ImageView)findViewById(R.id.bkgImage)).setOnClickListener(new View.OnClickListener() {
+                @Override
+                public void onClick(View v) {
+                    Log.d(TAG, "Background image tapped.");
+                    launchSTBPairFragment();
+                }
+            });
         } else if (OGSystem.isRealOG()) {
             Log.d(TAG, "We're running on a real OG, but this logic is not implemented yet");
             finish();
@@ -150,6 +164,7 @@ public class MainFrameActivity extends FragmentActivity implements OverlayFragme
                     getFragmentManager().beginTransaction()
                             .add(R.id.mainframeLayout, mCrawlerWebViewFrag).commit();
 
+                    getSavedStateFromCloud();
 
                 }
 
@@ -188,7 +203,12 @@ public class MainFrameActivity extends FragmentActivity implements OverlayFragme
             public void error(NetworkException e) {
                 //TODO some intelligent handling!
                 Log.e(TAG, "FAILED getting app status from cloud!");
-                showSystemToast("Error restoring app state!", null);
+                runOnUiThread(new Runnable() {
+                    @Override
+                    public void run() {
+                        showSystemToast("Error restoring app state!", null);
+                    }
+                });
             }
         });
     }
@@ -246,7 +266,17 @@ public class MainFrameActivity extends FragmentActivity implements OverlayFragme
                 .setStartDelay(1000)
                 .start();
 
-        getSavedStateFromCloud();
+        // TODO this seems like there's a race condition with the below
+        //getSavedStateFromCloud();
+
+        if (OGSystem.isFirstTimeSetup()){
+            mBootBugImageView.postDelayed(new Runnable() {
+                @Override
+                public void run() {
+                    launchWelcomeFragment();
+                }
+            }, 2000);
+        }
 
     }
 
@@ -312,31 +342,51 @@ public class MainFrameActivity extends FragmentActivity implements OverlayFragme
         }
 
         if (keyCode == 10) {
-//            Log.d(TAG, "Dissmissing overlay fragment");
-//            dismissOverlayFragment();
+
+            launchVenuePairFragment();
         }
 
         if (keyCode == 11) {
 
-            //recordAudio("testaudio.mp3");
+            launchSettingsFragment();
 
         }
 
-        if ((keyCode == 12) && OGConstants.CRASH_TEST_DUMMY) {
+        if (keyCode == 12) {
+
+            launchWiFiFragment();
+
+        }
+
+        if (keyCode == 13) {
+
+            OGLogMessage.newHeartbeatLog().post();
+
+        }
+
+        if ((keyCode == 16) && OGConstants.CRASH_TEST_DUMMY) {
             //int zed = 1 / 0;
         }
 
         return false;
     }
 
+    public boolean dismissIfNeeded(OverlayMode mode){
 
-    private void launchSTBPairFragment() {
-
-        if (mOverlayMode == OverlayMode.STBPAIR) {
+        if (mOverlayMode == mode) {
             mOverlayMode = OverlayMode.NONE;
             dismissOverlayFragment();
-            return;
+            return true;
         }
+
+        return false;
+
+    }
+
+    public void launchSTBPairFragment() {
+
+        if (dismissIfNeeded(OverlayMode.STBPAIR))
+            return;
 
         Log.d(TAG, "Launching TV Pair fragment");
         mOverlayMode = OverlayMode.STBPAIR;
@@ -346,13 +396,10 @@ public class MainFrameActivity extends FragmentActivity implements OverlayFragme
 
     }
 
-    private void launchSysInfoFragment() {
+    public void launchSysInfoFragment() {
 
-        if (mOverlayMode == OverlayMode.SYSINFO) {
-            mOverlayMode = OverlayMode.NONE;
-            dismissOverlayFragment();
+        if (dismissIfNeeded(OverlayMode.SYSINFO))
             return;
-        }
 
         Log.d(TAG, "Launching System Info fragment");
         mOverlayMode = OverlayMode.SYSINFO;
@@ -361,7 +408,52 @@ public class MainFrameActivity extends FragmentActivity implements OverlayFragme
         insertOverlayFragment(sif);
     }
 
-    private void removeOverlayFragment() {
+    public void launchVenuePairFragment() {
+
+        if (dismissIfNeeded(OverlayMode.VENUEPAIR))
+            return;
+
+        Log.d(TAG, "Launching Venue Pair fragment");
+        mOverlayMode = OverlayMode.VENUEPAIR;
+        PairVenueFragment sif = PairVenueFragment.newInstance();
+        insertOverlayFragment(sif);
+    }
+
+    public void launchWiFiFragment() {
+
+        if (dismissIfNeeded(OverlayMode.WIFI))
+            return;
+
+        Log.d(TAG, "Launching WiFi  fragment");
+        mOverlayMode = OverlayMode.WIFI;
+        WiFiPickerFragment wif = WiFiPickerFragment.newInstance();
+        insertOverlayFragment(wif);
+    }
+
+    public void launchSettingsFragment() {
+
+        if (dismissIfNeeded(OverlayMode.SETTINGS))
+            return;
+
+        Log.d(TAG, "Launching Settings  fragment");
+        mOverlayMode = OverlayMode.SETTINGS;
+        SettingsFragment wif = SettingsFragment.newInstance();
+        insertOverlayFragment(wif);
+    }
+
+    public void launchWelcomeFragment() {
+
+        if (dismissIfNeeded(OverlayMode.WELCOME))
+            return;
+
+        Log.d(TAG, "Launching Welcome fragment");
+        mOverlayMode = OverlayMode.WELCOME;
+        WelcomeFragment wif = WelcomeFragment.newInstance();
+        insertOverlayFragment(wif);
+
+    }
+
+    public void removeOverlayFragment() {
 
         Fragment oldFrag = getSupportFragmentManager()
                 .findFragmentById(R.id.overlayFragmentHolder);
@@ -378,7 +470,7 @@ public class MainFrameActivity extends FragmentActivity implements OverlayFragme
     }
 
     // Call this when you aren't doing a replace in order to get the widgets to 100% alpha
-    private void dismissOverlayFragment() {
+    public void dismissOverlayFragment() {
         removeOverlayFragment();
         mCrawlerWebViewFrag.fadeIn();
         mWidgetWebViewFrag.fadeIn();

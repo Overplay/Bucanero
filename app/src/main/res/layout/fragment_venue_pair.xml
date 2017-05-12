@@ -1,0 +1,140 @@
+<?xml version="1.0" encoding="utf-8"?>
+<RelativeLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    android:layout_width="match_parent"
+    android:layout_height="match_parent"
+    android:background="@color/OGGREEN"
+    android:orientation="vertical">
+
+    <!-- HEADER -->
+
+    <LinearLayout
+        android:id="@+id/header_wrapper"
+        android:layout_width="match_parent"
+        android:layout_height="@dimen/overlay_header_block_height"
+        android:layout_alignParentTop="true"
+        android:background="#333333"
+        android:orientation="vertical">
+
+        <!--Title/Header-->
+        <TextView
+            android:id="@+id/venue_pair_title"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:layout_marginLeft="@dimen/overlay_inset"
+            android:layout_marginRight="@dimen/overlay_inset"
+            android:paddingTop="@dimen/overlay_title_pad_top"
+            android:text="VENUE REGISTRATION"
+            android:textAllCaps="true"
+            android:textColor="@color/White"
+            android:textSize="@dimen/overlay_title_font_size"
+            android:textStyle="bold" />
+
+        <!-- Status Message -->
+        <TextView
+            android:id="@+id/current_pair"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:layout_below="@+id/headerTV"
+            android:layout_marginBottom="@dimen/overlay_subtitle_margin_bot"
+            android:layout_marginLeft="@dimen/overlay_inset_plus"
+            android:layout_marginRight="@dimen/overlay_inset"
+            android:layout_marginTop="@dimen/overlay_subtitle_margin_top"
+            android:text="Currently paired to: w.x.y.z"
+            android:textColor="@color/LightSteelBlue"
+            android:textSize="@dimen/overlay_subtitle_font_size"
+            android:textStyle="bold"
+            android:visibility="gone"/>
+
+    </LinearLayout>
+
+    <!-- STB Picker List and Empty List Message -->
+
+    <RelativeLayout
+        android:id="@+id/codeHolder"
+        android:layout_width="match_parent"
+        android:layout_height="match_parent"
+        android:layout_marginLeft="@dimen/overlay_inset_plus"
+        android:layout_marginRight="@dimen/overlay_inset"
+        android:layout_below="@+id/header_wrapper">
+
+        <TextView
+            android:id="@+id/instructionsTV"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:textAlignment="center"
+            android:textColor="@color/White"
+            android:text="@string/venue_pair_instructions"
+            android:layout_marginTop="60px"
+            android:textSize="20dip" />
+
+        <TextView
+            android:id="@+id/codeTV"
+            android:layout_below="@id/instructionsTV"
+            android:layout_marginTop="80px"
+            android:layout_centerInParent="true"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:textAlignment="center"
+            android:textColor="@color/White"
+            android:background="#333333"
+            android:text="@string/venue_code_placeholder"
+            android:textSize="120px"
+            android:padding="20px"/>
+
+        <ProgressBar
+            android:id="@+id/progressBar"
+            style="?android:attr/progressBarStyleHorizontal"
+            android:layout_below="@id/codeTV"
+            android:layout_centerHorizontal="true"
+            android:layout_width="400px"
+            android:layout_marginTop="20px"
+            android:layout_height="wrap_content" />
+
+
+    </RelativeLayout>
+
+    <RelativeLayout
+        android:id="@+id/alreadyPairedHolder"
+        android:layout_width="match_parent"
+        android:layout_height="match_parent"
+        android:layout_marginLeft="@dimen/overlay_inset_plus"
+        android:layout_marginRight="@dimen/overlay_inset"
+        android:layout_below="@+id/header_wrapper">
+
+        <TextView
+            android:id="@+id/alreadyPairedTV"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:textAlignment="center"
+            android:textColor="@color/White"
+            android:text="@string/venue_already_paired"
+            android:layout_marginTop="120px"
+            android:textSize="30dip" />
+
+
+    </RelativeLayout>
+
+    <RelativeLayout
+        android:id="@+id/pairDoneHolder"
+        android:layout_width="match_parent"
+        android:layout_height="match_parent"
+        android:layout_marginLeft="@dimen/overlay_inset_plus"
+        android:layout_marginRight="@dimen/overlay_inset"
+        android:layout_below="@+id/header_wrapper">
+
+        <TextView
+            android:id="@+id/pairDoneTV"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:textAlignment="center"
+            android:textColor="@color/White"
+            android:text="@string/venue_already_paired"
+            android:layout_marginTop="120px"
+            android:textSize="30dip" />
+
+
+    </RelativeLayout>
+
+
+</RelativeLayout>
+

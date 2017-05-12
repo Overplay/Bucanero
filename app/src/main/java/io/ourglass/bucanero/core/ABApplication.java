@@ -11,19 +11,30 @@ import android.widget.Toast;
 
 import net.danlew.android.joda.JodaTimeAndroid;
 
+import org.json.JSONObject;
+
+import java.io.File;
+import java.io.IOException;
+import java.text.SimpleDateFormat;
+import java.util.Calendar;
+
 import io.ourglass.bucanero.api.BelliniDMAPI;
 import io.ourglass.bucanero.messages.MainThreadBus;
 import io.ourglass.bucanero.messages.OnScreenNotificationMessage;
 import io.ourglass.bucanero.messages.SystemStatusMessage;
+import io.ourglass.bucanero.objects.NetworkException;
 import io.ourglass.bucanero.services.Connectivity.ConnectivityService;
 import io.ourglass.bucanero.services.Connectivity.EthernetPort;
 import io.ourglass.bucanero.services.Connectivity.NetworkingUtils;
-import io.ourglass.bucanero.services.LogCat.LogCatRotationService;
+import io.ourglass.bucanero.services.OGLog.OGLogService;
 import io.ourglass.bucanero.services.STB.STBPollingService;
 import io.ourglass.bucanero.services.SocketIO.SocketIOManager;
 import io.realm.Realm;
 import io.realm.RealmConfiguration;
 import okhttp3.OkHttpClient;
+
+import static android.R.attr.delay;
+import static io.ourglass.bucanero.core.OGSystem.isExternalStorageWritable;
 
 /**
  * Created by mkahn on 5/18/16.
@@ -64,14 +75,8 @@ public class ABApplication extends Application {
             e.printStackTrace();
         }
 
-        // Logcat messages go to a file...
-        if (isExternalStorageWritable() && OGConstants.LOGCAT_TO_FILE) {
-            Intent logCatServiceIntent = new Intent(this, LogCatRotationService.class);
-            startService(logCatServiceIntent);
-        }
-
         JodaTimeAndroid.init(this);
-
+        //LogCat.takeLogcatSnapshotAndPost();
         boot();
 
     }
@@ -82,14 +87,6 @@ public class ABApplication extends Application {
         }
     }
 
-    /* Checks if external storage is available for read and write */
-    public boolean isExternalStorageWritable() {
-        String state = Environment.getExternalStorageState();
-        if (Environment.MEDIA_MOUNTED.equals(state)) {
-            return true;
-        }
-        return false;
-    }
 
     public void boot() {
         if (OGSystem.getFastBootMode()) {
@@ -103,12 +100,20 @@ public class ABApplication extends Application {
 
     private void startServices() {
 
+        Intent logIntent = new Intent(this, OGLogService.class);
+        startService(logIntent);
+
         Intent connectivityIntent = new Intent(this, ConnectivityService.class);
         startService(connectivityIntent);
 
         Intent stbIntent = new Intent(this, STBPollingService.class);
         startService(stbIntent);
 
+        // Logcat messages go to a file...
+//        if (OGSystem.isExternalStorageWritable() && OGConstants.LOGCAT_TO_FILE) {
+//            Intent logCatServiceIntent = new Intent(this, LogCatRotationService.class);
+//            startService(logCatServiceIntent);
+//        }
     }
 
     private void sendBootMessage(String message){
@@ -128,31 +133,17 @@ public class ABApplication extends Application {
                     EthernetPort.bringUpEthernetPort();
 
                     Thread.sleep(delay);
-                    sendBootMessage("Contacting OG Cloud");
 
-
-                    // System registers its existance if it hasn't already
-                    if (OGSystem.getOGCloudDBId()==null)
-                        BelliniDMAPI.registerDeviceWithBellini(null);
-
-                    // This is a test mode that automatically associates a box/emu with the OG Office in Campbell
-                    if (OGConstants.AUTO_REG_TO_OGOFFICE) {
-                        BelliniDMAPI.associateDeviceWithVenueUUID(BelliniDMAPI.TEMP_OG_OFFICE_VUUID);
-                    } else if (OGSystem.getVenueId().isEmpty()){
-                        BelliniDMAPI.associateDeviceWithVenueUUID(BelliniDMAPI.LIMBO_VUUID);
-                    }
+                    NetworkingUtils.getDeviceIpAddresses();
 
                     Thread.sleep(delay);
-                    NetworkingUtils.getDeviceIpAddresses();
 
                     sendBootMessage("Starting Services");
                     startServices();
 
                     Thread.sleep(delay);
-                    sendBootMessage("All Done!");
-
-                    // Longer delay if fast boot
-                    sendBootComplete(delay == 0 ? 5000: 500);
+                    sendBootMessage("Contacting OG Cloud");
+                    bootSyncWithCloud();
 
 
                 } catch (InterruptedException e) {
@@ -166,10 +157,50 @@ public class ABApplication extends Application {
     }
 
 
+    private JSONCallback regCallback = new JSONCallback() {
+        @Override
+        public void jsonCallback(JSONObject jsonData) {
+            // 3. Update canonical settings
+            OGSystem.updateFromOGCloud();
+            sendBootMessage("All Done!");
+            // Longer delay if fast boot
+            sendBootComplete(delay == 0 ? 5000: 500);
+        }
+
+        @Override
+        public void error(NetworkException e) {
+            Log.e(TAG, "What the fuck just happened?");
+            sendBootComplete(delay == 0 ? 5000: 500);
+        }
+
+    };
+
     private void bootSyncWithCloud(){
+
 
         // 1. Run a registration pass. If this box is already registered, we get back the last settings
         // saved in the cloud which we sync into this box.
+        BelliniDMAPI.registerDeviceWithBellini(new JSONCallback() {
+            @Override
+            public void jsonCallback(JSONObject jsonData) {
+
+                // 2. Register with either OG Office or Limbo
+
+                if (OGConstants.AUTO_REG_TO_OGOFFICE) {
+                    BelliniDMAPI.associateDeviceWithVenueUUID(BelliniDMAPI.TEMP_OG_OFFICE_VUUID, regCallback);
+                } else if (OGSystem.getVenueId().isEmpty()){
+                    BelliniDMAPI.associateDeviceWithVenueUUID(BelliniDMAPI.BULLPEN_VUUID, regCallback);
+                }
+
+            }
+
+            @Override
+            public void error(NetworkException e) {
+                sendBootMessage("Check Internet, Could Not Contact OG Cloud");
+                // Longer delay if fast boot
+                sendBootComplete(delay == 0 ? 5000: 500);
+            }
+        });
 
 
     }
@@ -187,6 +218,51 @@ public class ABApplication extends Application {
             }
         }).start();
     }
+
+
+    // This is here for trying to figure out HTF logcat actually works!
+    public void logcat(){
+
+        if ( isExternalStorageWritable() && OGConstants.LOGCAT_TO_FILE ) {
+
+            File appDirectory = new File( Environment.getExternalStorageDirectory() + "/Bucanero" );
+            File logDirectory = new File( appDirectory + "/logs" );
+
+            // create app folder
+            if ( !appDirectory.exists() ) {
+                appDirectory.mkdir();
+            }
+
+            // create log folder
+            if ( !logDirectory.exists() ) {
+                logDirectory.mkdir();
+            }
+
+            Calendar now = Calendar.getInstance();
+            SimpleDateFormat sdf = new SimpleDateFormat("MM-dd-yy-HH:mm:ss");
+            String time = sdf.format(now.getTime());
+
+            String fileName = "AxLogCat-" + time +
+                    "-" + System.currentTimeMillis() + ".log";
+
+            //File logFile = new File( logDirectory, fileName );
+
+            File logFile = new File( logDirectory, "EFUCKING.log" );
+
+            // clear the previous logcat and then write the new one to the file
+            try {
+                Process process = Runtime.getRuntime().exec( "logcat -c");
+                Thread.sleep(1000);
+                process = Runtime.getRuntime().exec( "logcat  -r 256 -v long -f " + logFile + "");
+            } catch ( IOException e ) {
+                e.printStackTrace();
+            } catch (InterruptedException e) {
+                e.printStackTrace();
+            }
+
+        }
+    }
+
 
 
 }

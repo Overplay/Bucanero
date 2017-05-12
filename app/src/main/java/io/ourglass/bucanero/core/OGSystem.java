@@ -4,6 +4,7 @@ package io.ourglass.bucanero.core;
 import android.content.Context;
 import android.content.SharedPreferences;
 import android.os.Build;
+import android.os.Environment;
 import android.provider.Settings;
 import android.util.Log;
 
@@ -13,6 +14,7 @@ import org.json.JSONException;
 import org.json.JSONObject;
 
 import io.ourglass.bucanero.api.BelliniDMAPI;
+import io.ourglass.bucanero.objects.NetworkException;
 import io.ourglass.bucanero.objects.SetTopBox;
 import io.ourglass.bucanero.objects.TVShow;
 import io.ourglass.bucanero.services.Connectivity.NetworkingUtils;
@@ -75,10 +77,8 @@ public class OGSystem {
         mEditor.apply();
     }
 
-    public static boolean getBoolFromPrefs(String key) {
-
-        return mPrefs.getBoolean(key, false);
-
+    public static boolean getBoolFromPrefs(String key, boolean defaultValue) {
+        return mPrefs.getBoolean(key, defaultValue);
     }
 
     /*
@@ -128,7 +128,16 @@ public class OGSystem {
      * @return boolean if we're running in emulator
      */
     public static boolean isEmulator() {
-        return Build.FINGERPRINT.contains("generic");
+        return OGConstants.FORCE_EMULATOR || Build.FINGERPRINT.contains("generic");
+    }
+
+
+    /**
+     *
+     * @return boolean if we're running on Nexus 10
+     */
+    public static boolean isNexus() {
+        return Build.HARDWARE.equalsIgnoreCase("manta");
     }
 
     /**
@@ -180,7 +189,7 @@ public class OGSystem {
 
     // Set top pairing
 
-    public static void setPairedSTBIpAddress(String ipAddr) {
+    private static void setPairedSTBIpAddress(String ipAddr) {
         putStringToPrefs("pairedSTBIpAddress", ipAddr);
     }
 
@@ -197,7 +206,7 @@ public class OGSystem {
         return getStringFromPrefs("pairedSTBType", null);
     }
 
-    public static void setPairedSTBType(String stbType) {
+    private static void setPairedSTBType(String stbType) {
         putStringToPrefs("pairedSTBType", stbType);
     }
 
@@ -206,6 +215,14 @@ public class OGSystem {
         ///setPairedSTBType(stb.carrier);
         putStringToPrefs("pairedSTB", stb.toJsonString());
         BelliniDMAPI.registerSTBPairing(stb);
+    }
+
+    public static void unpairSTB(){
+
+        setPairedSTBIpAddress(null);
+        setPairedSTBType(null);
+        putStringToPrefs("pairedSTB", null);
+
     }
 
     /**
@@ -270,7 +287,7 @@ public class OGSystem {
     // Fast boot mode just fires everything off at once and does not signal any messages
     // Slow boot is more dramatic and looks like "work is being done" :)
     public static boolean getFastBootMode(){
-        return getBoolFromPrefs("fastBootMode");
+        return getBoolFromPrefs("fastBootMode", false);
     }
 
     public static void setFastBootMode(boolean isFast){
@@ -396,6 +413,39 @@ public class OGSystem {
         return getStringFromPrefs("deviceToken", "");
     }
 
+    public static boolean isFirstTimeSetup() {
+        return getBoolFromPrefs("firstTimeSetup", true);
+    }
+
+    public static void setFirstTimeSetup(boolean isFirst){
+        putBoolToPrefs("firstTimeSetup", isFirst);
+    }
+
+    public static void updateFromOGCloud(){
+
+        BelliniDMAPI.getMe(new JSONCallback() {
+            @Override
+            public void jsonCallback(JSONObject jsonData) {
+                // Assume OGCloud is canonical on the following and update local
+                String venueUUID = jsonData.optString("atVenueUUID", null);
+                if (venueUUID!=null){
+                    Log.d(TAG, "Updating local venue ID from OG Cloud");
+                    setVenueId(venueUUID);
+                }
+
+                String name = jsonData.optString("name", "No Name");
+                if (name!=null){
+                    Log.d(TAG, "Updating local system name from OG Cloud");
+                    setSystemName(name);
+                }
+            }
+
+            @Override
+            public void error(NetworkException e) {
+                Log.e(TAG, "There was a problem retrieving OGDevice from OG Cloud.");
+            }
+        });
+    }
 
     /*******************************************************************************
      *
@@ -479,6 +529,15 @@ public class OGSystem {
             }
         }
     }
+    /* Checks if external storage is available for read and write */
+    public static boolean isExternalStorageWritable() {
+        String state = Environment.getExternalStorageState();
+        if (Environment.MEDIA_MOUNTED.equals(state)) {
+            return true;
+        }
+        return false;
+    }
+
 
 }
 

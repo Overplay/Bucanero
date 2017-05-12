@@ -15,9 +15,16 @@ public class OGConstants {
     public static final Boolean USE_LOCAL_SERVER = false;
     public static final String CODE_REV_NAME = "Bucanero";
 
-    public static final int BOOT_DELAY = 5000; //ms between boot steps in Slow Boot Mode
+    public static final boolean FORCE_EMULATOR = false;  // use this to run on a tablet for testing
+
+    // Normally, you can't venue pair if a venue is set, this is for testing
+    public static final boolean FORCE_VENUE_PAIR = true;
+
+    public static final int BOOT_DELAY = 500; //ms between boot steps in Slow Boot Mode
 
     public static String BELLINI_DM_ADDRESS = USE_LOCAL_SERVER ? "http://10.0.2.2:2001" : "http://138.68.230.239:2001";
+    //public static String BELLINI_DM_ADDRESS = USE_LOCAL_SERVER ? "http://10.0.2.2:2001" : "http://192.168.1.172:2001";
+
     public static String SOCKET_IO_ADDRESS = BELLINI_DM_ADDRESS; //alias
 
     // Force automatic venue registration to the OG Office in Campbell
@@ -31,7 +38,7 @@ public class OGConstants {
     public static final boolean TEST_MODE = true;
     public static final boolean CRASH_TEST_DUMMY = true; // enable force crash on '5' button
     public static final boolean SHOW_DB_TOASTS = false;
-    public static final boolean LOGCAT_TO_FILE = false; // Off until I am sure it works [mak]
+    public static final boolean LOGCAT_TO_FILE = true; // Off until I am sure it works [mak]
 
 
 

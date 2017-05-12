@@ -16,6 +16,7 @@ import android.util.Log;
 import org.json.JSONObject;
 
 import java.io.File;
+import java.io.FileFilter;
 import java.io.IOException;
 import java.text.SimpleDateFormat;
 import java.util.Calendar;
@@ -40,18 +41,15 @@ import okhttp3.Response;
  */
 public class LogCatRotationService extends IntentService {
     private static final String TAG = "LogCatRotationService";
-    private static Handler wakeUpAndWorkHandler;
+
+    private static Handler mHandler = new Handler();
     private static File currentLTFFile;
 
     private final static String LOG_UPLOAD_ENDPOINT = OGConstants.BELLINI_MEDIA_ENDPOINT;
 
-    private static File appDirectory;
-    private static File logDirectory;
+    private static File appDirectory = new File(Environment.getExternalStorageDirectory() + "/Bucanero" );
+    private static File logDirectory = new File( appDirectory + "/logs" );;
 
-    @Override
-    public void onCreate(){
-
-    }
 
     @Nullable
     @Override
@@ -61,7 +59,6 @@ public class LogCatRotationService extends IntentService {
 
     public LogCatRotationService(){
         super("LogCatRotationService");
-
     }
 
     @Override
@@ -71,10 +68,6 @@ public class LogCatRotationService extends IntentService {
 
     @Override
     public int onStartCommand(Intent intent, int flags, int startId) {
-        /* set up the logging file structure */
-        //set up the directories
-        appDirectory = new File( Environment.getExternalStorageDirectory() + "/ABLogs" );
-        logDirectory = new File( appDirectory + "/log" );
 
         // create app folder
         if ( !appDirectory.exists() ) {
@@ -86,45 +79,44 @@ public class LogCatRotationService extends IntentService {
             logDirectory.mkdir();
         }
 
-        /* set up the repeater */
-        wakeUpAndWorkHandler = new Handler();
+        startRotatingLogcat();
 
         Runnable repeater = new Runnable() {
             @Override
             public void run() {
                 //generate a new LTFFile
-                File newLTFFile = generateNewLTFFileName();
-
-                if(newLTFFile != null){
-                    //redirect logcat to new file
-                    boolean redirectSuccess = startLoggingToNewFile(newLTFFile);
-                    if(redirectSuccess){
-                        /*
-                        doesn't appear that there is any need to close file as the logcat command handles all of this
-                        leaving this in in case there is a problem with this in the future, however at present there is no evident problem
-                         */
-
-                        //set the current file reference to the new file
-                        currentLTFFile = newLTFFile;
-
-                        attemptUploadOfOldestLogFile();
-                    }
-                    else {
-                        Log.e(TAG, "Could not redirect logcat to the new file");
-                    }
-                }
-                else {
-                    Log.e(TAG, "Could not create a new logging file");
-                }
-
-                attemptUploadOfOldestLogFile();
-
-                //run this every hour
-                wakeUpAndWorkHandler.postDelayed(this, 1000 * 60 * 60);
+//                File newLTFFile = generateNewLTFFileName();
+//
+//                if(newLTFFile != null){
+//                    //redirect logcat to new file
+//                    boolean redirectSuccess = startLoggingToNewFile(newLTFFile);
+//                    if(redirectSuccess){
+//                        /*
+//                        doesn't appear that there is any need to close file as the logcat command handles all of this
+//                        leaving this in in case there is a problem with this in the future, however at present there is no evident problem
+//                         */
+//
+//                        //set the current file reference to the new file
+//                        currentLTFFile = newLTFFile;
+//
+//                        attemptUploadOfOldestLogFile();
+//                    }
+//                    else {
+//                        Log.e(TAG, "Could not redirect logcat to the new file");
+//                    }
+//                }
+//                else {
+//                    Log.e(TAG, "Could not create a new logging file");
+//                }
+//
+//                attemptUploadOfOldestLogFile();
+//
+//                //run this every hour
+//                mHandler.postDelayed(this, OGConstants.LOG_FILE_ROTATE_PERIOD);
             }
         };
 
-        boolean repeating = wakeUpAndWorkHandler.postDelayed(repeater, 1000);
+        boolean repeating = mHandler.postDelayed(repeater, 1000);
 
         return START_NOT_STICKY;
     }
@@ -134,8 +126,14 @@ public class LogCatRotationService extends IntentService {
      * if upload succeeds, will delete the file
      */
     private void attemptUploadOfOldestLogFile() {
+
         //get the current log files
-        File[] files = logDirectory.listFiles();
+        File[] files = logDirectory.listFiles(new FileFilter() {
+            @Override
+            public boolean accept(File pathname) {
+                return pathname.getName().contains("LogCat-");
+            }
+        });
 
         //make sure we only upload/remove a logfile if it isn't the only one (and likely the current)
         if(files.length > 1){
@@ -179,7 +177,7 @@ public class LogCatRotationService extends IntentService {
 
     /**
      * creates a new ltf file in the sdcard/ABLogs/logs directory.
-     * File name will take the form of logcat-[uuid]-[mmddyy]-[hh:mm:ss].txt based on the current time
+     * File name will take the form of logcat-[mmddyy]-[hh:mm:ss]-[utime].txt based on the current time
      * @return created file
      */
     public static File generateNewLTFFileName(){
@@ -188,7 +186,8 @@ public class LogCatRotationService extends IntentService {
         SimpleDateFormat sdf = new SimpleDateFormat("MMddyy-HH:mm:ss");
         String timeStr = sdf.format(now.getTime());
 
-        String fileName = "logcat-" + OGSystem.getUDID() + "-" + timeStr + ".txt";
+        String fileName = "LogCatSWWW-" + timeStr +
+                "-" + System.currentTimeMillis() + ".txt";
 
         File logFile = new File( logDirectory, fileName );
 
@@ -202,15 +201,14 @@ public class LogCatRotationService extends IntentService {
      * @return true if logcat system command succeeds, false otherwise
      */
     public static boolean startLoggingToNewFile(File newLogFile){
+
         boolean redirectSuccessful = false;
 
         // clear the previous logcat and then write the new one to the file
         try {
             Process process = Runtime.getRuntime().exec( "logcat -c");
-            process = Runtime.getRuntime().exec( "logcat -f " + newLogFile + "");
-
+            process = Runtime.getRuntime().exec( "logcat -d -f " + newLogFile.getAbsolutePath());
             redirectSuccessful = true;
-
         } catch ( IOException e ) {
             e.printStackTrace();
         }
@@ -248,73 +246,55 @@ public class LogCatRotationService extends IntentService {
 
     /**
      * Extracts the date information from the supplied file's name and creates a date object from it
-     * @param logFile the log file with date information in the form "logcat-[uuid]-[mmddyy]-[hh:mm:ss].txt"
+     * @param logFile the log file with date information in the form "logcat-[mmddyy]-[hh:mm:ss]-[utime].txt"
      * @return date object corresponding to file's name, null if not formatted correctly
      */
     public static Date extractDateFromFileName(File logFile){
-        String fileName = logFile.getName();
 
-        int month = 0, day = 0, year = 0, hours = 0, minutes = 0, seconds = 0;
+        String fname[] = logFile.getName().split("-");
+        String lastComponent = fname[fname.length-1];
+        String utime = lastComponent.replace(".txt", "");
+        Long utimel = Long.parseLong(utime);
+        return new Date(utimel);
 
-        //remove the prefix
-        int prefixIdx = fileName.indexOf("logcat-");
-        if(prefixIdx == -1){
-            Log.e(TAG, "there is a file (" + logFile.getName() + ") in the log directory, with an incorrectly formatted name, please remove this");
-            return null;
-        }
-        fileName = fileName.substring(prefixIdx + "logcat-".length());
-
-        //remove uuid
-        fileName = fileName.substring(fileName.indexOf("-") + 1);
-
-        //get mmddyy string
-        String dateStr = fileName.substring(0,fileName.indexOf("-"));
-        if(dateStr.length() != 6){
-            Log.e(TAG, "apparent illegal datestring in fileName (" + logFile.getName() + ") (could also be caused by missing uuid");
-            return null;
-        }
-        String monthString = dateStr.substring(0,2);
-        String dayString = dateStr.substring(2,4);
-        String yearString = "20" + dateStr.substring(4);
-
-        //extract values from mmddyy
-        try{
-            month = Integer.parseInt(monthString);
-            day = Integer.parseInt(dayString);
-            year = Integer.parseInt(yearString);
-        } catch (NumberFormatException e){
-            Log.e(TAG, "apparent illegal datestring in fileName (" + logFile.getName() + ") (could also be caused by missing uuid");
-            return null;
-        }
-        fileName = fileName.substring(fileName.indexOf("-") + 1);
-
-        //extract hours, minutes, and seconds
-        int firstColon = fileName.indexOf(":");
-        int secondColon = fileName.indexOf(":", firstColon + 1);
-
-        String hoursString = fileName.substring(0, firstColon);
-        String minutesString = fileName.substring(firstColon + 1, secondColon);
-        String secondsString = fileName.substring(secondColon + 1, fileName.indexOf(".txt"));
-
-        if(hoursString.length() != 2|| minutesString.length() != 2 || secondsString.length() != 2){
-            Log.e(TAG, "apparent illegal minutes or seconds value in fileName (" + logFile.getName() + ")");
-            return null;
-        }
-        try {
-            hours = Integer.parseInt(hoursString);
-            minutes = Integer.parseInt(minutesString);
-            seconds = Integer.parseInt(secondsString);
-        } catch (NumberFormatException e){
-            Log.e(TAG, "apparent illegal minutes or seconds value in fileName (" + logFile.getName() + ")");
-            return null;
-        }
-
-        //create and return date from values
-        Calendar c = Calendar.getInstance();
-        c.set(year, month, day, hours, minutes, seconds);
-
-        return c.getTime();
     }
+
+    public void startRotatingLogcat(){
+
+        if ( OGSystem.isExternalStorageWritable() && OGConstants.LOGCAT_TO_FILE ) {
+
+            File appDirectory = new File( Environment.getExternalStorageDirectory() + "/Bucanero" );
+            File logDirectory = new File( appDirectory + "/logs" );
+            Calendar now = Calendar.getInstance();
+            SimpleDateFormat sdf = new SimpleDateFormat("HH-mm-ss-SSS");
+            String time = sdf.format(now.getTime());
+
+            String fileName = "LogCat2FUCK-" + time +
+                    "-" + System.currentTimeMillis() + ".log";
+
+            File logFile = new File( logDirectory, fileName );
+
+            // create app folder
+            if ( !appDirectory.exists() ) {
+                appDirectory.mkdir();
+            }
+
+            // create log folder
+            if ( !logDirectory.exists() ) {
+                logDirectory.mkdir();
+            }
+
+            // clear the previous logcat and then write the new one to the file
+            try {
+                Process process = Runtime.getRuntime().exec( "logcat -c");
+                process = Runtime.getRuntime().exec( "logcat -b all -v time -f " + logFile + " -r 64");
+            } catch ( IOException e ) {
+                e.printStackTrace();
+            }
+
+        }
+    }
+
 
     /**
      * posts the contents of the supplied file to /media/upload with the associated body parameters
@@ -327,6 +307,7 @@ public class LogCatRotationService extends IntentService {
         postFile.execute(oldLogFile);
     }
 
+    @Deprecated
     private static class PostFileTask extends AsyncTask<File, Void, Boolean> {
 
         private Exception exception;

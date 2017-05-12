@@ -190,6 +190,10 @@ public class SocketIOManager {
                 changeChannel(robj);
                 break;
 
+            case "cloud_record_update":
+                OGSystem.updateFromOGCloud();
+                break;
+
             default:
                 Log.d(TAG, "Did not recognize inbound action");
         }

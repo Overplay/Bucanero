@@ -1,0 +1,256 @@
+<?xml version="1.0" encoding="utf-8"?>
+<RelativeLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    android:layout_width="match_parent"
+    android:layout_height="match_parent"
+    android:background="@color/OGGREEN"
+    android:orientation="vertical">
+
+    <!-- HEADER -->
+
+    <LinearLayout
+        android:id="@+id/header_wrapper"
+        android:layout_width="match_parent"
+        android:layout_height="@dimen/overlay_header_block_height"
+        android:layout_alignParentTop="true"
+        android:background="#333333"
+        android:orientation="vertical">
+
+        <!--Title/Header-->
+        <TextView
+            android:id="@+id/wifiSetupHeader"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:layout_marginLeft="@dimen/overlay_inset"
+            android:layout_marginRight="@dimen/overlay_inset"
+            android:paddingTop="@dimen/overlay_title_pad_top"
+            android:text="WIFI SETUP"
+            android:textAllCaps="true"
+            android:textColor="@color/White"
+            android:textSize="@dimen/overlay_title_font_size"
+            android:textStyle="bold" />
+
+        <!-- Status Message -->
+        <TextView
+            android:id="@+id/wifiSetupSubHeader"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:layout_below="@+id/headerTV"
+            android:layout_marginBottom="@dimen/overlay_subtitle_margin_bot"
+            android:layout_marginLeft="@dimen/overlay_inset_plus"
+            android:layout_marginRight="@dimen/overlay_inset"
+            android:layout_marginTop="@dimen/overlay_subtitle_margin_top"
+            android:text=""
+            android:textColor="@color/LightSteelBlue"
+            android:textSize="@dimen/overlay_subtitle_font_size"
+            android:textStyle="bold" />
+
+    </LinearLayout>
+
+    <!-- SSID Picker List and Empty List Message -->
+
+    <RelativeLayout
+        android:id="@+id/listHolder"
+        android:layout_width="match_parent"
+        android:layout_height="match_parent"
+        android:layout_below="@+id/header_wrapper">
+
+        <ListView
+            android:id="@+id/wifiNetworkList"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:layout_alignParentTop="true"
+            android:layout_marginBottom="30dip"
+            android:layout_marginLeft="100dip"
+            android:layout_marginRight="100dip"
+            android:layout_marginTop="30dip"
+            android:listSelector="#00000000"></ListView>
+
+        <TextView
+            android:id="@+id/empty_list_message"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:layout_below="@+id/wifiNetworkList"
+            android:textAlignment="center"
+            android:textColor="@color/White"
+            android:textSize="30dip"
+            android:visibility="gone" />
+
+    </RelativeLayout>
+
+
+    <RelativeLayout
+        android:id="@+id/scanningHolder"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:layout_centerInParent="true">
+
+        <!--android:layout_marginLeft="30dip"-->
+
+        <com.github.rahatarmanahmed.cpv.CircularProgressView xmlns:app="http://schemas.android.com/apk/res-auto"
+            android:id="@+id/progress_view"
+            android:layout_width="120dp"
+            android:layout_height="120dp"
+            android:layout_centerInParent="true"
+            app:cpv_animAutostart="true"
+            app:cpv_color="@color/White"
+            app:cpv_indeterminate="true" />
+
+        <!--android:layout_marginLeft="50dp"-->
+        <!--android:layout_marginTop="20dp"-->
+
+        <ImageView
+            android:id="@+id/imageView"
+            android:layout_width="80dp"
+            android:layout_height="80dp"
+            android:layout_centerInParent="true"
+            android:contentDescription="Wifi Icon"
+            android:src="@drawable/white_wifi_256" />
+
+        <TextView
+            android:id="@+id/scanningMessage"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:layout_below="@+id/progress_view"
+            android:layout_marginTop="120px"
+            android:text="Scanning WiFi"
+            android:textSize="30dip"
+            android:textColor="@color/White"
+            android:textAlignment="center"/>
+
+    </RelativeLayout>
+
+    <!-- PASSWORD ENTRY -->
+    <RelativeLayout
+        android:id="@+id/passwordHolder"
+        android:layout_width="600dip"
+        android:layout_height="wrap_content"
+        android:layout_centerInParent="true">
+
+        <TextView
+            android:id="@+id/passwordPromptTV"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:layout_marginBottom="30px"
+            android:text="Please enter the WiFi password below."
+            android:textAlignment="center"
+            android:textColor="@color/White"
+            android:textSize="30dip" />
+
+        <EditText
+            android:id="@+id/editTextPassword"
+            android:layout_below="@+id/passwordPromptTV"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:ems="10"
+            android:layout_marginBottom="60px"
+            android:inputType="textPassword" />
+
+        <Button
+            android:id="@+id/buttonPasswordOK"
+            android:layout_width="match_parent"
+            android:layout_height="@dimen/overlay_button_height"
+            android:layout_below="@+id/editTextPassword"
+            android:layout_marginBottom="10dip"
+            android:background="@drawable/action_button"
+            android:textColor="@color/White"
+            android:text="OK"/>
+
+        <Button
+            android:id="@+id/buttonPasswordCancel"
+            android:layout_width="match_parent"
+            android:layout_height="@dimen/overlay_button_height"
+            android:layout_below="@+id/buttonPasswordOK"
+            android:background="@drawable/cancel_button"
+            android:textColor="@color/White"
+            android:text="CANCEL"/>
+
+    </RelativeLayout>
+
+    <RelativeLayout
+        android:id="@+id/alreadyConnectedHolder"
+        android:layout_width="600dip"
+        android:layout_height="wrap_content"
+        android:layout_centerInParent="true">
+
+        <TextView
+            android:id="@+id/hardPairPromptTV"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:layout_marginBottom="30dip"
+            android:text="WiFi is connected to the Internet on the network below!"
+            android:textAlignment="center"
+            android:textColor="@color/White"
+            android:textSize="30dip" />
+
+        <TextView
+            android:id="@+id/currentSSIDTV"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:layout_below="@+id/hardPairPromptTV"
+            android:layout_marginBottom="30dip"
+            android:text="-"
+            android:textAlignment="center"
+            android:textColor="@color/White"
+            android:textSize="24dip" />
+
+        <Button
+            android:id="@+id/buttonChangeWiFi"
+            android:layout_width="match_parent"
+            android:layout_height="@dimen/overlay_button_height"
+            android:layout_below="@+id/currentSSIDTV"
+            android:background="@drawable/action_button"
+            android:textColor="@color/White"
+            android:text="CHANGE WIFI SETTINGS"
+            android:layout_marginBottom="30px"/>
+
+        <Button
+            android:id="@+id/buttonCancelWiFi"
+            android:layout_width="match_parent"
+            android:layout_height="@dimen/overlay_button_height"
+            android:layout_below="@+id/buttonChangeWiFi"
+            android:background="@drawable/cancel_button"
+            android:textColor="@color/White"
+            android:text="EXIT" />
+
+    </RelativeLayout>
+
+    <RelativeLayout
+        android:id="@+id/connectFailHolder"
+        android:layout_width="600dip"
+        android:layout_height="wrap_content"
+        android:layout_centerInParent="true">
+
+
+        <TextView
+            android:id="@+id/connectFailTV"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:layout_marginBottom="30dip"
+            android:text="Failed to connect."
+            android:textAlignment="center"
+            android:textColor="@color/White"
+            android:textSize="30dip" />
+
+        <Button
+            android:id="@+id/buttonScanAgain"
+            android:layout_width="match_parent"
+            android:layout_height="@dimen/overlay_button_height"
+            android:layout_below="@+id/connectFailTV"
+            android:layout_marginBottom="10dip"
+            android:background="@drawable/action_button"
+            android:textColor="@color/White"
+            android:text="TRY AGAIN"/>
+
+        <Button
+            android:id="@+id/buttonQuitSetup"
+            android:layout_width="match_parent"
+            android:layout_height="@dimen/overlay_button_height"
+            android:layout_below="@+id/buttonScanAgain"
+            android:background="@drawable/cancel_button"
+            android:textColor="@color/White"
+            android:text="QUIT"/>
+
+
+    </RelativeLayout>
+
+</RelativeLayout>

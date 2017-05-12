@@ -50,7 +50,7 @@ import io.ourglass.bucanero.messages.MainThreadBus;
 public class SSDPService extends Service implements SSDPHandlerThread.SSDPListener {
 
     public static final String TAG = "OGDiscoService";
-    public static final long CONSIDERED_FRESH = 10 * 1000; // 10 seconds
+    public static final long CONSIDERED_FRESH = 1 * 1000; // 1 seconds
 
     private SSDPHandlerThread mSSDPDicoveryThread;
 

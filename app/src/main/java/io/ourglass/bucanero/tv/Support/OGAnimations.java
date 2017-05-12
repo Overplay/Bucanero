@@ -29,8 +29,8 @@ public class OGAnimations {
         switch (animType){
 
             case SLIDE:
-                v.animate().translationX(destination.x).setDuration(1000);
-                v.animate().translationY(destination.y).setDuration(1000);
+                v.animate().translationX(destination.x).setDuration(500);
+                v.animate().translationY(destination.y).setDuration(500);
                 break;
 
             case FLASHY:
