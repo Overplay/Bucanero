@@ -2,6 +2,7 @@ package io.ourglass.bucanero.services.Connectivity;
 
 import java.io.BufferedReader;
 import java.io.InputStreamReader;
+import java.util.ArrayList;
 
 /**
  * Created by mkahn on 1/26/17.
@@ -16,7 +17,7 @@ public class ShellExecutor {
     }
 
     public interface ShellExecutorListener {
-        public void results(String results);
+        public void results(ArrayList<String> results);
     }
 
     public void exec(final String command) {
@@ -25,7 +26,7 @@ public class ShellExecutor {
             @Override
             public void run() {
 
-                StringBuffer output = new StringBuffer();
+                ArrayList<String> output = new ArrayList<>();
 
                 Process p;
                 try {
@@ -35,15 +36,16 @@ public class ShellExecutor {
 
                     String line = "";
                     while ((line = reader.readLine()) != null) {
-                        output.append(line + "n");
+                        //output.append(line + "n");
+                        output.add(line);
                     }
 
                 } catch (Exception e) {
                     e.printStackTrace();
                 }
-                String response = output.toString();
+
                 if (mListener != null) {
-                    mListener.results(response);
+                    mListener.results(output);
                 }
             }
         };

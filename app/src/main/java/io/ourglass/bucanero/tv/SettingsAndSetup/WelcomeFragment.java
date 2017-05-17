@@ -71,6 +71,7 @@ public class WelcomeFragment extends OverlayFragment {
             }
         });
 
+
         cancelButton = (Button)getView().findViewById(R.id.buttonCancel);
         cancelButton.setTypeface(OGUi.getRegularFont());
         cancelButton.setOnClickListener(new View.OnClickListener() {
@@ -86,15 +87,15 @@ public class WelcomeFragment extends OverlayFragment {
     }
 
 
-    @Override
-    public void onResume() {
-        super.onResume();
-    }
-
-    @Override
-    public void onPause() {
-        super.onPause();
-    }
+//    @Override
+//    public void onResume() {
+//        super.onResume();
+//    }
+//
+//    @Override
+//    public void onPause() {
+//        super.onPause();
+//    }
 
 
     public void dismiss(View v){

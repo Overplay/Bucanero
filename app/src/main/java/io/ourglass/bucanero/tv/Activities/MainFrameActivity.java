@@ -300,6 +300,15 @@ public class MainFrameActivity extends FragmentActivity implements OverlayFragme
 
     }
 
+    @Override
+    public void onBackPressed(){
+
+        if (mOverlayMode!=OverlayMode.NONE){
+            dismissOverlayFragment();
+        }
+
+    }
+
     /**
      * This was copied over from AB as placeholder
      *

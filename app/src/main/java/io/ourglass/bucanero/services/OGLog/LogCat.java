@@ -2,9 +2,11 @@ package io.ourglass.bucanero.services.OGLog;
 
 import android.util.Log;
 
+import org.json.JSONArray;
 import org.json.JSONException;
 import org.json.JSONObject;
 
+import java.util.ArrayList;
 import java.util.Date;
 
 import io.ourglass.bucanero.messages.OGLogMessage;
@@ -29,7 +31,7 @@ public class LogCat {
 
         ShellExecutor logcatSnappy = new ShellExecutor(new ShellExecutor.ShellExecutorListener() {
             @Override
-            public void results(String results) {
+            public void results(ArrayList<String> results) {
                 Log.d(TAG, "Result of logcat exec: "+results);
 
             }
@@ -46,12 +48,13 @@ public class LogCat {
 
         ShellExecutor logcatSnappy = new ShellExecutor(new ShellExecutor.ShellExecutorListener() {
             @Override
-            public void results(String results) {
+            public void results(ArrayList<String> results) {
                 Log.d(TAG, "Result of logcat exec: "+results);
 
                 JSONObject msg = new JSONObject();
                 try {
-                    msg.put("logcat", results);
+                    JSONArray lines = new JSONArray(results);
+                    msg.put("logcat", lines);
                     msg.put("timestamp", new Date().getTime());
                 } catch (JSONException e) {
                     e.printStackTrace();

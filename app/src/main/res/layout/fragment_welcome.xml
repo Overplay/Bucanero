@@ -51,10 +51,10 @@
         android:layout_width="match_parent"
         android:layout_height="match_parent"
         android:layout_below="@+id/header_wrapper"
-        android:orientation="vertical"
         android:layout_marginLeft="@dimen/overlay_inset_plus"
         android:layout_marginRight="@dimen/overlay_inset_plus"
-        android:layout_marginTop="100px">
+        android:layout_marginTop="100px"
+        android:orientation="vertical">
 
 
         <TextView
@@ -73,25 +73,25 @@
             android:layout_height="@dimen/overlay_button_height"
             android:layout_marginBottom="10px"
             android:background="@drawable/action_button"
-            android:textColor="@color/White"
+            android:tag="sysinfo"
             android:text="SETUP WIFI"
-            android:tag="sysinfo"/>
+            android:textColor="@color/White">
+            <requestFocus />
+        </Button>
+
 
         <Button
-            android:layout_marginTop="50px"
             android:id="@+id/buttonCancel"
             android:layout_width="match_parent"
             android:layout_height="@dimen/overlay_button_height"
+            android:layout_marginTop="50px"
             android:background="@drawable/cancel_button"
-            android:textColor="@color/White"
+            android:tag="cancel"
             android:text="LATER, GOT A GAME TO WATCH"
-            android:tag="cancel"/>
-
+            android:textColor="@color/White" />
 
 
     </LinearLayout>
-
-
 
 
 </RelativeLayout>

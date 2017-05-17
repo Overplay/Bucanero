@@ -200,7 +200,6 @@ public class OGWebViewFragment extends WebViewFragment {
 
     @Override
     public void onPause(){
-        ABApplication.ottobus.unregister(this);
         super.onPause();
     }
 

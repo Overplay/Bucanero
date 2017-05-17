@@ -21,7 +21,7 @@ public class SystemInfoFragment extends SimpleHeaderTextFragment {
     @Override
     public void onStart(){
         mTitle = "System Information";
-        mSubtitle = "More than you really need to know about this OG!";
+        mSubtitle = "";
         mBody = OGSystem.getSystemInfoString();
         dismissMeAfter(60000);
         super.onStart();

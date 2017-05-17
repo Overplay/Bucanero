@@ -2,6 +2,8 @@ package io.ourglass.bucanero.services.Connectivity;
 
 import android.util.Log;
 
+import java.util.ArrayList;
+
 /**
  * Created by mkahn on 3/31/17.
  */
@@ -21,7 +23,7 @@ public class EthernetPort {
 
         ShellExecutor bringUpUdhcpd = new ShellExecutor(new ShellExecutor.ShellExecutorListener() {
             @Override
-            public void results(String results) {
+            public void results(ArrayList<String> results) {
                 Log.d(TAG, "UDHCPD>>>>> "+results);
                 try {
                     Thread.sleep(5000);
@@ -47,7 +49,7 @@ public class EthernetPort {
                 Log.d(TAG+"/ethBringUp", "Bringup up eth0");
                 ShellExecutor bringUpEth = new ShellExecutor(new ShellExecutor.ShellExecutorListener() {
                     @Override
-                    public void results(String results) {
+                    public void results(ArrayList<String> results) {
                         Log.d(TAG, "IFUP>>>>> "+results);
                         launchUDHCPd();
                     }
