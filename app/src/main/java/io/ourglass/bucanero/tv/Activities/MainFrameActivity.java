@@ -4,14 +4,12 @@ import android.content.Intent;
 import android.graphics.Point;
 import android.os.Bundle;
 import android.support.v4.app.Fragment;
-import android.support.v4.app.FragmentActivity;
 import android.support.v4.app.FragmentTransaction;
 import android.util.Log;
 import android.view.KeyEvent;
 import android.view.SurfaceView;
 import android.view.View;
 import android.view.ViewTreeObserver;
-import android.view.WindowManager;
 import android.widget.ImageView;
 import android.widget.RelativeLayout;
 import android.widget.TextView;
@@ -25,6 +23,7 @@ import org.json.JSONObject;
 import io.ourglass.bucanero.R;
 import io.ourglass.bucanero.api.BelliniDMAPI;
 import io.ourglass.bucanero.core.ABApplication;
+import io.ourglass.bucanero.core.HDMIRxPlayer;
 import io.ourglass.bucanero.core.JSONCallback;
 import io.ourglass.bucanero.core.OGConstants;
 import io.ourglass.bucanero.core.OGHardware;
@@ -50,7 +49,7 @@ import io.ourglass.bucanero.tv.WiFi.WiFiPickerFragment;
 import io.socket.client.Socket;
 
 
-public class MainFrameActivity extends FragmentActivity implements OverlayFragmentListener {
+public class MainFrameActivity extends BaseFullscreenActivity implements OverlayFragmentListener {
 
     private static final String TAG = "MainFrameActivity";
     private RelativeLayout mMainLayout;
@@ -67,7 +66,7 @@ public class MainFrameActivity extends FragmentActivity implements OverlayFragme
     RelativeLayout mOverlayFragmentHolder;
     SurfaceView mTVSurface;
 
-
+    private HDMIRxPlayer mHDMIRxPlayer;
 
     private enum OverlayMode {NONE, SYSINFO, STBPAIR, WIFI, SETUP, OTHER, VENUEPAIR, SETTINGS, WELCOME}
 
@@ -98,15 +97,15 @@ public class MainFrameActivity extends FragmentActivity implements OverlayFragme
                 }
             });
         } else if (OGSystem.isRealOG()) {
-            Log.d(TAG, "We're running on a real OG, but this logic is not implemented yet");
-            finish();
+            setContentView(R.layout.activity_main_frame_zidoo);
         } else {
             Log.wtf(TAG, "Hmmm, this is not any recognized hardware. Exiting");
             finish();
         }
 
-        getWindow().setFlags(WindowManager.LayoutParams.FLAG_FULLSCREEN,
-                WindowManager.LayoutParams.FLAG_FULLSCREEN);
+
+
+        mTVSurface = (SurfaceView) findViewById(R.id.surfaceView);
 
         enableHDMISurface();
 
@@ -124,7 +123,6 @@ public class MainFrameActivity extends FragmentActivity implements OverlayFragme
 
         mOverlayFragmentHolder = (RelativeLayout) findViewById(R.id.overlayFragmentHolder);
 
-        mTVSurface = (SurfaceView) findViewById(R.id.surfaceView);
 
         mMainLayout = (RelativeLayout) findViewById(R.id.mainframeLayout);
         Log.d(TAG, "MainframeLayout id is: " + mMainLayout.getId());
@@ -174,6 +172,8 @@ public class MainFrameActivity extends FragmentActivity implements OverlayFragme
         mBootBugImageView = (ImageView) findViewById(R.id.bootBugIV);
         Log.d(TAG, "onCreate done");
 
+
+
     }
 
     private void enableHDMISurface() {
@@ -182,8 +182,10 @@ public class MainFrameActivity extends FragmentActivity implements OverlayFragme
             Log.d(TAG, "Enabling Video for Tronsmart/Zidoo");
             OGHardware.enableTronsmartHDMI();
         } else if (OGSystem.isRealOG()) {
+            Log.d(TAG, "Enabling Video for ZidooX9S/Realtek");
 
-
+            mHDMIRxPlayer = new HDMIRxPlayer(this, mTVSurface, 1920, 1080);
+            //mTVSurface.setVisibility(View.INVISIBLE);
         }
     }
 

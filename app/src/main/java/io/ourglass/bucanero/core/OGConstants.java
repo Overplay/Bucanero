@@ -12,7 +12,7 @@ public class OGConstants {
     /**
      * SocketIO constants
      */
-    public static final Boolean USE_LOCAL_SERVER = false;
+    public static final Boolean USE_LOCAL_SERVER = true;
     public static final String CODE_REV_NAME = "Bucanero";
 
     public static final boolean FORCE_EMULATOR = false;  // use this to run on a tablet for testing

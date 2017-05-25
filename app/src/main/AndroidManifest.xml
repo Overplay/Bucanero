@@ -9,6 +9,9 @@
     <uses-permission android:name="android.permission.INTERNET" />
     <uses-permission android:name="android.permission.ACCESS_NETWORK_STATE" />
 
+    <!-- Needed for WiFi Scanning!? -->
+    <uses-permission android:name="android.permission.ACCESS_COARSE_LOCATION" />
+
     <!-- permission required to use Alarm Manager -->
     <uses-permission android:name="com.android.alarm.permission.SET_ALARM" />
     <uses-permission android:name="android.permission.WRITE_EXTERNAL_STORAGE" />
@@ -28,36 +31,51 @@
         android:icon="@mipmap/og_launcher"
         android:label="@string/app_name"
         android:launchMode="singleTask"
-        android:supportsRtl="true"
-        android:theme="@android:style/Theme.Black.NoTitleBar.Fullscreen">
+        android:supportsRtl="true">
+
+    <!--<application-->
+        <!--android:name=".core.ABApplication"-->
+        <!--android:allowBackup="true"-->
+        <!--android:icon="@mipmap/og_launcher"-->
+        <!--android:label="@string/app_name"-->
+        <!--android:launchMode="singleTask"-->
+        <!--android:supportsRtl="true"-->
+        <!--android:theme="@android:style/Theme.Black.NoTitleBar.Fullscreen">-->
+        <!--<uses-library android:name="com.realtek" />-->
+
         <activity android:name=".tv.Activities.MainFrameActivity">
+            <!--<intent-filter>-->
+                <!--<action android:name="android.intent.action.MAIN" />-->
+
+                <!--<category android:name="android.intent.category.LAUNCHER" />-->
+            <!--</intent-filter>-->
+        </activity>
+
+        <service
+            android:name=".services.LogCat.LogCatRotationService"
+            android:exported="false" />
+        <service
+            android:name=".services.SSDP.SSDPService"
+            android:exported="false" />
+        <service
+            android:name=".services.Connectivity.ConnectivityService"
+            android:exported="false" />
+        <service
+            android:name=".services.STB.STBPollingService"
+            android:exported="false" />
+        <service
+            android:name=".services.OGLog.OGLogService"
+            android:exported="false" />
+
+        <activity
+            android:name=".tv.Activities.PermissionGateActivity">
             <intent-filter>
                 <action android:name="android.intent.action.MAIN" />
 
                 <category android:name="android.intent.category.LAUNCHER" />
             </intent-filter>
         </activity>
-
-        <service
-            android:name=".services.LogCat.LogCatRotationService"
-            android:exported="false"></service>
-
-        <service
-            android:name=".services.SSDP.SSDPService"
-            android:exported="false"></service>
-
-        <service
-            android:name=".services.Connectivity.ConnectivityService"
-            android:exported="false"></service>
-
-        <service
-            android:name=".services.STB.STBPollingService"
-            android:exported="false"></service>
-
-        <service
-            android:name=".services.OGLog.OGLogService"
-            android:exported="false"></service>
-
     </application>
+
 
 </manifest>

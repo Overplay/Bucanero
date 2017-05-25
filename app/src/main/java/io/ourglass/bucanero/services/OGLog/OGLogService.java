@@ -120,7 +120,7 @@ public class OGLogService extends Service {
             public void run() {
                 Log.d(TAG, "Uploading heartbeat.");
                 OGLogMessage.newHeartbeatLog().post();
-                mWorkerThreadHandler.postDelayed(this, 5 * 1000 * 60);
+                mWorkerThreadHandler.postDelayed(this, 1 * 1000 * 60);
             }
         };
 

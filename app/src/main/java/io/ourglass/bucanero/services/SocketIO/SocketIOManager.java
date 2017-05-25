@@ -9,6 +9,10 @@ import org.json.JSONException;
 import org.json.JSONObject;
 
 import java.net.URISyntaxException;
+import java.util.ArrayList;
+import java.util.HashMap;
+import java.util.List;
+import java.util.Map;
 
 import io.ourglass.bucanero.api.BelliniDMAPI;
 import io.ourglass.bucanero.core.ABApplication;
@@ -23,8 +27,10 @@ import io.ourglass.bucanero.messages.TVControlMessage;
 import io.ourglass.bucanero.objects.TVShow;
 import io.socket.client.Ack;
 import io.socket.client.IO;
+import io.socket.client.Manager;
 import io.socket.client.Socket;
 import io.socket.emitter.Emitter;
+import io.socket.engineio.client.Transport;
 
 /**
  * Created by atorres on 3/6/17.
@@ -38,6 +44,10 @@ public class SocketIOManager {
     private static SocketIOManager instance = new SocketIOManager();
     public static Socket mSocket;
     private static Bus bus = ABApplication.ottobus;
+
+    HashMap<Long, Long> mDedupMap = new HashMap<>();
+
+    private static boolean hasConnected = false;
 
     private Thread mKeepAliveThread;
 
@@ -60,6 +70,7 @@ public class SocketIOManager {
         opts.query = "__sails_io_sdk_version=0.11.0";
         opts.reconnection = true;
         opts.reconnectionDelay = 1000; // TODO is this right?
+        //opts.timeout = 5000;
 
         try {
             mSocket = IO.socket(OGConstants.SOCKET_IO_ADDRESS, opts);
@@ -69,6 +80,37 @@ public class SocketIOManager {
         } catch (URISyntaxException e) {
             Log.e(TAG, e.getLocalizedMessage());
         }
+
+        // Called upon transport creation.
+        mSocket.io().on(Manager.EVENT_TRANSPORT, new Emitter.Listener() {
+            @Override
+            public void call(Object... args) {
+                Transport transport = (Transport)args[0];
+
+                transport.on(Transport.EVENT_REQUEST_HEADERS, new Emitter.Listener() {
+                    @Override
+                    public void call(Object... args) {
+                        @SuppressWarnings("unchecked")
+                        Map<String, List<String>> headers = (Map<String, List<String>>)args[0];
+                        // modify request headers
+                        List<String> fuckage = new ArrayList<String>();
+                        fuckage.add("sails.sid=s%3A8u2LuW-1ClN-8wJjhAgNsJdvb2c-XQ1-.Ur7tRXEDWZ6Czkt13H10qM3iTEm3o2IyUTGmjh0hxdQ");
+                        headers.put("Cookie", fuckage);
+                    }
+                });
+
+                transport.on(Transport.EVENT_RESPONSE_HEADERS, new Emitter.Listener() {
+                    @Override
+                    public void call(Object... args) {
+                        //@SuppressWarnings("unchecked")
+                        //Map<String, List<String>> headers = (Map<String, List<String>>)args[0];
+                        // access response headers
+                        //String cookie = headers.get("Set-Cookie").get(0);
+                    }
+                });
+            }
+        });
+
 
     }
 
@@ -85,8 +127,9 @@ public class SocketIOManager {
             @Override
             public void call(Object... args) {
                 Log.d(TAG, "Socket Connected!");
+                //if (!hasConnected)
                 joinDeviceRoom();
-                keepAlive();
+                //keepAlive();
             }
         });
 
@@ -99,8 +142,8 @@ public class SocketIOManager {
             @Override
             public void call(Object... args) {
                 Log.wtf(TAG, "Socket DISConnected!");
-                mKeepAliveThread.interrupt();
-                setupSocketIO();
+                //mKeepAliveThread.interrupt();
+                //setupSocketIO();
             }
         });
 
@@ -147,6 +190,8 @@ public class SocketIOManager {
             }
         });
 
+        hasConnected = true;
+
     }
 
     private void registerDeviceDMListener() {
@@ -164,39 +209,48 @@ public class SocketIOManager {
         JSONObject robj = (JSONObject) o;
         Log.d(TAG, "Received inbound device DM: " + robj.toString());
 
-        String action = robj.optString("action", "noop");
-        switch (action) {
-            case "ping":
-                sailsSIODeviceMessage(new PingAckMessage().toJson(), null);
-                break;
+        Long ts = robj.optLong("ts", 0L);
+        if (deDedup(ts)){
 
-            case "identify":
-                sailsSIODeviceMessage(new IdentifyMessage().toJson(), null);
-                break;
+            String action = robj.optString("action", "noop");
+            Log.d(TAG, "Inbound command: "+action);
 
-            case "launch":
-                launchApp(robj);
-                break;
+            switch (action) {
+                case "ping":
+                    sailsSIODeviceMessage(new PingAckMessage().toJson(), null);
+                    break;
 
-            case "kill":
-                killApp(robj);
-                break;
+                case "identify":
+                    sailsSIODeviceMessage(new IdentifyMessage().toJson(), null);
+                    break;
 
-            case "move":
-                moveApp(robj);
-                break;
+                case "launch":
+                    launchApp(robj);
+                    break;
 
-            case "tune":
-                changeChannel(robj);
-                break;
+                case "kill":
+                    killApp(robj);
+                    break;
 
-            case "cloud_record_update":
-                OGSystem.updateFromOGCloud();
-                break;
+                case "move":
+                    moveApp(robj);
+                    break;
 
-            default:
-                Log.d(TAG, "Did not recognize inbound action");
+                case "tune":
+                    changeChannel(robj);
+                    break;
+
+                case "cloud_record_update":
+                    OGSystem.updateFromOGCloud();
+                    break;
+
+                default:
+                    Log.d(TAG, "Did not recognize inbound action");
+            }
+
         }
+
+
     }
 
 
@@ -274,6 +328,36 @@ public class SocketIOManager {
         Log.d(TAG, "Got a program change bus message!");
 
     }
+
+
+
+    // Hail Mary
+    private boolean deDedup(Long timeStamp){
+
+        Long now = System.currentTimeMillis();
+        Long stale = now - 10000; // 10 seconds ago
+        ArrayList<Long> staleEntries = new ArrayList<>();
+
+        for (Long ts: mDedupMap.keySet()){
+            if (mDedupMap.get(ts)<stale){
+                Log.d(TAG, "Removing stale command from: "+ts);
+                staleEntries.add(ts);
+            }
+        }
+
+        for (Long ts: staleEntries){
+            mDedupMap.remove(ts);
+        }
+
+        if (mDedupMap.get(timeStamp)==null){
+            mDedupMap.put(timeStamp, System.currentTimeMillis());
+            return true;
+        }
+
+        Log.d(TAG, "This is a dup, tossing");
+        return false;
+    }
+
 
 }
 

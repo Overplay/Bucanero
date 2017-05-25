@@ -47,6 +47,8 @@ public class ABApplication extends Application {
     // Shared by all!
     public static final OkHttpClient okclient = new OkHttpClient();
     public static final MainThreadBus ottobus = new MainThreadBus();
+
+    // Start the SocketIO goodness
     public static final SocketIOManager siomanager = SocketIOManager.getInstance();
 
     @Override
@@ -77,7 +79,7 @@ public class ABApplication extends Application {
 
         JodaTimeAndroid.init(this);
         //LogCat.takeLogcatSnapshotAndPost();
-        boot();
+        //boot();
 
     }
 

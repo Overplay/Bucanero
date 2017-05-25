@@ -11,4 +11,8 @@
     <string name="venue_code_placeholder">----</string>
     <string name="venue_already_paired">This OG System is already registered. If you wish to de-register this
     device and move it to a new venue, you must do this via your account at ourglass.tv.</string>
+
+    <string name="title_activity_permission_gate">PermissionGateActivity</string>
+    <string name="dummy_button">Dummy Button</string>
+    <string name="dummy_content">DUMMY\nCONTENT</string>
 </resources>
