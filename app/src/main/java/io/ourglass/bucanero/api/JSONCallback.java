@@ -1,4 +1,4 @@
-package io.ourglass.bucanero.core;
+package io.ourglass.bucanero.api;
 
 import org.json.JSONObject;
 

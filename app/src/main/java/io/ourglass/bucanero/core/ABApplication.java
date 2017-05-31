@@ -6,6 +6,7 @@ import android.content.Intent;
 import android.content.pm.PackageInfo;
 import android.content.pm.PackageManager;
 import android.os.Environment;
+import android.os.Handler;
 import android.util.Log;
 import android.widget.Toast;
 
@@ -19,6 +20,9 @@ import java.text.SimpleDateFormat;
 import java.util.Calendar;
 
 import io.ourglass.bucanero.api.BelliniDMAPI;
+import io.ourglass.bucanero.api.JSONCallback;
+import io.ourglass.bucanero.api.OGHeaderInterceptor;
+import io.ourglass.bucanero.api.StringCallback;
 import io.ourglass.bucanero.messages.MainThreadBus;
 import io.ourglass.bucanero.messages.OnScreenNotificationMessage;
 import io.ourglass.bucanero.messages.SystemStatusMessage;
@@ -45,11 +49,17 @@ public class ABApplication extends Application {
     public static final String TAG = "ABApplication";
 
     // Shared by all!
-    public static final OkHttpClient okclient = new OkHttpClient();
+    //public static final OkHttpClient okclient = new OkHttpClient();
     public static final MainThreadBus ottobus = new MainThreadBus();
 
     // Start the SocketIO goodness
-    public static final SocketIOManager siomanager = SocketIOManager.getInstance();
+    public static SocketIOManager siomanager; // = SocketIOManager.getInstance();
+
+    Handler mAppHandler = new Handler();
+
+    public static final OkHttpClient okclient = new OkHttpClient.Builder()
+            .addInterceptor(new OGHeaderInterceptor())
+            .build();
 
     @Override
     public void onCreate() {
@@ -111,6 +121,7 @@ public class ABApplication extends Application {
         Intent stbIntent = new Intent(this, STBPollingService.class);
         startService(stbIntent);
 
+
         // Logcat messages go to a file...
 //        if (OGSystem.isExternalStorageWritable() && OGConstants.LOGCAT_TO_FILE) {
 //            Intent logCatServiceIntent = new Intent(this, LogCatRotationService.class);
@@ -124,6 +135,25 @@ public class ABApplication extends Application {
     }
 
     private void bootWithDelay(final int delay) {
+
+        BelliniDMAPI.authenticate("admin@test.com", "beerchugs", new StringCallback() {
+            @Override
+            public void stringCallback(final String cookie) {
+                // promote to main thread
+                mAppHandler.post(new Runnable() {
+                    @Override
+                    public void run() {
+                        Log.d(TAG, "Starting SocketIO after successful login");
+                        siomanager = SocketIOManager.getInstance(cookie);
+                    }
+                });
+            }
+
+            @Override
+            public void error(NetworkException e) {
+                Log.wtf(TAG, "Could not login");
+            }
+        });
 
         new Thread(new Runnable() {
             @Override

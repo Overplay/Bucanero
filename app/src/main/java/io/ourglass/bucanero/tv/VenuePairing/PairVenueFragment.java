@@ -14,7 +14,7 @@ import org.json.JSONObject;
 import io.ourglass.bucanero.R;
 import io.ourglass.bucanero.api.BelliniDMAPI;
 import io.ourglass.bucanero.core.ABApplication;
-import io.ourglass.bucanero.core.JSONCallback;
+import io.ourglass.bucanero.api.JSONCallback;
 import io.ourglass.bucanero.core.OGConstants;
 import io.ourglass.bucanero.core.OGSystem;
 import io.ourglass.bucanero.core.OGUi;

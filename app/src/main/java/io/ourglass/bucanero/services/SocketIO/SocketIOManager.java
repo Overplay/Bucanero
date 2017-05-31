@@ -23,6 +23,7 @@ import io.ourglass.bucanero.messages.BadOttoMessageException;
 import io.ourglass.bucanero.messages.KillAppMessage;
 import io.ourglass.bucanero.messages.LaunchAppMessage;
 import io.ourglass.bucanero.messages.MoveAppMessage;
+import io.ourglass.bucanero.messages.SystemCommandMessage;
 import io.ourglass.bucanero.messages.TVControlMessage;
 import io.ourglass.bucanero.objects.TVShow;
 import io.socket.client.Ack;
@@ -41,7 +42,8 @@ import io.socket.engineio.client.Transport;
 public class SocketIOManager {
 
     private static final String TAG = "SocketIOManager";
-    private static SocketIOManager instance = new SocketIOManager();
+    private static SocketIOManager instance;
+    private static String mCookie;
     public static Socket mSocket;
     private static Bus bus = ABApplication.ottobus;
 
@@ -85,16 +87,16 @@ public class SocketIOManager {
         mSocket.io().on(Manager.EVENT_TRANSPORT, new Emitter.Listener() {
             @Override
             public void call(Object... args) {
-                Transport transport = (Transport)args[0];
+                Transport transport = (Transport) args[0];
 
                 transport.on(Transport.EVENT_REQUEST_HEADERS, new Emitter.Listener() {
                     @Override
                     public void call(Object... args) {
                         @SuppressWarnings("unchecked")
-                        Map<String, List<String>> headers = (Map<String, List<String>>)args[0];
+                        Map<String, List<String>> headers = (Map<String, List<String>>) args[0];
                         // modify request headers
                         List<String> fuckage = new ArrayList<String>();
-                        fuckage.add("sails.sid=s%3A8u2LuW-1ClN-8wJjhAgNsJdvb2c-XQ1-.Ur7tRXEDWZ6Czkt13H10qM3iTEm3o2IyUTGmjh0hxdQ");
+                        fuckage.add(mCookie);
                         headers.put("Cookie", fuckage);
                     }
                 });
@@ -209,11 +211,13 @@ public class SocketIOManager {
         JSONObject robj = (JSONObject) o;
         Log.d(TAG, "Received inbound device DM: " + robj.toString());
 
-        Long ts = robj.optLong("ts", 0L);
-        if (deDedup(ts)){
+        String action = robj.optString("action", "noop");
+        Log.d(TAG, "Inbound command: " + action);
 
-            String action = robj.optString("action", "noop");
-            Log.d(TAG, "Inbound command: "+action);
+        Long ts = robj.optLong("ts", 0L);
+        if (deDedup(ts)) {
+
+            Log.d(TAG, "Inbound command accepted: " + action);
 
             switch (action) {
                 case "ping":
@@ -242,6 +246,10 @@ public class SocketIOManager {
 
                 case "cloud_record_update":
                     OGSystem.updateFromOGCloud();
+                    break;
+
+                case "venue_pair_done":
+                    (new SystemCommandMessage(SystemCommandMessage.SystemCommand.VENUE_PAIR_DONE)).post();
                     break;
 
                 default:
@@ -307,7 +315,14 @@ public class SocketIOManager {
         OGSystem.changeTVChannel(tvcm.toChannel);
     }
 
-    public static SocketIOManager getInstance() {
+    public static SocketIOManager getInstance(String cookie) {
+
+        mCookie = cookie;
+
+        if (instance == null) {
+            instance = new SocketIOManager();
+        }
+
         return instance;
     }
 
@@ -324,37 +339,36 @@ public class SocketIOManager {
     }
 
     @Subscribe
-    public void programChange(TVShow newShow){
+    public void programChange(TVShow newShow) {
         Log.d(TAG, "Got a program change bus message!");
 
     }
 
 
-
     // Hail Mary
-    private boolean deDedup(Long timeStamp){
+    private boolean deDedup(Long timeStamp) {
 
         Long now = System.currentTimeMillis();
         Long stale = now - 10000; // 10 seconds ago
         ArrayList<Long> staleEntries = new ArrayList<>();
 
-        for (Long ts: mDedupMap.keySet()){
-            if (mDedupMap.get(ts)<stale){
-                Log.d(TAG, "Removing stale command from: "+ts);
+        for (Long ts : mDedupMap.keySet()) {
+            if (mDedupMap.get(ts) < stale) {
+                Log.d(TAG, "Inbound stale command removed from: " + ts);
                 staleEntries.add(ts);
             }
         }
 
-        for (Long ts: staleEntries){
+        for (Long ts : staleEntries) {
             mDedupMap.remove(ts);
         }
 
-        if (mDedupMap.get(timeStamp)==null){
+        if (mDedupMap.get(timeStamp) == null) {
             mDedupMap.put(timeStamp, System.currentTimeMillis());
             return true;
         }
 
-        Log.d(TAG, "This is a dup, tossing");
+        Log.d(TAG, "Inbound: This is a dup, tossing");
         return false;
     }
 

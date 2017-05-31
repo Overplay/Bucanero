@@ -29,6 +29,13 @@ public class BaseFullscreenActivity extends FragmentActivity {
 
     }
 
+    @Override
+    public void onBackPressed(){
+
+       Log.d(TAG, "Back pressed");
+
+    }
+
     public void goFullScreen() {
 
         if (Build.VERSION.SDK_INT < 16)//before Jelly Bean Versions

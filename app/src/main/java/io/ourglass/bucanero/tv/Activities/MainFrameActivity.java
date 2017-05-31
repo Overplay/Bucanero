@@ -8,7 +8,6 @@ import android.support.v4.app.FragmentTransaction;
 import android.util.Log;
 import android.view.KeyEvent;
 import android.view.SurfaceView;
-import android.view.View;
 import android.view.ViewTreeObserver;
 import android.widget.ImageView;
 import android.widget.RelativeLayout;
@@ -22,9 +21,9 @@ import org.json.JSONObject;
 
 import io.ourglass.bucanero.R;
 import io.ourglass.bucanero.api.BelliniDMAPI;
+import io.ourglass.bucanero.api.JSONCallback;
 import io.ourglass.bucanero.core.ABApplication;
 import io.ourglass.bucanero.core.HDMIRxPlayer;
-import io.ourglass.bucanero.core.JSONCallback;
 import io.ourglass.bucanero.core.OGConstants;
 import io.ourglass.bucanero.core.OGHardware;
 import io.ourglass.bucanero.core.OGSystem;
@@ -32,6 +31,7 @@ import io.ourglass.bucanero.core.OGSystemExceptionHander;
 import io.ourglass.bucanero.messages.LaunchAppMessage;
 import io.ourglass.bucanero.messages.OGLogMessage;
 import io.ourglass.bucanero.messages.OnScreenNotificationMessage;
+import io.ourglass.bucanero.messages.SystemCommandMessage;
 import io.ourglass.bucanero.messages.SystemStatusMessage;
 import io.ourglass.bucanero.objects.NetworkException;
 import io.ourglass.bucanero.tv.Fragments.OGWebViewFragment;
@@ -47,6 +47,8 @@ import io.ourglass.bucanero.tv.Support.Size;
 import io.ourglass.bucanero.tv.VenuePairing.PairVenueFragment;
 import io.ourglass.bucanero.tv.WiFi.WiFiPickerFragment;
 import io.socket.client.Socket;
+
+import static io.ourglass.bucanero.messages.SystemCommandMessage.SystemCommand.DISMISS_OVERLAY;
 
 
 public class MainFrameActivity extends BaseFullscreenActivity implements OverlayFragmentListener {
@@ -89,20 +91,19 @@ public class MainFrameActivity extends BaseFullscreenActivity implements Overlay
             setContentView(R.layout.activity_main_frame_tronsmart);
         } else if (OGSystem.isEmulator() || OGSystem.isNexus()) {
             setContentView(R.layout.activity_main_frame_emulator);
-            ((ImageView)findViewById(R.id.bkgImage)).setOnClickListener(new View.OnClickListener() {
-                @Override
-                public void onClick(View v) {
-                    Log.d(TAG, "Background image tapped.");
-                    launchSTBPairFragment();
-                }
-            });
+//            ((ImageView)findViewById(R.id.bkgImage)).setOnClickListener(new View.OnClickListener() {
+//                @Override
+//                public void onClick(View v) {
+//                    Log.d(TAG, "Background image tapped.");
+//                    launchSTBPairFragment();
+//                }
+//            });
         } else if (OGSystem.isRealOG()) {
             setContentView(R.layout.activity_main_frame_zidoo);
         } else {
             Log.wtf(TAG, "Hmmm, this is not any recognized hardware. Exiting");
             finish();
         }
-
 
 
         mTVSurface = (SurfaceView) findViewById(R.id.surfaceView);
@@ -172,8 +173,6 @@ public class MainFrameActivity extends BaseFullscreenActivity implements Overlay
         mBootBugImageView = (ImageView) findViewById(R.id.bootBugIV);
         Log.d(TAG, "onCreate done");
 
-
-
     }
 
     private void enableHDMISurface() {
@@ -235,6 +234,13 @@ public class MainFrameActivity extends BaseFullscreenActivity implements Overlay
                 }
             }
         });
+    }
+
+    // THis has to be here or you'll crash entering Android settings
+    @Override
+    public void onSaveInstanceState(Bundle outState) {
+        //Do not call super class method here.
+        //super.onSaveInstanceState(outState);
     }
 
     @Override
@@ -302,15 +308,6 @@ public class MainFrameActivity extends BaseFullscreenActivity implements Overlay
 
     }
 
-    @Override
-    public void onBackPressed(){
-
-        if (mOverlayMode!=OverlayMode.NONE){
-            dismissOverlayFragment();
-        }
-
-    }
-
     /**
      * This was copied over from AB as placeholder
      *
@@ -333,46 +330,53 @@ public class MainFrameActivity extends BaseFullscreenActivity implements Overlay
 
         Log.d(TAG, "Button with this code pressed: " + keyCode);
 
-        if (keyCode == 82 || keyCode == 41) {
-            //toggleAppMenu();
+
+        if (keyCode == KeyEvent.KEYCODE_BACK) {
+            Log.d(TAG, "Pressed back button.");
+            if (mOverlayMode!=OverlayMode.NONE){
+                dismissOverlayFragment();
+            }
+            return true;
         }
+
 
         // Launch settings from button 0 on remote
         if (keyCode == 7 || keyCode == 4) {
             startActivityForResult(new Intent(android.provider.Settings.ACTION_SETTINGS), 0);
+            return true;
         }
 
-        // Button One on Remote
-        if (keyCode == 8) {
-            launchSTBPairFragment();
-        }
+//        // Button One on Remote
+//        if (keyCode == 8) {
+//            launchSTBPairFragment();
+//        }
 
         // Button Two on Remote
         if (keyCode == 9) {
             launchSysInfoFragment();
+            return true;
+
         }
 
-        if (keyCode == 10) {
-
-            launchVenuePairFragment();
-        }
+//        if (keyCode == 10) {
+//
+//            launchVenuePairFragment();
+//        }
 
         if (keyCode == 11) {
-
             launchSettingsFragment();
-
+            return true;
         }
 
-        if (keyCode == 12) {
-
-            launchWiFiFragment();
-
-        }
+//        if (keyCode == 12) {
+//
+//            launchWiFiFragment();
+//
+//        }
 
         if (keyCode == 13) {
-
             OGLogMessage.newHeartbeatLog().post();
-
+            return true;
         }
 
         if ((keyCode == 16) && OGConstants.CRASH_TEST_DUMMY) {
@@ -538,9 +542,16 @@ public class MainFrameActivity extends BaseFullscreenActivity implements Overlay
 
     @Subscribe
     public void inboundOnScreenNotificationMessage(OnScreenNotificationMessage message) {
+        //dismissOverlayFragment();
         showSystemToast(message.message, message.subMessage);
     }
 
+    @Subscribe
+    public void inboundSystemMessage(SystemCommandMessage message){
+        if (message.status == DISMISS_OVERLAY ){
+            dismissMe();
+        }
+    }
 
     @Override
     public void dismissMe() {

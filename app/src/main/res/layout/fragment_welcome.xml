@@ -38,7 +38,7 @@
             android:layout_marginLeft="@dimen/overlay_inset_plus"
             android:layout_marginRight="@dimen/overlay_inset"
             android:layout_marginTop="@dimen/overlay_subtitle_margin_top"
-            android:text="Let's get you set up"
+            android:text="Let's get started!"
             android:textColor="@color/LightSteelBlue"
             android:textSize="@dimen/overlay_subtitle_font_size"
             android:textStyle="bold" />
@@ -62,7 +62,7 @@
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
             android:layout_marginBottom="100px"
-            android:text="Let's get started! First, install the Ourglass app on your Android or iOS device. You can find it on Google Play or the Apple App Store. When that's done, click on SETUP WIFI below."
+            android:text="First, install the Ourglass app on your Android or iOS device. You can find it on Google Play or the Apple App Store. When that's done, click on SETUP WIFI below."
             android:textAlignment="center"
             android:textColor="@color/White"
             android:textSize="50px" />

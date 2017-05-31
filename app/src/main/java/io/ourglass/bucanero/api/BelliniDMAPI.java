@@ -5,14 +5,20 @@ import android.util.Log;
 import org.json.JSONException;
 import org.json.JSONObject;
 
-import io.ourglass.bucanero.core.JSONCallback;
+import java.io.IOException;
+
+import io.ourglass.bucanero.core.ABApplication;
 import io.ourglass.bucanero.core.OGConstants;
 import io.ourglass.bucanero.core.OGSystem;
 import io.ourglass.bucanero.objects.NetworkException;
 import io.ourglass.bucanero.objects.SetTopBox;
 import io.ourglass.bucanero.objects.TVShow;
+import okhttp3.Call;
+import okhttp3.Callback;
 import okhttp3.MediaType;
+import okhttp3.Request;
 import okhttp3.RequestBody;
+import okhttp3.Response;
 
 /**
  * Created by mkahn on 3/13/17.
@@ -28,8 +34,64 @@ public class BelliniDMAPI {
     public static final MediaType JSON
             = MediaType.parse("application/json; charset=utf-8");
 
+    public static String SESSION_COOKIE;
+
     public static String fullUrlForApp(String appId){
         return OGConstants.BELLINI_DM_ADDRESS + "/blueline/opp/" + appId + "/app/tv";
+    }
+
+    public static void authenticate( String username, String password, final StringCallback cb ){
+
+        JSONObject params = new JSONObject();
+
+        try {
+            params.put("email", username);
+            params.put("password", password);
+            params.put("type", "local");
+
+        } catch (JSONException e) {
+            e.printStackTrace();
+        }
+
+        RequestBody body = RequestBody.create(JSON, params.toString());
+
+        Request request = new Request.Builder()
+                .url(OGConstants.BELLINI_DM_ADDRESS + "/auth/login")
+                .post(body)
+                .build();
+
+        ABApplication.okclient.newCall(request).enqueue(new Callback() {
+
+            @Override public void onFailure(Call call, IOException e) {
+                e.printStackTrace();
+                Log.wtf(TAG, "Was not able to login");
+                if (cb!=null){
+                    cb.error(new NetworkException(e.getMessage(), 999));
+                }
+
+            }
+
+            @Override public void onResponse(Call call, Response response) throws IOException {
+                if (response.code() == 200){
+                    Log.v(TAG, "Login Request successful");
+                    if (response.headers().get("set-cookie")!=null){
+                        String cookie = response.headers().get("set-cookie");
+                        SESSION_COOKIE = cookie.split(";")[0];
+                        if (cb!=null){
+                            cb.stringCallback(SESSION_COOKIE);
+                        }
+                    }
+                    String sresp = response.body().string();
+
+                } else {
+                    Log.v(TAG, "Was not able to execute login (2). Code: "+response.code());
+                    if (cb!=null){
+                        cb.error(new NetworkException("Received error code from server", response.code()));
+                    }
+                }
+            }
+        });
+
     }
 
     public static void registerDeviceWithBellini(final JSONCallback cb){

@@ -130,7 +130,7 @@ public class PairDirecTVFragment extends OverlayFragment {
             @Override
             public void onClick(View v) {
                 OGSystem.setPairedSTB(lastSTBClicked);
-                Toast.makeText(getContext(), "Set Tup Box Paired", Toast.LENGTH_LONG).show();
+                Toast.makeText(getContext(), "Set Top Box Paired", Toast.LENGTH_LONG).show();
                 mMode = PairMode.LIST;
                 updateUI();
             }
@@ -139,7 +139,7 @@ public class PairDirecTVFragment extends OverlayFragment {
         ((Button)getView().findViewById(R.id.buttonCancel)).setOnClickListener(new View.OnClickListener() {
             @Override
             public void onClick(View v) {
-                Toast.makeText(getContext(), "Set Tup Box Pairing Canceled", Toast.LENGTH_LONG).show();
+                Toast.makeText(getContext(), "Set Top Box Pairing Canceled", Toast.LENGTH_LONG).show();
                 mMode = PairMode.LIST;
                 updateUI();
             }

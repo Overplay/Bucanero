@@ -8,7 +8,6 @@ import org.json.JSONObject;
 import java.io.IOException;
 
 import io.ourglass.bucanero.core.ABApplication;
-import io.ourglass.bucanero.core.JSONCallback;
 import io.ourglass.bucanero.objects.NetworkException;
 import okhttp3.Call;
 import okhttp3.Callback;
