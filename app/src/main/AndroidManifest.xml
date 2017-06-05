@@ -40,24 +40,22 @@
 
         <service
             android:name=".services.LogCat.LogCatRotationService"
-            android:exported="false"></service>
-
+            android:exported="false" />
         <service
             android:name=".services.SSDP.SSDPService"
-            android:exported="false"></service>
-
+            android:exported="false" />
         <service
             android:name=".services.Connectivity.ConnectivityService"
-            android:exported="false"></service>
-
+            android:exported="false" />
         <service
             android:name=".services.STB.STBPollingService"
-            android:exported="false"></service>
-
+            android:exported="false" />
         <service
             android:name=".services.OGLog.OGLogService"
-            android:exported="false"></service>
-
+            android:exported="false" />
+        <service
+            android:name=".services.FFmpeg.FFmpegBinaryService"
+            android:exported="false" />
     </application>
 
 </manifest>
