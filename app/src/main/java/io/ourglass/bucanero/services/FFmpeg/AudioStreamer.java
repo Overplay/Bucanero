@@ -20,7 +20,7 @@ public class AudioStreamer implements MediaRecorder.OnErrorListener, MediaRecord
 
     public static final String TAG = "AudioSampler";
 
-    public static final String AUDIO_HOST = "107.170.234.155";
+    public static final String AUDIO_HOST = "192.241.217.88";
     public static final String AUDIO_PORT = "3000";
     public static final String AUDIO_SECRET = "supersecret";
     public static final int AUDIO_BUFFERFILLTIME_MS = 100;
