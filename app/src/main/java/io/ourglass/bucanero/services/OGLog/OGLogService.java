@@ -140,10 +140,10 @@ public class OGLogService extends Service {
         RequestBody body = RequestBody.create(type, jsonBody);
         Log.v(TAG, jsonBody);
 
+        String url = OGConstants.BELLINI_DM_ADDRESS + "/oglog/postlog";
         Request request = new Request.Builder()
-                .url(OGConstants.BELLINI_DM_ADDRESS + "/oglog/postlog")
+                .url(url)
                 .post(body)
-                .header("Authorization", "x-ogdevice-1234") // TODO temp authorization
                 .build();
 
         return client.newCall(request).execute();
@@ -255,7 +255,7 @@ public class OGLogService extends Service {
                 try {
                     Response r = postLog(jsonBody);
                     if(!r.isSuccessful()) {
-                        Log.d(TAG, "Could upload OGLog, saving in Realm");
+                        Log.d(TAG, "Couldn't upload OGLog, saving in Realm");
                         shoveInRealm(message);
                     } else {
                         Log.d(TAG, "OGLog uploaded.");

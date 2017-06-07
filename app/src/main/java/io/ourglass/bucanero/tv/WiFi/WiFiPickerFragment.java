@@ -30,6 +30,8 @@ import io.ourglass.bucanero.services.ConnectivityMonitor;
 import io.ourglass.bucanero.tv.Activities.MainFrameActivity;
 import io.ourglass.bucanero.tv.Fragments.OverlayFragment;
 
+import static io.ourglass.bucanero.tv.WiFi.WiFiPickerFragment.WiFiSetupMode.SEARCH;
+
 
 /**
  * A simple {@link Fragment} subclass.
@@ -64,9 +66,9 @@ public class WiFiPickerFragment extends OverlayFragment {
 
     Handler fragHandler = new Handler();
 
-    private enum WiFiSetupMode { SEARCH, LIST, CONFIRM, CONNECTED,
+    public enum WiFiSetupMode { SEARCH, LIST, CONFIRM, CONNECTED,
         INPUT_PWD, TROUBLESHOOT, TESTING_CONNECTION, CONNECT_FAIL };
-    private WiFiSetupMode mMode = WiFiSetupMode.SEARCH;
+    private WiFiSetupMode mMode = SEARCH;
 
     private ConnectivityMonitor mConnMon = ConnectivityMonitor.getInstance();
 
@@ -124,7 +126,7 @@ public class WiFiPickerFragment extends OverlayFragment {
             @Override
             public void onClick(View v) {
                 Log.d(TAG, "Changing WiFi Setup requested");
-                goToMode(WiFiSetupMode.SEARCH);
+                goToMode(SEARCH);
             }
         });
 
@@ -168,7 +170,7 @@ public class WiFiPickerFragment extends OverlayFragment {
         View.OnClickListener searchListener = new View.OnClickListener() {
             @Override
             public void onClick(View v) {
-                goToMode(WiFiSetupMode.SEARCH);
+                goToMode(SEARCH);
             }
         };
 
@@ -193,7 +195,7 @@ public class WiFiPickerFragment extends OverlayFragment {
     @Override
     public void onResume() {
         super.onResume();
-        mMode = mConnMon.isNetConnected() ?  WiFiSetupMode.CONNECTED : WiFiSetupMode.SEARCH;
+        mMode = mConnMon.isNetConnected() ?  WiFiSetupMode.CONNECTED : SEARCH;
         ABApplication.ottobus.register(this);
         if (!mConnMon.isNetConnected()){
             mConnMon.startWiFiScan();
@@ -234,8 +236,10 @@ public class WiFiPickerFragment extends OverlayFragment {
                 ((Button)getView().findViewById(R.id.buttonChangeWiFi)).requestFocus();
                 fragHandler.removeCallbacksAndMessages(null); // clear fail timer
 
-                if (OGSystem.isFirstTimeSetup()){
+                // If the user has clicked "got a game to watch" then for this bootup, don't show sequencing.
+                if (OGSystem.isFirstTimeSetup() && ((MainFrameActivity)getActivity()).mFirstTimeSetupSkipped != true  ){
                     ((Button)getView().findViewById(R.id.buttonCancelWiFi)).setText("NEXT STEP");
+                    ((Button)getView().findViewById(R.id.buttonCancelWiFi)).requestFocus();
                     ((Button)getView().findViewById(R.id.buttonCancelWiFi)).setOnClickListener(new View.OnClickListener() {
                         @Override
                         public void onClick(View v) {
@@ -243,7 +247,6 @@ public class WiFiPickerFragment extends OverlayFragment {
                         }
                     });
                 }
-
                 break;
 
             case SEARCH:
@@ -321,7 +324,7 @@ public class WiFiPickerFragment extends OverlayFragment {
     }
 
     public void searchAgain(View v){
-        goToMode(WiFiSetupMode.SEARCH);
+        goToMode(SEARCH);
     }
 
     public void dismiss(View v){
@@ -358,7 +361,7 @@ public class WiFiPickerFragment extends OverlayFragment {
         mWiFiScanResults.clear();
         mWiFiScanResults.addAll(results);
         ((ArrayAdapter)mWiFiNetworkList.getAdapter()).notifyDataSetChanged();
-        if (mMode==WiFiSetupMode.SEARCH){
+        if (mMode== SEARCH){
             goToMode(WiFiSetupMode.LIST);
         }
     }

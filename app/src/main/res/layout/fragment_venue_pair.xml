@@ -108,8 +108,30 @@
             android:textAlignment="center"
             android:textColor="@color/White"
             android:text="@string/venue_already_paired"
-            android:layout_marginTop="120px"
+            android:layout_marginTop="90px"
+            android:layout_marginBottom="20px"
             android:textSize="30dip" />
+
+        <Button
+            android:id="@+id/buttonReReg"
+            android:layout_width="match_parent"
+            android:layout_height="@dimen/overlay_button_height"
+            android:layout_below="@+id/alreadyPairedTV"
+            android:layout_marginBottom="10dip"
+            android:background="@drawable/action_button"
+            android:textColor="@color/White"
+            android:text="RE-REGISTER"/>
+
+        <Button
+            android:id="@+id/buttonExit"
+            android:layout_width="match_parent"
+            android:layout_height="@dimen/overlay_button_height"
+            android:layout_below="@+id/buttonReReg"
+            android:background="@drawable/cancel_button"
+            android:textColor="@color/White"
+            android:text="EXIT">
+            <requestFocus/>
+        </Button>
 
 
     </RelativeLayout>

@@ -11,12 +11,9 @@ import org.json.JSONObject;
 import java.net.URISyntaxException;
 import java.util.ArrayList;
 import java.util.HashMap;
-import java.util.List;
-import java.util.Map;
 
 import io.ourglass.bucanero.api.BelliniDMAPI;
 import io.ourglass.bucanero.core.ABApplication;
-import io.ourglass.bucanero.core.OGConstants;
 import io.ourglass.bucanero.core.OGSystem;
 import io.ourglass.bucanero.messages.AppLaunchAckMessage;
 import io.ourglass.bucanero.messages.BadOttoMessageException;
@@ -25,13 +22,10 @@ import io.ourglass.bucanero.messages.LaunchAppMessage;
 import io.ourglass.bucanero.messages.MoveAppMessage;
 import io.ourglass.bucanero.messages.SystemCommandMessage;
 import io.ourglass.bucanero.messages.TVControlMessage;
+import io.ourglass.bucanero.messages.VenuePairCompleteMessage;
 import io.ourglass.bucanero.objects.TVShow;
-import io.socket.client.Ack;
-import io.socket.client.IO;
-import io.socket.client.Manager;
 import io.socket.client.Socket;
 import io.socket.emitter.Emitter;
-import io.socket.engineio.client.Transport;
 
 /**
  * Created by atorres on 3/6/17.
@@ -43,8 +37,6 @@ public class SocketIOManager {
 
     private static final String TAG = "SocketIOManager";
     private static SocketIOManager instance;
-    private static String mCookie;
-    public static Socket mSocket;
     private static Bus bus = ABApplication.ottobus;
 
     HashMap<Long, Long> mDedupMap = new HashMap<>();
@@ -53,94 +45,66 @@ public class SocketIOManager {
 
     private Thread mKeepAliveThread;
 
-    public interface SailsSIOCallback {
-        public void sioCallback(Object... args);
+    public static SocketIOManager getInstance(String cookie) {
+        if (instance == null) {
+            instance = new SocketIOManager(cookie);
+        }
+        return instance;
     }
 
-    private SocketIOManager() {
-        setupSocketIO();
-        // Register to receive messages
-        ABApplication.ottobus.register(this);
-    }
 
-    private void setupSocketIO() {
-
-        IO.Options opts = new IO.Options();
-
-        opts.forceNew = true;
-        // This is required because sails does an idiotic version check
-        opts.query = "__sails_io_sdk_version=0.11.0";
-        opts.reconnection = true;
-        opts.reconnectionDelay = 1000; // TODO is this right?
-        //opts.timeout = 5000;
+    private SocketIOManager(String cookie) {
 
         try {
-            mSocket = IO.socket(OGConstants.SOCKET_IO_ADDRESS, opts);
+            SailsSocketIO.getSailsSocket(cookie);
             registerOnConnectListener();
             registerDisconnectListener();
+            registerJoinListener();
+            registerDeviceDMListener();
             attachToBellini();
         } catch (URISyntaxException e) {
             Log.e(TAG, e.getLocalizedMessage());
         }
 
-        // Called upon transport creation.
-        mSocket.io().on(Manager.EVENT_TRANSPORT, new Emitter.Listener() {
-            @Override
-            public void call(Object... args) {
-                Transport transport = (Transport) args[0];
-
-                transport.on(Transport.EVENT_REQUEST_HEADERS, new Emitter.Listener() {
-                    @Override
-                    public void call(Object... args) {
-                        @SuppressWarnings("unchecked")
-                        Map<String, List<String>> headers = (Map<String, List<String>>) args[0];
-                        // modify request headers
-                        List<String> fuckage = new ArrayList<String>();
-                        fuckage.add(mCookie);
-                        headers.put("Cookie", fuckage);
-                    }
-                });
-
-                transport.on(Transport.EVENT_RESPONSE_HEADERS, new Emitter.Listener() {
-                    @Override
-                    public void call(Object... args) {
-                        //@SuppressWarnings("unchecked")
-                        //Map<String, List<String>> headers = (Map<String, List<String>>)args[0];
-                        // access response headers
-                        //String cookie = headers.get("Set-Cookie").get(0);
-                    }
-                });
-            }
-        });
-
-
+        // Register to receive messages
+        ABApplication.ottobus.register(this);
     }
+
 
     private void attachToBellini() {
         Log.d(TAG, "Attaching to Bellini-DM");
         // Successful completion calls down thru the chain.
-        mSocket.connect();
+        SailsSocketIO.socket.connect();
     }
 
-    private void registerOnConnectListener() {
+    private void registerJoinListener() {
 
-        Log.d(TAG, "Registering SIO onConnect listener");
-        mSocket.on(Socket.EVENT_CONNECT, new Emitter.Listener() {
+        Log.d(TAG, "Registering SIO Join Room listener");
+        SailsSocketIO.socket.on("DEVICE-JOIN", new Emitter.Listener() {
             @Override
             public void call(Object... args) {
-                Log.d(TAG, "Socket Connected!");
-                //if (!hasConnected)
-                joinDeviceRoom();
-                //keepAlive();
+                Log.d(TAG, "Device room join complete!");
             }
         });
 
     }
 
-    private void registerDisconnectListener() {
 
+    private void registerOnConnectListener() {
+        Log.d(TAG, "Registering SIO onConnect listener");
+        SailsSocketIO.socket.on(Socket.EVENT_CONNECT, new Emitter.Listener() {
+            @Override
+            public void call(Object... args) {
+                Log.d(TAG, "Socket Connected!");
+                joinDeviceRoom();
+                keepAlive();
+            }
+        });
+    }
+
+    private void registerDisconnectListener() {
         Log.d(TAG, "Registering SIO onDisconnectConnect listener");
-        mSocket.on(Socket.EVENT_DISCONNECT, new Emitter.Listener() {
+        SailsSocketIO.socket.on(Socket.EVENT_DISCONNECT, new Emitter.Listener() {
             @Override
             public void call(Object... args) {
                 Log.wtf(TAG, "Socket DISConnected!");
@@ -148,18 +112,46 @@ public class SocketIOManager {
                 //setupSocketIO();
             }
         });
+    }
 
+    private void registerDeviceDMListener() {
+        Log.d(TAG, "Registering inbound device DM listener.");
+        SailsSocketIO.socket.on("DEVICE-DM", new Emitter.Listener() {
+            @Override
+            public void call(Object... args) {
+                Log.d(TAG, "Received DEV-DM message.");
+                processMessage(args[0]);
+            }
+        });
     }
 
     private void keepAlive() {
+
+        SailsSocketIO.socket.on("CHECK-GOOD", new Emitter.Listener() {
+            @Override
+            public void call(Object... args) {
+                Log.d(TAG, "Received a CHECK-GOOD");
+            }
+        });
 
         mKeepAliveThread = new Thread(new Runnable() {
             @Override
             public void run() {
                 boolean looping = true;
+
                 while (looping) {
-                    Log.d(TAG, "Emitting keep alive beep");
-                    mSocket.emit("beep", "beep");
+                    Log.d(TAG, "Doing connect check");
+                    String url = "/ogdevice/checkconnection";
+                    HashMap<String, String> params = new HashMap<String, String>();
+                    params.put("deviceUDID", OGSystem.getUDID() );
+
+                    SailsSocketIO.post(url, params, new SailsSocketIO.SailsSIOCallback() {
+                        @Override
+                        public void sioCallback(Object... args) {
+                            Log.d(TAG, "Check connection POST returned");
+                        }
+                    });
+
                     try {
                         Thread.sleep(15000);
                     } catch (InterruptedException e) {
@@ -175,37 +167,19 @@ public class SocketIOManager {
     private void joinDeviceRoom() {
 
         Log.d(TAG, "Joining SIO room for this device");
-        JSONObject jsonObject = new JSONObject();
 
-        try {
-            jsonObject.put("url", "/ogdevice/joinroom?deviceUDID=" + OGSystem.getUDID());
-            jsonObject.put("deviceUDID", OGSystem.getUDID());
-        } catch (JSONException e) {
-            e.printStackTrace();
-        }
-
-        mSocket.emit("post", jsonObject, new Ack() {
+        HashMap<String, String> params = new HashMap<>();
+        params.put("deviceUDID", OGSystem.getUDID());
+        SailsSocketIO.post("/ogdevice/joinroom?deviceUDID=" + OGSystem.getUDID(), params, new SailsSocketIO.SailsSIOCallback() {
             @Override
-            public void call(Object... args) {
-                Log.d(TAG, "records: " + args[0].toString());
-                registerDeviceDMListener();
+            public void sioCallback(Object... args) {
+                hasConnected = true;
             }
         });
 
-        hasConnected = true;
 
     }
 
-    private void registerDeviceDMListener() {
-        Log.d(TAG, "Room joined, registering DM listener.");
-        mSocket.on("DEVICE-DM", new Emitter.Listener() {
-            @Override
-            public void call(Object... args) {
-                Log.d(TAG, "Received DEV-DM message.");
-                processMessage(args[0]);
-            }
-        });
-    }
 
     private void processMessage(Object o) {
         JSONObject robj = (JSONObject) o;
@@ -221,39 +195,56 @@ public class SocketIOManager {
 
             switch (action) {
                 case "ping":
+                    Log.d(TAG, "Socket ping received");
                     sailsSIODeviceMessage(new PingAckMessage().toJson(), null);
                     break;
 
                 case "identify":
+                    Log.d(TAG, "Socket identify received");
                     sailsSIODeviceMessage(new IdentifyMessage().toJson(), null);
                     break;
 
                 case "launch":
+                    Log.d(TAG, "Socket app launch received");
                     launchApp(robj);
                     break;
 
                 case "kill":
+                    Log.d(TAG, "Socket app kill received");
                     killApp(robj);
                     break;
 
                 case "move":
+                    Log.d(TAG, "Socket app move received");
                     moveApp(robj);
                     break;
 
                 case "tune":
+                    Log.d(TAG, "Socket channel tune received");
                     changeChannel(robj);
                     break;
 
                 case "cloud_record_update":
+                    Log.d(TAG, "Socket cloud record update received");
                     OGSystem.updateFromOGCloud();
+                    try {
+                        JSONObject change = robj.getJSONObject("change");
+                        if (change.has("atVenueUUID")) {
+                            (new VenuePairCompleteMessage()).post();
+                        }
+                    } catch (JSONException e) {
+                        e.printStackTrace();
+                    }
+
                     break;
 
                 case "venue_pair_done":
+                    Log.d(TAG, "Socket venue pair done received");
                     (new SystemCommandMessage(SystemCommandMessage.SystemCommand.VENUE_PAIR_DONE)).post();
                     break;
 
                 default:
-                    Log.d(TAG, "Did not recognize inbound action");
+                    Log.d(TAG, "Socket did not recognize inbound action");
             }
 
         }
@@ -262,26 +253,19 @@ public class SocketIOManager {
     }
 
 
-    public void sailsSIODeviceMessage(JSONObject messageJson, final SailsSIOCallback callback) {
-        Log.d(TAG, "Sending sails SIO device DM");
-        JSONObject jsonObject = new JSONObject();
+    public void sailsSIODeviceMessage(JSONObject messageJson, final SailsSocketIO.SailsSIOCallback callback) {
+
+        Log.d(TAG, "Sending sails SIO device message to clients");
+
+        String url = "/ogdevice/message?deviceUDID=" + OGSystem.getUDID() + "&destination=clients";
 
         try {
-            jsonObject.put("url", "/ogdevice/dm?deviceUDID=" + OGSystem.getUDID());
-            jsonObject.put("data", messageJson);
+            SailsSocketIO.post(url, messageJson, callback);
+
         } catch (JSONException e) {
             e.printStackTrace();
         }
 
-        mSocket.emit("post", jsonObject, new Ack() {
-            @Override
-            public void call(Object... args) {
-                Log.d(TAG, "DM got response: " + args);
-                if (callback != null) {
-                    callback.sioCallback(args);
-                }
-            }
-        });
 
     }
 
@@ -315,19 +299,9 @@ public class SocketIOManager {
         OGSystem.changeTVChannel(tvcm.toChannel);
     }
 
-    public static SocketIOManager getInstance(String cookie) {
-
-        mCookie = cookie;
-
-        if (instance == null) {
-            instance = new SocketIOManager();
-        }
-
-        return instance;
-    }
 
     public void disconnect() {
-        mSocket.disconnect();
+        SailsSocketIO.socket.disconnect();
     }
 
 

@@ -24,6 +24,9 @@
     <uses-permission android:name="android.permission.READ_PHONE_STATE" />
     <uses-permission android:name="android.permission.RECEIVE_BOOT_COMPLETED" />
 
+    <!-- permission required to use Alarm Manager used for restart on uncaught exception! -->
+    <uses-permission android:name="com.android.alarm.permission.SET_ALARM"/>
+
     <!-- Application is subclassed for a default Realm -->
     <application
         android:name=".core.ABApplication"
@@ -70,10 +73,20 @@
         <activity
             android:name=".tv.Activities.PermissionGateActivity">
             <intent-filter>
-                <action android:name="android.intent.action.MAIN" />
-
+                <!-- Starting activity for this application -->
+                <action android:name="android.intent.action.MAIN"/>
+                <!-- Means that this app should appear on the launcher (app menu for OS)-->
                 <category android:name="android.intent.category.LAUNCHER" />
+                <!-- means that this is the default activity for an implicit intent...prolly not needed -->
+                <!--<category android:name="android.intent.category.DEFAULT" />-->
+                <!--&lt;!&ndash; The following intent-filter says this is a candidate for home screen &ndash;&gt;-->
+                <!--<category android:name="android.intent.category.HOME" />-->
             </intent-filter>
+            <!--<intent-filter>-->
+                <!--<action android:name="android.intent.action.MAIN" />-->
+
+                <!--<category android:name="android.intent.category.LAUNCHER" />-->
+            <!--</intent-filter>-->
         </activity>
     </application>
 

@@ -5,6 +5,8 @@ import android.os.Looper;
 
 import com.squareup.otto.Bus;
 
+import java.util.ArrayList;
+
 /**
  * Created by mkahn on 3/13/17.
  */
@@ -12,6 +14,8 @@ import com.squareup.otto.Bus;
 public class MainThreadBus extends Bus {
 
     private final Handler mHandler = new Handler(Looper.getMainLooper());
+    private ArrayList registeredObjects = new ArrayList<>();
+
 
     @Override
     public void post(final Object event) {
@@ -26,5 +30,24 @@ public class MainThreadBus extends Bus {
             });
         }
     }
+
+    // Added by MAK to help out out with suspend/resume issues with services
+
+    @Override
+    public void register(Object object) {
+        if (!registeredObjects.contains(object)) {
+            registeredObjects.add(object);
+            super.register(object);
+        }
+    }
+
+    @Override
+    public void unregister(Object object) {
+        if (registeredObjects.contains(object)) {
+            registeredObjects.remove(object);
+            super.unregister(object);
+        }
+    }
+
 }
 

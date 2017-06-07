@@ -345,6 +345,8 @@ public class OGSystem {
             deviceJSON.put("venue", getVenueId());
             deviceJSON.put("udid", getUDID());
 
+            deviceJSON.put("ts", System.currentTimeMillis());
+
             //deviceJSON.put("lastGuideSync", AppSettings.getString(AJPGSPollingService.LAST_SYNC_SETTINGS_KEY, "none"));
 
         } catch (JSONException e) {

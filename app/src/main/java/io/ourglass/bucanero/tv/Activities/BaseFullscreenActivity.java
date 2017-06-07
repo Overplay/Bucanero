@@ -36,6 +36,14 @@ public class BaseFullscreenActivity extends FragmentActivity {
 
     }
 
+    @Override
+    public void onWindowFocusChanged(boolean hasFocus) {
+        super.onWindowFocusChanged(hasFocus);
+        if (hasFocus) {
+            goFullScreen();
+        }
+    }
+
     public void goFullScreen() {
 
         if (Build.VERSION.SDK_INT < 16)//before Jelly Bean Versions

@@ -1,6 +1,5 @@
 package io.ourglass.bucanero.tv.Activities;
 
-import android.content.Intent;
 import android.graphics.Point;
 import android.os.Bundle;
 import android.support.v4.app.Fragment;
@@ -29,7 +28,6 @@ import io.ourglass.bucanero.core.OGHardware;
 import io.ourglass.bucanero.core.OGSystem;
 import io.ourglass.bucanero.core.OGSystemExceptionHander;
 import io.ourglass.bucanero.messages.LaunchAppMessage;
-import io.ourglass.bucanero.messages.OGLogMessage;
 import io.ourglass.bucanero.messages.OnScreenNotificationMessage;
 import io.ourglass.bucanero.messages.SystemCommandMessage;
 import io.ourglass.bucanero.messages.SystemStatusMessage;
@@ -76,6 +74,8 @@ public class MainFrameActivity extends BaseFullscreenActivity implements Overlay
 
     private boolean mBooting = true;
 
+    public boolean mFirstTimeSetupSkipped = false;  // set this to temprarily disable the sequencing thru setup screens
+
     @Override
     protected void onCreate(final Bundle savedInstanceState) {
 
@@ -105,9 +105,7 @@ public class MainFrameActivity extends BaseFullscreenActivity implements Overlay
             finish();
         }
 
-
         mTVSurface = (SurfaceView) findViewById(R.id.surfaceView);
-
         enableHDMISurface();
 
         if (OGConstants.ENABLE_RESTART_ON_UNCAUGHT_EXCEPTIONS) {
@@ -124,7 +122,6 @@ public class MainFrameActivity extends BaseFullscreenActivity implements Overlay
 
         mOverlayFragmentHolder = (RelativeLayout) findViewById(R.id.overlayFragmentHolder);
 
-
         mMainLayout = (RelativeLayout) findViewById(R.id.mainframeLayout);
         Log.d(TAG, "MainframeLayout id is: " + mMainLayout.getId());
         mMainLayout.getViewTreeObserver().addOnGlobalLayoutListener(new ViewTreeObserver.OnGlobalLayoutListener() {
@@ -137,7 +134,6 @@ public class MainFrameActivity extends BaseFullscreenActivity implements Overlay
                 mScreenWidth = mMainLayout.getWidth();
                 OGSystem.setTVResolution(new Size(mScreenWidth, mScreenHeight));
                 mMainLayout.getViewTreeObserver().removeOnGlobalLayoutListener(this);
-                //onScreenInitComplete
 
                 // Check that the activity is using the layout version with
                 // the fragment_container FrameLayout
@@ -178,15 +174,16 @@ public class MainFrameActivity extends BaseFullscreenActivity implements Overlay
     private void enableHDMISurface() {
 
         if (OGSystem.isTronsmart()) {
-            Log.d(TAG, "Enabling Video for Tronsmart/Zidoo");
+            Log.d(TAG, "Enabling Video for ZidooX9/MStar");
             OGHardware.enableTronsmartHDMI();
         } else if (OGSystem.isRealOG()) {
             Log.d(TAG, "Enabling Video for ZidooX9S/Realtek");
-
             mHDMIRxPlayer = new HDMIRxPlayer(this, mTVSurface, 1920, 1080);
             //mTVSurface.setVisibility(View.INVISIBLE);
         }
     }
+
+
 
     private void getSavedStateFromCloud() {
 
@@ -236,7 +233,7 @@ public class MainFrameActivity extends BaseFullscreenActivity implements Overlay
         });
     }
 
-    // THis has to be here or you'll crash entering Android settings
+    // This has to be here or you'll crash entering Android settings!!!!!
     @Override
     public void onSaveInstanceState(Bundle outState) {
         //Do not call super class method here.
@@ -249,10 +246,8 @@ public class MainFrameActivity extends BaseFullscreenActivity implements Overlay
         super.onResume();
 
         mDebouncing = false;
-
         showSystemToast("Starting up...", null);
         Log.d(TAG, "onResume done");
-
 
     }
 
@@ -341,10 +336,10 @@ public class MainFrameActivity extends BaseFullscreenActivity implements Overlay
 
 
         // Launch settings from button 0 on remote
-        if (keyCode == 7 || keyCode == 4) {
-            startActivityForResult(new Intent(android.provider.Settings.ACTION_SETTINGS), 0);
-            return true;
-        }
+//        if (keyCode == 7 || keyCode == 4) {
+//            startActivityForResult(new Intent(android.provider.Settings.ACTION_SETTINGS), 0);
+//            return true;
+//        }
 
 //        // Button One on Remote
 //        if (keyCode == 8) {
@@ -363,7 +358,7 @@ public class MainFrameActivity extends BaseFullscreenActivity implements Overlay
 //            launchVenuePairFragment();
 //        }
 
-        if (keyCode == 11) {
+        if (keyCode == KeyEvent.KEYCODE_MENU || keyCode == KeyEvent.KEYCODE_4) {
             launchSettingsFragment();
             return true;
         }
@@ -374,16 +369,16 @@ public class MainFrameActivity extends BaseFullscreenActivity implements Overlay
 //
 //        }
 
-        if (keyCode == 13) {
-            OGLogMessage.newHeartbeatLog().post();
-            return true;
-        }
+//        if (keyCode == 13) {
+//            OGLogMessage.newHeartbeatLog().post();
+//            return true;
+//        }
 
         if ((keyCode == 16) && OGConstants.CRASH_TEST_DUMMY) {
             //int zed = 1 / 0;
         }
 
-        return false;
+        return true;
     }
 
     public boolean dismissIfNeeded(OverlayMode mode){
@@ -556,7 +551,8 @@ public class MainFrameActivity extends BaseFullscreenActivity implements Overlay
     @Override
     public void dismissMe() {
         mDebouncing = false;
-        removeOverlayFragment();
+        //removeOverlayFragment();
+        dismissOverlayFragment();
     }
 
 

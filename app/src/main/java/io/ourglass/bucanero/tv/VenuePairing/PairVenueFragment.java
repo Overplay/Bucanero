@@ -3,24 +3,31 @@ package io.ourglass.bucanero.tv.VenuePairing;
 
 import android.os.Bundle;
 import android.support.v4.app.Fragment;
+import android.util.Log;
 import android.view.LayoutInflater;
 import android.view.View;
 import android.view.ViewGroup;
+import android.widget.Button;
 import android.widget.ProgressBar;
 import android.widget.TextView;
+
+import com.squareup.otto.Subscribe;
 
 import org.json.JSONObject;
 
 import io.ourglass.bucanero.R;
 import io.ourglass.bucanero.api.BelliniDMAPI;
-import io.ourglass.bucanero.core.ABApplication;
 import io.ourglass.bucanero.api.JSONCallback;
+import io.ourglass.bucanero.core.ABApplication;
 import io.ourglass.bucanero.core.OGConstants;
 import io.ourglass.bucanero.core.OGSystem;
 import io.ourglass.bucanero.core.OGUi;
 import io.ourglass.bucanero.messages.MainThreadBus;
+import io.ourglass.bucanero.messages.VenuePairCompleteMessage;
 import io.ourglass.bucanero.objects.NetworkException;
 import io.ourglass.bucanero.tv.Fragments.OverlayFragment;
+
+import static io.ourglass.bucanero.tv.VenuePairing.PairVenueFragment.PairMode.CODE;
 
 /**
  * A simple {@link Fragment} subclass.
@@ -44,10 +51,13 @@ public class PairVenueFragment extends OverlayFragment {
     View mCodeHolder;
     View mPairDoneHolder;
 
+    Button mReRegButton;
+    Button mExitButton;
+
     private MainThreadBus bus = ABApplication.ottobus;
 
-    private enum PairMode { PAIRED, CODE, CONFIRM, COMPLETE };
-    private PairMode mMode = PairMode.CODE;
+    public enum PairMode { PAIRED, CODE, CONFIRM, COMPLETE };
+    private PairMode mMode = CODE;
 
 
     public PairVenueFragment() {
@@ -79,6 +89,24 @@ public class PairVenueFragment extends OverlayFragment {
         mTitle = (TextView) getView().findViewById(R.id.venue_pair_title);
         mTitle.setTypeface(OGUi.getBoldFont());
 
+        mExitButton = (Button)getView().findViewById(R.id.buttonExit);
+        mExitButton.setTypeface(OGUi.getRegularFont());
+        mExitButton.setOnClickListener(new View.OnClickListener() {
+            @Override
+            public void onClick(View v) {
+                dismissMe();
+            }
+        });
+
+        mReRegButton = (Button)getView().findViewById(R.id.buttonReReg);
+        mReRegButton.setTypeface(OGUi.getRegularFont());
+        mReRegButton.setOnClickListener(new View.OnClickListener() {
+            @Override
+            public void onClick(View v) {
+                goToCodeMode();
+            }
+        });
+
         mCountdownPB = (ProgressBar) getView().findViewById(R.id.progressBar);
         mCodeTV = (TextView) getView().findViewById(R.id.codeTV);
         mCodeTV.setTypeface(OGUi.getBoldFont());
@@ -95,15 +123,21 @@ public class PairVenueFragment extends OverlayFragment {
         //dismissMeAfter(5*60*1000);
     }
 
+    private void goToCodeMode(){
+        getCode();
+        mMode = CODE;
+        updateUI();
+    }
+
     @Override
     public void onResume() {
         super.onResume();
 
         bus.register(this);
         // If hard-paired, just show a message
-        mMode = ( OGSystem.getVenueId().isEmpty() || OGConstants.FORCE_VENUE_PAIR )  ? PairMode.CODE : PairMode.PAIRED;
-        if (mMode==PairMode.CODE){
-            getCode();
+        mMode = ( OGSystem.getVenueId().isEmpty() || OGConstants.FORCE_VENUE_PAIR )  ? CODE : PairMode.PAIRED;
+        if (mMode== CODE){
+            goToCodeMode();
         }
         updateUI();
     }
@@ -185,6 +219,14 @@ public class PairVenueFragment extends OverlayFragment {
 
     }
 
+
+
+    @Subscribe
+    public void venuePairComplete(VenuePairCompleteMessage msg) {
+        Log.d(TAG, "Got venue pair complete msg, dimissing!");
+        OGSystem.setFirstTimeSetup(false); // if you get this message, all else is cool.
+        dismissMe();
+    }
 
 
 

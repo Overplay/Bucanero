@@ -56,15 +56,17 @@
         android:layout_marginRight="@dimen/overlay_inset_plus"
         android:layout_marginTop="100px">
 
+        <!-- These weird button ids are because the Fragment walks the view hierachy looking at the tags
+        instead of doing a findById -->
         <Button
-            android:id="@+id/buttonPasswordOK"
+            android:id="@+id/buttonPasswordzz"
             android:layout_width="match_parent"
             android:layout_height="@dimen/overlay_button_height"
             android:layout_marginBottom="10dip"
             android:background="@drawable/action_button"
             android:textColor="@color/White"
-            android:text="SET TOP BOX PAIRING"
-            android:tag="stb_pair"/>
+            android:text="SYSTEM INFO"
+            android:tag="sysinfo"/>
 
         <Button
             android:id="@+id/buttonPassword"
@@ -77,6 +79,18 @@
             android:tag="wifi"/>
 
         <Button
+            android:id="@+id/buttonPasswordOK"
+            android:layout_width="match_parent"
+            android:layout_height="@dimen/overlay_button_height"
+            android:layout_marginBottom="10dip"
+            android:background="@drawable/action_button"
+            android:textColor="@color/White"
+            android:text="SET TOP BOX PAIRING"
+            android:tag="stb_pair"/>
+
+
+
+        <Button
             android:id="@+id/buttonPasswobbrd"
             android:layout_width="match_parent"
             android:layout_height="@dimen/overlay_button_height"
@@ -87,15 +101,6 @@
             android:tag="venue"/>
 
 
-        <Button
-            android:id="@+id/buttonPasswordzz"
-            android:layout_width="match_parent"
-            android:layout_height="@dimen/overlay_button_height"
-            android:layout_marginBottom="10dip"
-            android:background="@drawable/action_button"
-            android:textColor="@color/White"
-            android:text="SYSTEM INFO"
-            android:tag="sysinfo"/>
 
 
         <Button

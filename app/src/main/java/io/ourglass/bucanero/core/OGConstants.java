@@ -12,13 +12,14 @@ public class OGConstants {
     /**
      * SocketIO constants
      */
-    public static final Boolean USE_LOCAL_SERVER = false;
+    public static final Boolean USE_LOCAL_SERVER = true;
     public static final String CODE_REV_NAME = "Bucanero";
 
+    public static final String DEVICE_AUTH_HDR = "x-ogdevice-1234";
     public static final boolean FORCE_EMULATOR = false;  // use this to run on a tablet for testing
 
     // Normally, you can't venue pair if a venue is set, this is for testing
-    public static final boolean FORCE_VENUE_PAIR = true;
+    public static final boolean FORCE_VENUE_PAIR = false;
 
     public static final int BOOT_DELAY = 500; //ms between boot steps in Slow Boot Mode
 
@@ -34,15 +35,12 @@ public class OGConstants {
     // How far down from top is the widget limit (or up from bottom)
     public static final float WIDGET_Y_INSET = 0.12f;
 
-    public static final boolean ENABLE_RESTART_ON_UNCAUGHT_EXCEPTIONS = false;
+    public static final boolean ENABLE_RESTART_ON_UNCAUGHT_EXCEPTIONS = true;
 
     public static final boolean TEST_MODE = true;
     public static final boolean CRASH_TEST_DUMMY = true; // enable force crash on '5' button
     public static final boolean SHOW_DB_TOASTS = false;
     public static final boolean LOGCAT_TO_FILE = true; // Off until I am sure it works [mak]
-
-
-
 
     /**
      * PROGRAM GUIDE CONSTANTS FOR ALPHA

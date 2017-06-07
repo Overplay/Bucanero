@@ -77,6 +77,7 @@ public class WelcomeFragment extends OverlayFragment {
         cancelButton.setOnClickListener(new View.OnClickListener() {
             @Override
             public void onClick(View v) {
+                ((MainFrameActivity)getActivity()).mFirstTimeSetupSkipped = true;
                 dismissMe();
             }
         });
