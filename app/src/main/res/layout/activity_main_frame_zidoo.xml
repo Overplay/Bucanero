@@ -31,7 +31,7 @@
         android:layout_width="500dip"
         android:layout_height="wrap_content"
         android:id="@+id/bootBugIV"
-        android:src="@drawable/ourglass_logo"
+        android:src="@drawable/logobig"
         android:layout_centerHorizontal="true"
         android:layout_centerVertical="true"
         />

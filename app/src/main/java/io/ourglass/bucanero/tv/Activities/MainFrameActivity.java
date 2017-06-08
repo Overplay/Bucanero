@@ -1,5 +1,6 @@
 package io.ourglass.bucanero.tv.Activities;
 
+import android.content.Intent;
 import android.graphics.Point;
 import android.os.Bundle;
 import android.support.v4.app.Fragment;
@@ -266,19 +267,20 @@ public class MainFrameActivity extends BaseFullscreenActivity implements Overlay
                 .rotationY(90f)
                 .translationY(-1000)
                 .setDuration(1000)
-                .setStartDelay(1000)
+                .setStartDelay(3000)
                 .start();
 
         // TODO this seems like there's a race condition with the below
         //getSavedStateFromCloud();
 
-        if (OGSystem.isFirstTimeSetup()){
+        // If the venueID is set, it can't be first time setup
+        if (OGSystem.isFirstTimeSetup() && OGSystem.getVenueId().isEmpty()){
             mBootBugImageView.postDelayed(new Runnable() {
                 @Override
                 public void run() {
                     launchWelcomeFragment();
                 }
-            }, 2000);
+            }, 6000);
         }
 
     }
@@ -313,6 +315,8 @@ public class MainFrameActivity extends BaseFullscreenActivity implements Overlay
     @Override
     public boolean onKeyDown(int keyCode, KeyEvent event) {
 
+        Log.d(TAG, "Button with this code pressed: " + keyCode);
+
         // The remote control does not debounce and we can get multiple onKeyDown per click
         if (mDebouncing || mBooting) {
             return false;
@@ -323,7 +327,7 @@ public class MainFrameActivity extends BaseFullscreenActivity implements Overlay
 
         // 82 = Menu button,
 
-        Log.d(TAG, "Button with this code pressed: " + keyCode);
+        Log.d(TAG, "Button with this code being processed: " + keyCode);
 
 
         if (keyCode == KeyEvent.KEYCODE_BACK) {
@@ -336,10 +340,10 @@ public class MainFrameActivity extends BaseFullscreenActivity implements Overlay
 
 
         // Launch settings from button 0 on remote
-//        if (keyCode == 7 || keyCode == 4) {
-//            startActivityForResult(new Intent(android.provider.Settings.ACTION_SETTINGS), 0);
-//            return true;
-//        }
+        if ( keyCode == KeyEvent.KEYCODE_0 ) {
+            startActivityForResult(new Intent(android.provider.Settings.ACTION_SETTINGS), 0);
+            return true;
+        }
 
 //        // Button One on Remote
 //        if (keyCode == 8) {
@@ -347,7 +351,7 @@ public class MainFrameActivity extends BaseFullscreenActivity implements Overlay
 //        }
 
         // Button Two on Remote
-        if (keyCode == 9) {
+        if ( keyCode == 9 ) {
             launchSysInfoFragment();
             return true;
 
@@ -358,7 +362,7 @@ public class MainFrameActivity extends BaseFullscreenActivity implements Overlay
 //            launchVenuePairFragment();
 //        }
 
-        if (keyCode == KeyEvent.KEYCODE_MENU || keyCode == KeyEvent.KEYCODE_4) {
+        if (keyCode == KeyEvent.KEYCODE_1 || keyCode == KeyEvent.KEYCODE_4) {
             launchSettingsFragment();
             return true;
         }
@@ -378,7 +382,7 @@ public class MainFrameActivity extends BaseFullscreenActivity implements Overlay
             //int zed = 1 / 0;
         }
 
-        return true;
+        return false;
     }
 
     public boolean dismissIfNeeded(OverlayMode mode){

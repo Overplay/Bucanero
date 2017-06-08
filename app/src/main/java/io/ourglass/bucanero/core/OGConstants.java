@@ -12,7 +12,7 @@ public class OGConstants {
     /**
      * SocketIO constants
      */
-    public static final Boolean USE_LOCAL_SERVER = true;
+    public static final Boolean USE_LOCAL_SERVER = false;
     public static final String CODE_REV_NAME = "Bucanero";
 
     public static final String DEVICE_AUTH_HDR = "x-ogdevice-1234";
@@ -30,7 +30,7 @@ public class OGConstants {
     public static String SOCKET_IO_ADDRESS = BELLINI_DM_ADDRESS; //alias
 
     // Force automatic venue registration to the OG Office in Campbell
-    public static final Boolean AUTO_REG_TO_OGOFFICE = true;
+    public static final Boolean AUTO_REG_TO_OGOFFICE = false;
 
     // How far down from top is the widget limit (or up from bottom)
     public static final float WIDGET_Y_INSET = 0.12f;

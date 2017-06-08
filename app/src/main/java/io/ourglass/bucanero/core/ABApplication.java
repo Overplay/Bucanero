@@ -22,17 +22,14 @@ import java.util.Calendar;
 import io.ourglass.bucanero.api.BelliniDMAPI;
 import io.ourglass.bucanero.api.JSONCallback;
 import io.ourglass.bucanero.api.OGHeaderInterceptor;
-import io.ourglass.bucanero.api.StringCallback;
 import io.ourglass.bucanero.messages.MainThreadBus;
 import io.ourglass.bucanero.messages.OnScreenNotificationMessage;
 import io.ourglass.bucanero.messages.SystemStatusMessage;
 import io.ourglass.bucanero.objects.NetworkException;
-import io.ourglass.bucanero.services.Connectivity.ConnectivityService;
+import io.ourglass.bucanero.services.Connectivity.ConnectivityCenter;
 import io.ourglass.bucanero.services.Connectivity.EthernetPort;
-import io.ourglass.bucanero.services.Connectivity.NetworkingUtils;
 import io.ourglass.bucanero.services.OGLog.OGLogService;
 import io.ourglass.bucanero.services.STB.STBPollingService;
-import io.ourglass.bucanero.services.SocketIO.SocketIOManager;
 import io.realm.Realm;
 import io.realm.RealmConfiguration;
 import okhttp3.OkHttpClient;
@@ -48,14 +45,13 @@ public class ABApplication extends Application {
     public static Context sharedContext;
     public static final String TAG = "ABApplication";
 
+    public static ABApplication thisApplication;
+    public static ConnectivityCenter connectivityCenter;
+
     // Shared by all!
-    //public static final OkHttpClient okclient = new OkHttpClient();
     public static final MainThreadBus ottobus = new MainThreadBus();
 
-    // Start the SocketIO goodness
-    public static SocketIOManager siomanager; // = SocketIOManager.getInstance();
-
-    Handler mAppHandler = new Handler();
+    private static Handler mAppHandler = new Handler();
 
     public static final OkHttpClient okclient = new OkHttpClient.Builder()
             .addInterceptor(new OGHeaderInterceptor())
@@ -67,6 +63,7 @@ public class ABApplication extends Application {
         // The realm file will be located in Context.getFilesDir() with name "default.realm"
         Log.d(TAG, "Loading AB application");
 
+        thisApplication = this;
         sharedContext = getApplicationContext();
 
         RealmConfiguration config = new RealmConfiguration.Builder(this)
@@ -88,6 +85,9 @@ public class ABApplication extends Application {
         }
 
         JodaTimeAndroid.init(this);
+
+        connectivityCenter = new ConnectivityCenter(sharedContext);
+        connectivityCenter.initializeCloudComms(null);
         //LogCat.takeLogcatSnapshotAndPost();
         //boot();
 
@@ -115,9 +115,6 @@ public class ABApplication extends Application {
         Intent logIntent = new Intent(this, OGLogService.class);
         startService(logIntent);
 
-        Intent connectivityIntent = new Intent(this, ConnectivityService.class);
-        startService(connectivityIntent);
-
         Intent stbIntent = new Intent(this, STBPollingService.class);
         startService(stbIntent);
 
@@ -134,26 +131,9 @@ public class ABApplication extends Application {
         new OnScreenNotificationMessage(message).post();
     }
 
+
     private void bootWithDelay(final int delay) {
 
-        BelliniDMAPI.authenticate("admin@test.com", "beerchugs", new StringCallback() {
-            @Override
-            public void stringCallback(final String cookie) {
-                // promote to main thread
-                mAppHandler.post(new Runnable() {
-                    @Override
-                    public void run() {
-                        Log.d(TAG, "Starting SocketIO after successful login");
-                        siomanager = SocketIOManager.getInstance(cookie);
-                    }
-                });
-            }
-
-            @Override
-            public void error(NetworkException e) {
-                Log.wtf(TAG, "Could not login");
-            }
-        });
 
         new Thread(new Runnable() {
             @Override
@@ -164,9 +144,11 @@ public class ABApplication extends Application {
                     sendBootMessage("Setting up Networking");
                     EthernetPort.bringUpEthernetPort();
 
-                    Thread.sleep(delay);
 
-                    NetworkingUtils.getDeviceIpAddresses();
+                    // TODO: Why is this here? The return value is not even used and there are no
+                    // side effects. Gonna take it out.
+                    //Thread.sleep(delay);
+                    //NetworkingUtils.getDeviceIpAddresses();
 
                     Thread.sleep(delay);
 
@@ -217,6 +199,7 @@ public class ABApplication extends Application {
             public void jsonCallback(JSONObject jsonData) {
 
                 // 2. Register with either OG Office or Limbo
+                new SystemStatusMessage(SystemStatusMessage.SystemStatus.NETWORK_CONNECTED).post();
 
                 if (OGConstants.AUTO_REG_TO_OGOFFICE) {
                     BelliniDMAPI.associateDeviceWithVenueUUID(BelliniDMAPI.TEMP_OG_OFFICE_VUUID, regCallback);
@@ -229,6 +212,7 @@ public class ABApplication extends Application {
             @Override
             public void error(NetworkException e) {
                 sendBootMessage("Check Internet, Could Not Contact OG Cloud");
+                new SystemStatusMessage(SystemStatusMessage.SystemStatus.NETWORK_LOS).post();
                 // Longer delay if fast boot
                 sendBootComplete(delay == 0 ? 5000: 500);
             }

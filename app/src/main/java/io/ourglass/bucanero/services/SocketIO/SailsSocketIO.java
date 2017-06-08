@@ -65,9 +65,6 @@ public class SailsSocketIO {
                         cookies.add(mCookie);
                         headers.put("Cookie", cookies);
 
-                        List<String> auth = new ArrayList<String>();
-                        auth.add(OGConstants.DEVICE_AUTH_HDR);
-                        headers.put("Authorization", auth);
                     }
                 });
 

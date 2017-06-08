@@ -6,7 +6,8 @@ package io.ourglass.bucanero.messages;
 
 public class SystemStatusMessage extends OttobusMainThreadMessage {
 
-    public enum SystemStatus { BOOT_START, BOOT_COMPLETE }
+    // NETWORK_LOS means comms to cloud-dm.ourglass.tv
+    public enum SystemStatus { BOOT_START, BOOT_COMPLETE, NETWORK_LOS, NETWORK_CONNECTED, STB_LOS, STB_CONNECTED }
 
     public SystemStatus status;
 

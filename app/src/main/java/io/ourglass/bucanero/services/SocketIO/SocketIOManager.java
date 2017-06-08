@@ -20,6 +20,7 @@ import io.ourglass.bucanero.messages.BadOttoMessageException;
 import io.ourglass.bucanero.messages.KillAppMessage;
 import io.ourglass.bucanero.messages.LaunchAppMessage;
 import io.ourglass.bucanero.messages.MoveAppMessage;
+import io.ourglass.bucanero.messages.OnScreenNotificationMessage;
 import io.ourglass.bucanero.messages.SystemCommandMessage;
 import io.ourglass.bucanero.messages.TVControlMessage;
 import io.ourglass.bucanero.messages.VenuePairCompleteMessage;
@@ -36,27 +37,36 @@ import io.socket.emitter.Emitter;
 public class SocketIOManager {
 
     private static final String TAG = "SocketIOManager";
-    private static SocketIOManager instance;
-    private static Bus bus = ABApplication.ottobus;
+    private static final int KEEP_ALIVE_DELAY = 15000;
+    private static final int WARN_YELLOW = KEEP_ALIVE_DELAY * 4; // 1 minute
+    private static final int WARN_RED = WARN_YELLOW * 3; // 3 minutes
+
+    private Bus bus = ABApplication.ottobus;
+
+    private long lastLoopback = 0;
+    private int losLevel = 0;  // 0 = minor, 1 = middle, 2 = oh shit!
+
+    private String mCookie;
 
     HashMap<Long, Long> mDedupMap = new HashMap<>();
 
-    private static boolean hasConnected = false;
+    private boolean hasConnected = false;
 
     private Thread mKeepAliveThread;
 
-    public static SocketIOManager getInstance(String cookie) {
-        if (instance == null) {
-            instance = new SocketIOManager(cookie);
-        }
-        return instance;
+
+    public SocketIOManager(String cookie) {
+
+        mCookie = cookie;
+        initialize();
+
+        // Register to receive messages
+        ABApplication.ottobus.register(this);
     }
 
-
-    private SocketIOManager(String cookie) {
-
+    private void initialize() {
         try {
-            SailsSocketIO.getSailsSocket(cookie);
+            SailsSocketIO.getSailsSocket(mCookie);
             registerOnConnectListener();
             registerDisconnectListener();
             registerJoinListener();
@@ -66,15 +76,13 @@ public class SocketIOManager {
             Log.e(TAG, e.getLocalizedMessage());
         }
 
-        // Register to receive messages
-        ABApplication.ottobus.register(this);
     }
-
 
     private void attachToBellini() {
         Log.d(TAG, "Attaching to Bellini-DM");
         // Successful completion calls down thru the chain.
         SailsSocketIO.socket.connect();
+        lastLoopback = System.currentTimeMillis();
     }
 
     private void registerJoinListener() {
@@ -131,6 +139,7 @@ public class SocketIOManager {
             @Override
             public void call(Object... args) {
                 Log.d(TAG, "Received a CHECK-GOOD");
+                lastLoopback = System.currentTimeMillis();
             }
         });
 
@@ -140,10 +149,35 @@ public class SocketIOManager {
                 boolean looping = true;
 
                 while (looping) {
+
+                    long delta = System.currentTimeMillis() - lastLoopback;
+                    Log.d(TAG, "~~~ LOS Delta: "+delta+" ~~~");
+                    if ( delta < WARN_YELLOW ) {
+
+                        Log.d(TAG, "~~~LOS LEVEL: 0 ~~~~");
+                        losLevel = 0;
+
+                    } else if ( delta < WARN_RED ) {
+
+                        Log.d(TAG, "~~~LOS LEVEL: 1 ~~~~");
+                        if (losLevel==0)
+                            (new OnScreenNotificationMessage("We seem to have a slight network issue...")).post();
+                        losLevel = 1;
+
+                    } else  {
+
+                        Log.d(TAG, "~~~LOS LEVEL: 2 ~~~~");
+                        if (losLevel==1)
+                            (new OnScreenNotificationMessage("We've lost the network! Trying to reconnect.")).post();
+                        losLevel = 2;
+                        ABApplication.connectivityCenter.initializeCloudComms(null);
+
+                    }
+
                     Log.d(TAG, "Doing connect check");
                     String url = "/ogdevice/checkconnection";
                     HashMap<String, String> params = new HashMap<String, String>();
-                    params.put("deviceUDID", OGSystem.getUDID() );
+                    params.put("deviceUDID", OGSystem.getUDID());
 
                     SailsSocketIO.post(url, params, new SailsSocketIO.SailsSIOCallback() {
                         @Override
@@ -153,7 +187,7 @@ public class SocketIOManager {
                     });
 
                     try {
-                        Thread.sleep(15000);
+                        Thread.sleep(KEEP_ALIVE_DELAY);
                     } catch (InterruptedException e) {
                         looping = false;
                     }
