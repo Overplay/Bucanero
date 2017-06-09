@@ -33,6 +33,7 @@ import io.ourglass.bucanero.messages.OnScreenNotificationMessage;
 import io.ourglass.bucanero.messages.SystemCommandMessage;
 import io.ourglass.bucanero.messages.SystemStatusMessage;
 import io.ourglass.bucanero.objects.NetworkException;
+import io.ourglass.bucanero.services.FFmpeg.AudioStreamer;
 import io.ourglass.bucanero.tv.Fragments.OGWebViewFragment;
 import io.ourglass.bucanero.tv.Fragments.OverlayFragmentListener;
 import io.ourglass.bucanero.tv.Fragments.SystemInfoFragment;
@@ -67,6 +68,7 @@ public class MainFrameActivity extends BaseFullscreenActivity implements Overlay
     RelativeLayout mOverlayFragmentHolder;
     SurfaceView mTVSurface;
 
+    private AudioStreamer mAudioStreamer;
     private HDMIRxPlayer mHDMIRxPlayer;
 
     private enum OverlayMode {NONE, SYSINFO, STBPAIR, WIFI, SETUP, OTHER, VENUEPAIR, SETTINGS, WELCOME}
@@ -113,6 +115,10 @@ public class MainFrameActivity extends BaseFullscreenActivity implements Overlay
             Thread.setDefaultUncaughtExceptionHandler(new OGSystemExceptionHander(this,
                     MainFrameActivity.class));
         }
+
+        mAudioStreamer = new AudioStreamer(this);
+        // This will start streaming audio in 10 secs
+        mAudioStreamer.recorderRekick(10000);
 
         // Register to receive messages
         ABApplication.ottobus.register(this);

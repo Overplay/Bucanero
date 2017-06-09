@@ -89,6 +89,10 @@
                 <!--<category android:name="android.intent.category.LAUNCHER" />-->
             <!--</intent-filter>-->
         </activity>
+            android:exported="false" />
+        <service
+            android:name=".services.FFmpeg.FFmpegBinaryService"
+            android:exported="false" />
     </application>
 
 

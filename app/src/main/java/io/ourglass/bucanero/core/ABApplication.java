@@ -28,6 +28,8 @@ import io.ourglass.bucanero.messages.SystemStatusMessage;
 import io.ourglass.bucanero.objects.NetworkException;
 import io.ourglass.bucanero.services.Connectivity.ConnectivityCenter;
 import io.ourglass.bucanero.services.Connectivity.EthernetPort;
+import io.ourglass.bucanero.services.Connectivity.NetworkingUtils;
+import io.ourglass.bucanero.services.FFmpeg.FFmpegBinaryService;
 import io.ourglass.bucanero.services.OGLog.OGLogService;
 import io.ourglass.bucanero.services.STB.STBPollingService;
 import io.realm.Realm;
@@ -118,6 +120,9 @@ public class ABApplication extends Application {
         Intent stbIntent = new Intent(this, STBPollingService.class);
         startService(stbIntent);
 
+
+        Intent ffmpegBinaryIntent = new Intent(this, FFmpegBinaryService.class);
+        startService(ffmpegBinaryIntent);
 
         // Logcat messages go to a file...
 //        if (OGSystem.isExternalStorageWritable() && OGConstants.LOGCAT_TO_FILE) {
