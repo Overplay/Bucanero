@@ -27,4 +27,5 @@ public class MoveAppMessage extends AppControlOttoMessage {
 
     }
 
+
 }

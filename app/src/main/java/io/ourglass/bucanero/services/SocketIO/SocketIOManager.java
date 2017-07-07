@@ -1,5 +1,6 @@
 package io.ourglass.bucanero.services.SocketIO;
 
+import android.os.Handler;
 import android.util.Log;
 
 import com.squareup.otto.Bus;
@@ -20,17 +21,18 @@ import io.ourglass.bucanero.messages.BadOttoMessageException;
 import io.ourglass.bucanero.messages.KillAppMessage;
 import io.ourglass.bucanero.messages.LaunchAppMessage;
 import io.ourglass.bucanero.messages.MoveAppMessage;
+import io.ourglass.bucanero.messages.MoveWebViewMessage;
 import io.ourglass.bucanero.messages.OnScreenNotificationMessage;
 import io.ourglass.bucanero.messages.SystemCommandMessage;
 import io.ourglass.bucanero.messages.TVControlMessage;
 import io.ourglass.bucanero.messages.VenuePairCompleteMessage;
 import io.ourglass.bucanero.objects.TVShow;
+import io.ourglass.bucanero.services.Connectivity.ConnectivityCenter;
 import io.socket.client.Socket;
 import io.socket.emitter.Emitter;
 
-/**
- * Created by atorres on 3/6/17.
- */
+import static io.ourglass.bucanero.services.SocketIO.SailsSocketIO.socket;
+
 
 // TODO Auto-reconnect happens, it just takes too long. This is probably an IO.Options setting
 
@@ -38,8 +40,8 @@ public class SocketIOManager {
 
     private static final String TAG = "SocketIOManager";
     private static final int KEEP_ALIVE_DELAY = 15000;
-    private static final int WARN_YELLOW = KEEP_ALIVE_DELAY * 4; // 1 minute
-    private static final int WARN_RED = WARN_YELLOW * 3; // 3 minutes
+    private static final int WARN_YELLOW = KEEP_ALIVE_DELAY * 2; // 1 minute
+    private static final int WARN_RED = WARN_YELLOW * 2; // 3 minutes
 
     private Bus bus = ABApplication.ottobus;
 
@@ -52,8 +54,7 @@ public class SocketIOManager {
 
     private boolean hasConnected = false;
 
-    private Thread mKeepAliveThread;
-
+    private Handler mHandler = new Handler();
 
     public SocketIOManager(String cookie) {
 
@@ -62,6 +63,25 @@ public class SocketIOManager {
 
         // Register to receive messages
         ABApplication.ottobus.register(this);
+    }
+
+    // Reset is called when the cookie changes, usually when there's been a connect/disconnect issue
+    public void reset(String newCookie){
+
+        Log.d(TAG, "Resetting socket IO from the top.");
+        mCookie = newCookie;
+        initialize();
+
+    }
+
+    public void shutDownSockets(){
+
+        Log.d(TAG, "Shutting down socket IO.");
+
+        mHandler.removeCallbacksAndMessages(null);
+        SailsSocketIO.close();
+        mCookie = null;
+
     }
 
     private void initialize() {
@@ -75,20 +95,19 @@ public class SocketIOManager {
         } catch (URISyntaxException e) {
             Log.e(TAG, e.getLocalizedMessage());
         }
-
     }
 
     private void attachToBellini() {
         Log.d(TAG, "Attaching to Bellini-DM");
         // Successful completion calls down thru the chain.
-        SailsSocketIO.socket.connect();
+        socket.connect();
         lastLoopback = System.currentTimeMillis();
     }
 
     private void registerJoinListener() {
 
         Log.d(TAG, "Registering SIO Join Room listener");
-        SailsSocketIO.socket.on("DEVICE-JOIN", new Emitter.Listener() {
+        socket.on("DEVICE-JOIN", new Emitter.Listener() {
             @Override
             public void call(Object... args) {
                 Log.d(TAG, "Device room join complete!");
@@ -100,7 +119,7 @@ public class SocketIOManager {
 
     private void registerOnConnectListener() {
         Log.d(TAG, "Registering SIO onConnect listener");
-        SailsSocketIO.socket.on(Socket.EVENT_CONNECT, new Emitter.Listener() {
+        socket.on(Socket.EVENT_CONNECT, new Emitter.Listener() {
             @Override
             public void call(Object... args) {
                 Log.d(TAG, "Socket Connected!");
@@ -112,7 +131,7 @@ public class SocketIOManager {
 
     private void registerDisconnectListener() {
         Log.d(TAG, "Registering SIO onDisconnectConnect listener");
-        SailsSocketIO.socket.on(Socket.EVENT_DISCONNECT, new Emitter.Listener() {
+        socket.on(Socket.EVENT_DISCONNECT, new Emitter.Listener() {
             @Override
             public void call(Object... args) {
                 Log.wtf(TAG, "Socket DISConnected!");
@@ -123,19 +142,17 @@ public class SocketIOManager {
     }
 
     private void registerDeviceDMListener() {
+
         Log.d(TAG, "Registering inbound device DM listener.");
-        SailsSocketIO.socket.on("DEVICE-DM", new Emitter.Listener() {
+        socket.on("DEVICE-DM", new Emitter.Listener() {
             @Override
             public void call(Object... args) {
                 Log.d(TAG, "Received DEV-DM message.");
                 processMessage(args[0]);
             }
         });
-    }
 
-    private void keepAlive() {
-
-        SailsSocketIO.socket.on("CHECK-GOOD", new Emitter.Listener() {
+        socket.on("CHECK-GOOD", new Emitter.Listener() {
             @Override
             public void call(Object... args) {
                 Log.d(TAG, "Received a CHECK-GOOD");
@@ -143,36 +160,27 @@ public class SocketIOManager {
             }
         });
 
-        mKeepAliveThread = new Thread(new Runnable() {
-            @Override
-            public void run() {
-                boolean looping = true;
+    }
 
-                while (looping) {
+    private Runnable keepAliveRunnable = new Runnable() {
+        @Override
+        public void run() {
 
-                    long delta = System.currentTimeMillis() - lastLoopback;
-                    Log.d(TAG, "~~~ LOS Delta: "+delta+" ~~~");
-                    if ( delta < WARN_YELLOW ) {
+                long delta = System.currentTimeMillis() - lastLoopback;
+                Log.d(TAG, "~~~ LOS Delta: "+delta+" ~~~");
 
-                        Log.d(TAG, "~~~LOS LEVEL: 0 ~~~~");
-                        losLevel = 0;
+                if ( delta > WARN_RED ){
 
-                    } else if ( delta < WARN_RED ) {
+                    Log.d(TAG, "~~~ LOS LEVEL: 2 ~~~~");
+                    Log.d(TAG, "~~~ SHUTTING DOWN SOCKETS ~~~~");
+                    shutDownSockets();
 
-                        Log.d(TAG, "~~~LOS LEVEL: 1 ~~~~");
-                        if (losLevel==0)
-                            (new OnScreenNotificationMessage("We seem to have a slight network issue...")).post();
-                        losLevel = 1;
+                    (new OnScreenNotificationMessage("We've lost the network! Trying to reconnect.")).post();
 
-                    } else  {
+                    Log.d(TAG, "~~~ ISSUING RECONNECT ~~~~");
+                    ConnectivityCenter.getInstance().initializeCloudComms(null);
 
-                        Log.d(TAG, "~~~LOS LEVEL: 2 ~~~~");
-                        if (losLevel==1)
-                            (new OnScreenNotificationMessage("We've lost the network! Trying to reconnect.")).post();
-                        losLevel = 2;
-                        ABApplication.connectivityCenter.initializeCloudComms(null);
-
-                    }
+                } else {
 
                     Log.d(TAG, "Doing connect check");
                     String url = "/ogdevice/checkconnection";
@@ -186,16 +194,27 @@ public class SocketIOManager {
                         }
                     });
 
-                    try {
-                        Thread.sleep(KEEP_ALIVE_DELAY);
-                    } catch (InterruptedException e) {
-                        looping = false;
+                    if ( delta < WARN_YELLOW ) {
+                        Log.d(TAG, "~~~ LOS LEVEL: 0 ~~~~");
+                        losLevel = 0;
+                    } else {
+                        Log.d(TAG, "~~~ LOS LEVEL: 1 ~~~~");
+                        (new OnScreenNotificationMessage("We seem to have a slight network issue...")).post();
+                        losLevel = 1;
                     }
-                }
-            }
-        });
 
-        mKeepAliveThread.start();
+                    mHandler.postDelayed(this, KEEP_ALIVE_DELAY);
+
+                }
+
+        }
+
+    };
+
+    private void keepAlive() {
+
+        mHandler.post(keepAliveRunnable);
+
     }
 
     private void joinDeviceRoom() {
@@ -331,12 +350,17 @@ public class SocketIOManager {
         TVControlMessage tvcm = new TVControlMessage(tuneObj);
         bus.post(tvcm); // in case anyone cares
         OGSystem.changeTVChannel(tvcm.toChannel);
+
+        // TODO: Hack Alert!!
+
+        if ( tuneObj.optInt("channel", 0) == 620 ){
+            Log.d(TAG, "BeIn Hack, moving to floor");
+            (new MoveWebViewMessage("crawler", 1)).post();
+        } else {
+            (new MoveWebViewMessage("crawler", 0)).post();
+        }
     }
 
-
-    public void disconnect() {
-        SailsSocketIO.socket.disconnect();
-    }
 
 
     @Subscribe
@@ -349,9 +373,7 @@ public class SocketIOManager {
     @Subscribe
     public void programChange(TVShow newShow) {
         Log.d(TAG, "Got a program change bus message!");
-
     }
-
 
     // Hail Mary
     private boolean deDedup(Long timeStamp) {

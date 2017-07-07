@@ -27,6 +27,7 @@ import io.ourglass.bucanero.core.OGConstants;
 import io.ourglass.bucanero.core.OGSystem;
 import io.ourglass.bucanero.messages.KillAppMessage;
 import io.ourglass.bucanero.messages.MoveAppMessage;
+import io.ourglass.bucanero.messages.MoveWebViewMessage;
 import io.ourglass.bucanero.tv.Support.Frame;
 import io.ourglass.bucanero.tv.Support.OGAnimations;
 import io.ourglass.bucanero.tv.Support.Size;
@@ -103,18 +104,18 @@ public class OGWebViewFragment extends WebViewFragment {
         Log.d(TAG, "In onResume");
     }
 
-    public void setType(String appType){
+    public void setType(String appType) {
         this.appType = appType;
     }
 
-    private Point calculateLocationForSlot(int slotNum){
+    private Point calculateLocationForSlot() {
 
         float newX = 0, newY = 0;
 
         // TODO this is gross logic...maybe use some enums to do the calcs
-        switch (appType){
+        switch (appType) {
             case "widget":
-                if (mLayoutSlot==0 || mLayoutSlot==3){
+                if (mLayoutSlot == 0 || mLayoutSlot == 3) {
                     // Left edge, so only zero plus the nudge inset
                     newX = mXInset;
                 } else {
@@ -122,12 +123,12 @@ public class OGWebViewFragment extends WebViewFragment {
                     newX = OGSystem.getTVResolution().width - mFrame.size.width - mXInset;
                 }
 
-                if (mLayoutSlot<2){
+                if (mLayoutSlot < 2) {
                     // At the top
-                    newY = OGSystem.getTVResolution().height* OGConstants.WIDGET_Y_INSET+mYInset;
+                    newY = OGSystem.getTVResolution().height * OGConstants.WIDGET_Y_INSET + mYInset;
                 } else {
                     // At the bottom
-                    newY = OGSystem.getTVResolution().height - OGSystem.getTVResolution().height* OGConstants.WIDGET_Y_INSET -
+                    newY = OGSystem.getTVResolution().height - OGSystem.getTVResolution().height * OGConstants.WIDGET_Y_INSET -
                             mYInset - mFrame.size.height;
                 }
                 break;
@@ -135,7 +136,7 @@ public class OGWebViewFragment extends WebViewFragment {
             case "crawler":
 
                 newX = 0;
-                if (mLayoutSlot==0){
+                if (mLayoutSlot == 0) {
                     newY = mYInset;
                 } else {
                     newY = OGSystem.getTVResolution().height - mFrame.size.height - mYInset;
@@ -143,18 +144,24 @@ public class OGWebViewFragment extends WebViewFragment {
                 break;
         }
 
-        return new Point((int)newX, (int)newY);
+        return new Point((int) newX, (int) newY);
 
     }
 
-    public void moveToNextLayoutSlot(){
-        int numSlots = appType.equalsIgnoreCase("widget") ? 4:2;
-        mLayoutSlot = (mLayoutSlot+1) % numSlots;
+    public void moveToNextLayoutSlot() {
+        int numSlots = appType.equalsIgnoreCase("widget") ? 4 : 2;
+        mLayoutSlot = (mLayoutSlot + 1) % numSlots;
         setFrameForSlot(mLayoutSlot);
     }
 
-    public void setFrameForSlot(int layoutSlot){
-        mFrame.location = calculateLocationForSlot(layoutSlot);
+    public void setFrameForSlot(int layoutSlot) {
+        mLayoutSlot = layoutSlot;
+        mFrame.location = calculateLocationForSlot();
+        if (appType.equalsIgnoreCase("widget")){
+            OGSystem.widgetSlot = mLayoutSlot;
+        } else {
+            OGSystem.crawlerSlot = mLayoutSlot;
+        }
         updateFrame();
     }
 
@@ -163,43 +170,44 @@ public class OGWebViewFragment extends WebViewFragment {
         updateFrame();
     }
 
-    public void setSize(Size size){
+    public void setSize(Size size) {
         mFrame.size = size;
         updateFrame();
     }
 
-    public void setSizeAsPctOfScreen(Size pctSize){
+    public void setSizeAsPctOfScreen(Size pctSize) {
         Size tvRes = OGSystem.getTVResolution();
-        float width = appType.equalsIgnoreCase("crawler") ? tvRes.width : tvRes.width * pctSize.width/100;
-        Size appSize = new Size( (int)width, tvRes.height * pctSize.height/100);
+        float width = appType.equalsIgnoreCase("crawler") ? tvRes.width : tvRes.width * pctSize.width / 100;
+        Size appSize = new Size((int) width, tvRes.height * pctSize.height / 100);
         setSize(appSize);
+        updateFrame();
     }
 
-    private void animateFrameChanges(Frame destinationFrame){
+    private void animateFrameChanges(Frame destinationFrame) {
 
     }
 
-    private void updateFrame(){
+    private void updateFrame() {
 
+        Point wvPosition = calculateLocationForSlot();
+        mFrame.location = wvPosition;
         ViewGroup.LayoutParams params = getWebView().getLayoutParams();
         // Changes the height and width to the specified *pixels*
         params.height = mFrame.size.height;
         params.width = mFrame.size.width;
         getWebView().setLayoutParams(params);
 
-        if (ANIMATE_MOTION){
+        if (ANIMATE_MOTION) {
             OGAnimations.moveView(getWebView(), mFrame.location, OGAnimations.MoveAnimation.SLIDE);
 
         } else {
             getWebView().setTranslationX(mFrame.location.x);
             getWebView().setTranslationY(mFrame.location.y);
         }
-
-
     }
 
     @Override
-    public void onPause(){
+    public void onPause() {
         super.onPause();
     }
 
@@ -267,21 +275,23 @@ public class OGWebViewFragment extends WebViewFragment {
 
     }
 
-    public void halfFade() { OGAnimations.animateAlphaTo(getView(), 0.35f);}
+    public void halfFade() {
+        OGAnimations.animateAlphaTo(getView(), 0.35f);
+    }
 
-    public void fadeOut(){
+    public void fadeOut() {
         OGAnimations.animateAlphaTo(getView(), 0f);
     }
 
-    public void fadeIn(){
+    public void fadeIn() {
         OGAnimations.animateAlphaTo(getView(), 1f);
     }
 
-    public void hide(){
+    public void hide() {
         getWebView().setAlpha(0);
     }
 
-    public void show(){
+    public void show() {
         getWebView().setAlpha(1);
     }
 
@@ -291,7 +301,7 @@ public class OGWebViewFragment extends WebViewFragment {
         getWebView().loadUrl(url);
     }
 
-    public void launchApp(String appId){
+    public void launchApp(String appId) {
         mAppId = appId;
         loadUrl(BelliniDMAPI.fullUrlForApp(appId));
     }
@@ -315,19 +325,28 @@ public class OGWebViewFragment extends WebViewFragment {
         String appToDie = killMsg.appId;
 
         // TODO Animate and Eventually turn off JS/URL
-        if (appToDie.equalsIgnoreCase(mAppId)){
+        if (appToDie.equalsIgnoreCase(mAppId)) {
             getWebView().setAlpha(0f);
             BelliniDMAPI.appKillAck(mAppId);
         }
     }
 
-    @Subscribe public void inboundMove(MoveAppMessage moveMsg) {
+    @Subscribe
+    public void inboundMove(MoveAppMessage moveMsg) {
         // TODO: React to the event somehow!
         Log.d(TAG, "Got a move message, yo!");
-        if (moveMsg.appId.equalsIgnoreCase(mAppId)){
+        if (moveMsg.appId.equalsIgnoreCase(mAppId)) {
             moveToNextLayoutSlot();
             BelliniDMAPI.appMoveAck(mAppId, mLayoutSlot);
 
+        }
+    }
+
+    @Subscribe
+    public void inboundExplicitMove(MoveWebViewMessage moveMsg) {
+        Log.d(TAG, "Got an explicit slot move message, yo!");
+        if (appType.equalsIgnoreCase(moveMsg.type)){
+            setFrameForSlot(moveMsg.slot);
         }
     }
 

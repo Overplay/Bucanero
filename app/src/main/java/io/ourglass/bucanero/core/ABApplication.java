@@ -19,7 +19,6 @@ import java.io.IOException;
 import java.text.SimpleDateFormat;
 import java.util.Calendar;
 
-import io.ourglass.bucanero.api.BelliniDMAPI;
 import io.ourglass.bucanero.api.JSONCallback;
 import io.ourglass.bucanero.api.OGHeaderInterceptor;
 import io.ourglass.bucanero.messages.MainThreadBus;
@@ -28,7 +27,6 @@ import io.ourglass.bucanero.messages.SystemStatusMessage;
 import io.ourglass.bucanero.objects.NetworkException;
 import io.ourglass.bucanero.services.Connectivity.ConnectivityCenter;
 import io.ourglass.bucanero.services.Connectivity.EthernetPort;
-import io.ourglass.bucanero.services.Connectivity.NetworkingUtils;
 import io.ourglass.bucanero.services.FFmpeg.FFmpegBinaryService;
 import io.ourglass.bucanero.services.OGLog.OGLogService;
 import io.ourglass.bucanero.services.STB.STBPollingService;
@@ -88,7 +86,7 @@ public class ABApplication extends Application {
 
         JodaTimeAndroid.init(this);
 
-        connectivityCenter = new ConnectivityCenter(sharedContext);
+        connectivityCenter = ConnectivityCenter.getInstance();
         connectivityCenter.initializeCloudComms(null);
         //LogCat.takeLogcatSnapshotAndPost();
         //boot();
@@ -122,7 +120,7 @@ public class ABApplication extends Application {
 
 
         Intent ffmpegBinaryIntent = new Intent(this, FFmpegBinaryService.class);
-        startService(ffmpegBinaryIntent);
+        //startService(ffmpegBinaryIntent);
 
         // Logcat messages go to a file...
 //        if (OGSystem.isExternalStorageWritable() && OGConstants.LOGCAT_TO_FILE) {
@@ -161,8 +159,8 @@ public class ABApplication extends Application {
                     startServices();
 
                     Thread.sleep(delay);
-                    sendBootMessage("Contacting OG Cloud");
-                    bootSyncWithCloud();
+
+                    sendBootComplete(1000);
 
 
                 } catch (InterruptedException e) {
@@ -194,37 +192,6 @@ public class ABApplication extends Application {
 
     };
 
-    private void bootSyncWithCloud(){
-
-
-        // 1. Run a registration pass. If this box is already registered, we get back the last settings
-        // saved in the cloud which we sync into this box.
-        BelliniDMAPI.registerDeviceWithBellini(new JSONCallback() {
-            @Override
-            public void jsonCallback(JSONObject jsonData) {
-
-                // 2. Register with either OG Office or Limbo
-                new SystemStatusMessage(SystemStatusMessage.SystemStatus.NETWORK_CONNECTED).post();
-
-                if (OGConstants.AUTO_REG_TO_OGOFFICE) {
-                    BelliniDMAPI.associateDeviceWithVenueUUID(BelliniDMAPI.TEMP_OG_OFFICE_VUUID, regCallback);
-                } else if (OGSystem.getVenueId().isEmpty()){
-                    BelliniDMAPI.associateDeviceWithVenueUUID(BelliniDMAPI.BULLPEN_VUUID, regCallback);
-                }
-
-            }
-
-            @Override
-            public void error(NetworkException e) {
-                sendBootMessage("Check Internet, Could Not Contact OG Cloud");
-                new SystemStatusMessage(SystemStatusMessage.SystemStatus.NETWORK_LOS).post();
-                // Longer delay if fast boot
-                sendBootComplete(delay == 0 ? 5000: 500);
-            }
-        });
-
-
-    }
 
     private void sendBootComplete(final int afterMs) {
         new Thread(new Runnable() {

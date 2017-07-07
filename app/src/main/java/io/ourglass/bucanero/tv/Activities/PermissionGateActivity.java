@@ -37,7 +37,9 @@ public class PermissionGateActivity extends BaseFullscreenActivity {
                             Manifest.permission.CAMERA,
                             Manifest.permission.ACCESS_WIFI_STATE,
                             Manifest.permission.CHANGE_WIFI_STATE,
-                            Manifest.permission.ACCESS_COARSE_LOCATION},
+                            Manifest.permission.ACCESS_COARSE_LOCATION,
+                            Manifest.permission.BLUETOOTH,
+                            Manifest.permission.READ_PHONE_STATE},
                     2727);
 
         }
@@ -81,7 +83,13 @@ public class PermissionGateActivity extends BaseFullscreenActivity {
                         Manifest.permission.CHANGE_WIFI_STATE) == PackageManager.PERMISSION_GRANTED &&
 
                 ContextCompat.checkSelfPermission(this,
-                        Manifest.permission.ACCESS_COARSE_LOCATION) == PackageManager.PERMISSION_GRANTED;
+                        Manifest.permission.ACCESS_COARSE_LOCATION) == PackageManager.PERMISSION_GRANTED &&
+
+                ContextCompat.checkSelfPermission(this,
+                        Manifest.permission.BLUETOOTH) == PackageManager.PERMISSION_GRANTED &&
+
+                ContextCompat.checkSelfPermission(this,
+                        Manifest.permission.READ_PHONE_STATE) == PackageManager.PERMISSION_GRANTED;
 
     }
 

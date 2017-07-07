@@ -58,13 +58,23 @@ public class ConnectivityCenter  {
     private ConnectivityManager cm;
     private NetworkInfo mWifiNetworkInfo;
     private NetworkInfo mEthernetNetworkInfo;
-    private Context mContext;
+    private Context mContext = ABApplication.sharedContext;
 
-    private static Handler mHandler;
+    private Handler mHandler = new Handler();;
 
-    public ConnectivityCenter(Context context){
-        mContext = context;
-        mHandler = new Handler();
+    private static ConnectivityCenter mInstance;
+
+    public static ConnectivityCenter getInstance(){
+
+        if (mInstance==null){
+            mInstance = new ConnectivityCenter();
+        }
+
+        return mInstance;
+
+    }
+
+    private ConnectivityCenter(){
         init();
     }
 
@@ -135,8 +145,12 @@ public class ConnectivityCenter  {
                     @Override
                     public void run() {
 
-                        Log.d(TAG, "Starting SocketIO after successful login");
-                        sioManager = new SocketIOManager(cookie);
+                        if (sioManager==null){
+                            Log.d(TAG, "Starting SocketIO after successful login");
+                            sioManager = new SocketIOManager(cookie);
+                        } else {
+                            sioManager.reset(cookie);
+                        }
 
                         registerDeviceWithCloud(new JSONCallback() {
                             @Override

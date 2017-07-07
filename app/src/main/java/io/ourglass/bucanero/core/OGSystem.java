@@ -1,17 +1,24 @@
 package io.ourglass.bucanero.core;
 
 
+import android.bluetooth.BluetoothAdapter;
 import android.content.Context;
 import android.content.SharedPreferences;
+import android.net.wifi.WifiManager;
 import android.os.Build;
 import android.os.Environment;
 import android.provider.Settings;
+import android.telephony.TelephonyManager;
 import android.util.Log;
 
 import com.google.gson.Gson;
 
 import org.json.JSONException;
 import org.json.JSONObject;
+
+import java.security.MessageDigest;
+import java.security.NoSuchAlgorithmException;
+import java.util.UUID;
 
 import io.ourglass.bucanero.api.BelliniDMAPI;
 import io.ourglass.bucanero.api.JSONCallback;
@@ -32,6 +39,9 @@ import static io.ourglass.bucanero.services.Connectivity.NetworkingUtils.getWiFi
 public class OGSystem {
 
     private static final String TAG = "OGSystem";
+
+    public static int crawlerSlot = 0;
+    public static int widgetSlot = 0;
 
     private static SetTopBox mPairedSTB;
     private static TVShow mCurrentTVShow;
@@ -83,6 +93,17 @@ public class OGSystem {
     }
 
     /*
+     * Verbose/Debug Mode
+     */
+    private static boolean getVerboseMode(){
+        return getBoolFromPrefs("verboseMode", OGConstants.SHOW_DB_TOASTS);
+    };
+
+    private static void setVerboseMode(boolean verbose){
+        putBoolToPrefs("verboseMode", verbose);
+    };
+
+    /*
      * TV Resolution
      */
 
@@ -98,10 +119,11 @@ public class OGSystem {
     }
 
     /*
-     * System UDID
+     * OLD System UDID
+     * See bottom of file for new SJM stuff
      */
 
-    public static String getUDID() {
+    public static String getNonUniqueUDID() {
         return Settings.Secure.getString(ABApplication.sharedContext.getContentResolver(),
                 Settings.Secure.ANDROID_ID);
     }
@@ -347,6 +369,9 @@ public class OGSystem {
 
             deviceJSON.put("ts", System.currentTimeMillis());
 
+            deviceJSON.put("widgetSlot", OGSystem.widgetSlot);
+            deviceJSON.put("crawlerSlot", OGSystem.crawlerSlot);
+
             //deviceJSON.put("lastGuideSync", AppSettings.getString(AJPGSPollingService.LAST_SYNC_SETTINGS_KEY, "none"));
 
         } catch (JSONException e) {
@@ -541,6 +566,98 @@ public class OGSystem {
         return false;
     }
 
+
+    // Crazy UDID nonsense!!
+
+    // Had to comment this out because on Android 6 it was crashing
+    protected static final String _mUDID = "this doesn't work on Android 6"; //_getUDID();
+
+    public static String getUDID(){
+
+        String udid = getStringFromPrefs("devUDID", null);
+        if (udid == null){
+            udid = UUID.randomUUID().toString();
+            putStringToPrefs("devUDID", udid);
+        }
+
+        return udid;
+
+    }
+
+    public static String getUDIDScott() {
+        return _mUDID;
+    }
+
+    protected static synchronized String _getUDID() {
+
+        if (isEmulator()){
+            return getNonUniqueUDID(); // for now, this won't fault out on emu
+        }
+        //return Settings.Secure.getString(ABApplication.sharedContext.getContentResolver(),
+        //        Settings.Secure.ANDROID_ID);
+        String m_szUniqueID = new String();
+
+        //if (_mUDID == null) {
+        // http://www.pocketmagic.net/android-unique-device-id/
+
+            /*
+                String tmDevice, tmSerial, tmPhone, androidId;
+                tmDevice = "" + tm.getDeviceId();
+                tmSerial = "" + tm.getSimSerialNumber();
+                androidId = "" + android.provider.Settings.Secure.getString(ABApplication.sharedContext.getContentResolver(), Settings.Secure.ANDROID_ID);
+
+                UUID deviceUuid = new UUID(androidId.hashCode(), ((long)tmDevice.hashCode() << 32) | tmSerial.hashCode());
+                String deviceId = deviceUuid.toString();*/
+
+        TelephonyManager TelephonyMgr = (TelephonyManager)ABApplication.sharedContext.getSystemService(Context.TELEPHONY_SERVICE);
+        String m_szImei = TelephonyMgr.getDeviceId(); // Requires READ_PHONE_STATE
+
+        String m_szDevIDShort = "35" + //we make this look like a valid IMEI
+                Build.BOARD.length()%10+ Build.BRAND.length()%10 +
+                Build.CPU_ABI.length()%10 + Build.DEVICE.length()%10 +
+                Build.DISPLAY.length()%10 + Build.HOST.length()%10 +
+                Build.ID.length()%10 + Build.MANUFACTURER.length()%10 +
+                Build.MODEL.length()%10 + Build.PRODUCT.length()%10 +
+                Build.TAGS.length()%10 + Build.TYPE.length()%10 +
+                Build.USER.length()%10 ; //13 digits
+
+        String m_szAndroidID = Settings.Secure.getString(ABApplication.sharedContext.getContentResolver(),
+                Settings.Secure.ANDROID_ID);
+
+        WifiManager wm = (WifiManager)ABApplication.sharedContext.getSystemService(Context.WIFI_SERVICE);
+        String m_szWLANMAC = wm.getConnectionInfo().getMacAddress();
+
+        BluetoothAdapter m_BluetoothAdapter    = null; // Local Bluetooth adapter
+        m_BluetoothAdapter = BluetoothAdapter.getDefaultAdapter();
+        String m_szBTMAC = m_BluetoothAdapter.getAddress();
+
+        String m_szLongID = m_szImei + m_szDevIDShort + m_szAndroidID+ m_szWLANMAC + m_szBTMAC;
+
+        // compute md5
+        MessageDigest m = null;
+        try {
+            m = MessageDigest.getInstance("MD5");
+        } catch (NoSuchAlgorithmException e) {
+            Log.e("MD5", e.toString());
+            return null;
+        }
+        m.update(m_szLongID.getBytes(),0,m_szLongID.length());
+        // get md5 bytes
+        byte p_md5Data[] = m.digest();
+        // create a hex string
+
+        for (int i=0;i<p_md5Data.length;i++) {
+            int b =  (0xFF & p_md5Data[i]);
+            // if it is a single digit, make sure it have 0 in front (proper padding)
+            if (b <= 0xF) m_szUniqueID+="0";
+            // add number to string
+            m_szUniqueID+=Integer.toHexString(b);
+        }
+        // hex string to uppercase
+        m_szUniqueID = m_szUniqueID.toUpperCase();
+        //}
+        return m_szUniqueID;
+    }
 
 }
 

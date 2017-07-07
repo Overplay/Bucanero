@@ -20,6 +20,16 @@ import com.realtek.server.HDMIRxStatus;
 import java.io.IOException;
 import java.util.List;
 
+/****************************
+ *
+ *
+ *  D E P R E C A T E D
+ *
+ *  Here for reference only
+ *
+ ****************************/
+
+@Deprecated
 public class HDMIRxPlayer
 {
     private final String TAG = "HDMIRxPlayer";
@@ -71,6 +81,21 @@ public class HDMIRxPlayer
         }
     };
 
+    private BroadcastReceiver hdmiRxHotPlugReceiverPassive = new BroadcastReceiver() {
+        @Override
+        public void onReceive(Context context, Intent intent) {
+            boolean hdmiRxPlugged = intent.getBooleanExtra(HDMIRxStatus.EXTRA_HDMIRX_PLUGGED_STATE, false);
+            if(hdmiRxPlugged) {
+                //mPlayCount=0;
+                play();
+                Log.d(TAG, "HDMI Rx is plugged in ( "+ mWidth + "x" + mHeight +" )\n");
+            } else {
+                //stop();
+                Log.d(TAG, "HDMI Rx is pulled out\n");
+            }
+        }
+    };
+
     public HDMIRxPlayer(Context context, SurfaceView sv, int width, int height) {
         mContext = context;
         mSurfaceView = sv;
@@ -84,7 +109,7 @@ public class HDMIRxPlayer
         mHDMIRX = new RtkHDMIRxManager();
 
         IntentFilter hdmiRxFilter = new IntentFilter(HDMIRxStatus.ACTION_HDMIRX_PLUGGED);
-        mContext.registerReceiver(hdmiRxHotPlugReceiver, hdmiRxFilter);
+        mContext.registerReceiver(hdmiRxHotPlugReceiverPassive, hdmiRxFilter);
     }
 
     public HDMIRxPlayer(Context context, ViewGroup parent, int width, int height)
@@ -101,7 +126,7 @@ public class HDMIRxPlayer
         mHDMIRX = new RtkHDMIRxManager();
 
         IntentFilter hdmiRxFilter = new IntentFilter(HDMIRxStatus.ACTION_HDMIRX_PLUGGED);
-        mContext.registerReceiver(hdmiRxHotPlugReceiver, hdmiRxFilter);
+        mContext.registerReceiver(hdmiRxHotPlugReceiverPassive, hdmiRxFilter);
     }
 
     public boolean isPlaying()

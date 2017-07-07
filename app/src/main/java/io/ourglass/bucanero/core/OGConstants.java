@@ -37,9 +37,11 @@ public class OGConstants {
 
     public static final boolean ENABLE_RESTART_ON_UNCAUGHT_EXCEPTIONS = true;
 
+
+    // TEST and DEBUG
     public static final boolean TEST_MODE = true;
     public static final boolean CRASH_TEST_DUMMY = true; // enable force crash on '5' button
-    public static final boolean SHOW_DB_TOASTS = false;
+    public static final boolean SHOW_DB_TOASTS = true;
     public static final boolean LOGCAT_TO_FILE = true; // Off until I am sure it works [mak]
 
     /**

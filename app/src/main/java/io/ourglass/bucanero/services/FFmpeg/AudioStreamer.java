@@ -1,15 +1,14 @@
 package io.ourglass.bucanero.services.FFmpeg;
 
+import android.content.Context;
+import android.media.MediaRecorder;
+import android.os.ParcelFileDescriptor;
+import android.util.Log;
+
 import java.io.File;
 import java.io.FileDescriptor;
 import java.io.FileOutputStream;
 import java.io.IOException;
-
-import android.content.Context;
-import android.media.ExifInterface;
-import android.media.MediaRecorder;
-import android.os.ParcelFileDescriptor;
-import android.util.Log;
 
 import io.ourglass.bucanero.core.OGSystem;
 //import io.ourglass.bucanero.services.FFmpeg.LazyTransferThread;
@@ -20,8 +19,12 @@ public class AudioStreamer implements MediaRecorder.OnErrorListener, MediaRecord
 
     public static final String TAG = "AudioSampler";
 
-    public static final String AUDIO_HOST = "192.241.217.88";
-    public static final String AUDIO_PORT = "3000";
+    public static boolean USE_HTTPS = false;
+
+    public static final String AUDIO_HOST = USE_HTTPS ? "cloud-listen.ourglass.tv" : "192.241.217.88";
+    public static final int AUDIO_PORT = USE_HTTPS ? 80 : 3000;
+    //public static final int AUDIO_PORT = 80;
+
     public static final String AUDIO_SECRET = "supersecret";
     public static final int AUDIO_BUFFERFILLTIME_MS = 100;
     public static final long AUDIO_SERVERRECONNECTTIME_MS = 60000;
@@ -38,7 +41,12 @@ public class AudioStreamer implements MediaRecorder.OnErrorListener, MediaRecord
 
     public AudioStreamer(Context context) {
         mContext = context;
-        mHostURL = "http://" + AUDIO_HOST + ":" + AUDIO_PORT + "/" + AUDIO_SECRET + "/" + OGSystem.getUDID();
+        if ( AUDIO_PORT != 80 ){
+            mHostURL = "http://" + AUDIO_HOST + ":" + AUDIO_PORT + "/" + AUDIO_SECRET + "/" + OGSystem.getUDID();
+        } else {
+            // nginx barfs with the port 80 explicit
+            mHostURL = "https://" + AUDIO_HOST + "/" + AUDIO_SECRET + "/" + OGSystem.getUDID();
+        }
     }
 
     public void recorderRekick(final long millisDelay) {

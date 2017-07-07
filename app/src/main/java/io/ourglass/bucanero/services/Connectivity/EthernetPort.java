@@ -4,6 +4,8 @@ import android.util.Log;
 
 import java.util.ArrayList;
 
+import io.ourglass.bucanero.core.OGSystem;
+
 /**
  * Created by mkahn on 3/31/17.
  */
@@ -55,7 +57,9 @@ public class EthernetPort {
                     }
                 });
 
-                bringUpEth.exec("su -c /system/bin/busybox ifconfig eth0 10.21.200.1 netmask 255.255.255.0");
+                if (OGSystem.isTronsmart()){
+                    bringUpEth.exec("su -c /system/bin/busybox ifconfig eth0 10.21.200.1 netmask 255.255.255.0");
+                }
             }
         };
 

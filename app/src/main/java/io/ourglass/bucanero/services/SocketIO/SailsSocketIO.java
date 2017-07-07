@@ -34,6 +34,15 @@ public class SailsSocketIO {
         public void sioCallback(Object... args);
     }
 
+    public static void close(){
+
+        socket.disconnect();
+        socket.close();
+        mCookie = null;
+        socket = null;
+
+    }
+
     public static Socket getSailsSocket(String cookie) throws URISyntaxException {
 
         mCookie = cookie;

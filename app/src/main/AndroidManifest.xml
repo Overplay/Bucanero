@@ -24,6 +24,10 @@
     <uses-permission android:name="android.permission.READ_PHONE_STATE" />
     <uses-permission android:name="android.permission.RECEIVE_BOOT_COMPLETED" />
 
+    <!-- for UDID -->
+    <uses-permission android:name="android.permission.BLUETOOTH" />
+    <uses-permission android:name="android.permission.READ_PHONE_STATE" />
+
     <!-- permission required to use Alarm Manager used for restart on uncaught exception! -->
     <uses-permission android:name="com.android.alarm.permission.SET_ALARM"/>
 

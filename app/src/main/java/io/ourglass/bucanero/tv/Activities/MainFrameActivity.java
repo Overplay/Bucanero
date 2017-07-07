@@ -23,7 +23,7 @@ import io.ourglass.bucanero.R;
 import io.ourglass.bucanero.api.BelliniDMAPI;
 import io.ourglass.bucanero.api.JSONCallback;
 import io.ourglass.bucanero.core.ABApplication;
-import io.ourglass.bucanero.core.HDMIRxPlayer;
+import io.ourglass.bucanero.core.HDMIRxPlayer2;
 import io.ourglass.bucanero.core.OGConstants;
 import io.ourglass.bucanero.core.OGHardware;
 import io.ourglass.bucanero.core.OGSystem;
@@ -69,7 +69,7 @@ public class MainFrameActivity extends BaseFullscreenActivity implements Overlay
     SurfaceView mTVSurface;
 
     private AudioStreamer mAudioStreamer;
-    private HDMIRxPlayer mHDMIRxPlayer;
+    private HDMIRxPlayer2 mHDMIRxPlayer;
 
     private enum OverlayMode {NONE, SYSINFO, STBPAIR, WIFI, SETUP, OTHER, VENUEPAIR, SETTINGS, WELCOME}
 
@@ -185,7 +185,7 @@ public class MainFrameActivity extends BaseFullscreenActivity implements Overlay
             OGHardware.enableTronsmartHDMI();
         } else if (OGSystem.isRealOG()) {
             Log.d(TAG, "Enabling Video for ZidooX9S/Realtek");
-            mHDMIRxPlayer = new HDMIRxPlayer(this, mTVSurface, 1920, 1080);
+            mHDMIRxPlayer = new HDMIRxPlayer2(this, mTVSurface, 1920, 1080);
             //mTVSurface.setVisibility(View.INVISIBLE);
         }
     }
@@ -211,7 +211,7 @@ public class MainFrameActivity extends BaseFullscreenActivity implements Overlay
                 runOnUiThread(new Runnable() {
                     @Override
                     public void run() {
-                        showSystemToast("Error restoring app state!", null);
+                        showSystemToast("Error restoring app state!");
                     }
                 });
             }
@@ -224,18 +224,26 @@ public class MainFrameActivity extends BaseFullscreenActivity implements Overlay
             @Override
             public void run() {
 
-                for (int i = 0; i < runningApps.length(); i++) {
-                    try {
-                        JSONObject app = runningApps.getJSONObject(i);
-                        OGApp ogApp = new OGApp(app);
-                        OGWebViewFragment target = ogApp.appType.equalsIgnoreCase("widget") ?
-                                mWidgetWebViewFrag : mCrawlerWebViewFrag;
-                        target.launchApp(ogApp.appId);
-                        target.setSizeAsPctOfScreen(ogApp.getSize());
-                    } catch (JSONException e) {
-                        e.printStackTrace();
+                if (mWidgetWebViewFrag.getWebView()==null || mCrawlerWebViewFrag.getWebView()==null){
+                    Log.e(TAG, "Trying to update app state and Activity not done booting!");
+                } else {
+
+                    for (int i = 0; i < runningApps.length(); i++) {
+                        try {
+                            JSONObject app = runningApps.getJSONObject(i);
+                            OGApp ogApp = new OGApp(app);
+                            OGWebViewFragment target = ogApp.appType.equalsIgnoreCase("widget") ?
+                                    mWidgetWebViewFrag : mCrawlerWebViewFrag;
+                            target.launchApp(ogApp.appId);
+                            target.setSizeAsPctOfScreen(ogApp.getSize());
+                        } catch (JSONException e) {
+                            e.printStackTrace();
+                        }
                     }
+
                 }
+
+
             }
         });
     }
@@ -253,7 +261,7 @@ public class MainFrameActivity extends BaseFullscreenActivity implements Overlay
         super.onResume();
 
         mDebouncing = false;
-        showSystemToast("Starting up...", null);
+        showSystemToast("Starting up...");
         Log.d(TAG, "onResume done");
 
     }
@@ -261,6 +269,7 @@ public class MainFrameActivity extends BaseFullscreenActivity implements Overlay
     @Override
     public void onPause() {
         super.onPause();
+        mHDMIRxPlayer.release();
     }
 
     public void endBoot() {
@@ -511,7 +520,7 @@ public class MainFrameActivity extends BaseFullscreenActivity implements Overlay
 
     }
 
-    private void showSystemToast(String message, String subMessage) {
+    private void showSystemToast(String message) {
         // submessage not used right now
         mPopupSystemMessageTV.setText(message);
         OGAnimations.animateAlphaTo(mPopupSystemMessageTV, 1.0f);
@@ -540,15 +549,32 @@ public class MainFrameActivity extends BaseFullscreenActivity implements Overlay
 
     @Subscribe
     public void inboundSystemStatusMsg(SystemStatusMessage status) {
-        if (status.status == SystemStatusMessage.SystemStatus.BOOT_COMPLETE) {
-            endBoot();
+
+        switch ( status.status ){
+            case BOOT_COMPLETE:
+                endBoot();
+                break;
+
+            case NETWORK_CONNECTED:
+                getSavedStateFromCloud();
+                break;
+
+            case HDMI_RX_LOS:
+                showSystemToast("The HDMI-In was unplugged.");
+                break;
+
+            case HDMI_RX_LINK:
+                showSystemToast("HDMI plugged back in.");
+                break;
         }
+
+
     }
 
     @Subscribe
     public void inboundOnScreenNotificationMessage(OnScreenNotificationMessage message) {
         //dismissOverlayFragment();
-        showSystemToast(message.message, message.subMessage);
+        showSystemToast(message.message);
     }
 
     @Subscribe
