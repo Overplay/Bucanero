@@ -36,7 +36,12 @@ public class EthernetPort {
             }
         });
 
-        bringUpUdhcpd.exec("su -c /system/bin/busybox udhcpd /mnt/sdcard/wwwaqui/conf/udhcpd.conf");
+        if (OGSystem.isTronsmart()){
+            bringUpUdhcpd.exec("su -c /system/bin/busybox udhcpd /mnt/sdcard/wwwaqui/conf/udhcpd.conf");
+        } else if (OGSystem.isRealOG()){
+            bringUpUdhcpd.exec("/system/xbin/busybox udhcpd /mnt/sdcard/udhcpd.conf");
+        }
+
 
     }
 
@@ -59,6 +64,8 @@ public class EthernetPort {
 
                 if (OGSystem.isTronsmart()){
                     bringUpEth.exec("su -c /system/bin/busybox ifconfig eth0 10.21.200.1 netmask 255.255.255.0");
+                } else if (OGSystem.isRealOG()){
+                    bringUpEth.exec("/system/xbin/busybox ifconfig eth0 10.21.200.1 netmask 255.255.255.0");
                 }
             }
         };
