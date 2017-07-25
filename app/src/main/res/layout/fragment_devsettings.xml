@@ -1,0 +1,77 @@
+<?xml version="1.0" encoding="utf-8"?>
+<RelativeLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    android:layout_width="match_parent"
+    android:layout_height="match_parent"
+    android:background="@color/OGGREEN"
+    android:orientation="vertical">
+
+    <!-- HEADER -->
+
+    <LinearLayout
+        android:id="@+id/header_wrapper"
+        android:layout_width="match_parent"
+        android:layout_height="@dimen/overlay_header_block_height"
+        android:layout_alignParentTop="true"
+        android:background="#333333"
+        android:orientation="vertical">
+
+        <!--Title/Header-->
+        <TextView
+            android:id="@+id/fragmentHeader"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:layout_marginLeft="@dimen/overlay_inset"
+            android:layout_marginRight="@dimen/overlay_inset"
+            android:paddingTop="@dimen/overlay_title_pad_top"
+            android:text="DEVELOPER SETTINGS"
+            android:textAllCaps="true"
+            android:textColor="@color/White"
+            android:textSize="@dimen/overlay_title_font_size"
+            android:textStyle="bold" />
+
+        <!-- Status Message -->
+        <TextView
+            android:id="@+id/fragmentSubHeader"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:layout_marginBottom="@dimen/overlay_subtitle_margin_bot"
+            android:layout_marginLeft="@dimen/overlay_inset_plus"
+            android:layout_marginRight="@dimen/overlay_inset"
+            android:layout_marginTop="@dimen/overlay_subtitle_margin_top"
+            android:text="Don't use 'em, if you don't know what they do!"
+            android:textColor="@color/LightSteelBlue"
+            android:textSize="@dimen/overlay_subtitle_font_size"
+            android:textStyle="bold" />
+
+    </LinearLayout>
+
+
+    <LinearLayout
+        android:id="@+id/buttonHolder"
+        android:layout_width="match_parent"
+        android:layout_height="match_parent"
+        android:layout_below="@+id/header_wrapper"
+        android:orientation="vertical"
+        android:layout_marginLeft="@dimen/overlay_inset_plus"
+        android:layout_marginRight="@dimen/overlay_inset_plus"
+        android:layout_marginTop="100px">
+
+
+        <Switch
+            android:id="@+id/switchDevBellini"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:text="Use Development Bellini-DM Server" />
+
+        <Switch
+            android:id="@+id/switchVerboseMode"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:text="Verbose On-Screen Messages" />
+
+    </LinearLayout>
+
+
+
+
+</RelativeLayout>

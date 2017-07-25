@@ -17,6 +17,7 @@ import java.io.IOException;
 
 import io.ourglass.bucanero.core.ABApplication;
 import io.ourglass.bucanero.core.OGConstants;
+import io.ourglass.bucanero.core.OGSettings;
 import io.ourglass.bucanero.core.OGSystem;
 import io.ourglass.bucanero.messages.OGLogMessage;
 import io.ourglass.bucanero.realm.OGLog;
@@ -140,7 +141,7 @@ public class OGLogService extends Service {
         RequestBody body = RequestBody.create(type, jsonBody);
         Log.v(TAG, jsonBody);
 
-        String url = OGConstants.BELLINI_DM_ADDRESS + "/oglog/postlog";
+        String url = OGSettings.getBelliniDMAddress() + "/oglog/postlog";
         Request request = new Request.Builder()
                 .url(url)
                 .post(body)

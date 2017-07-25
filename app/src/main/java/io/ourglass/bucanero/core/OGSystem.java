@@ -3,7 +3,6 @@ package io.ourglass.bucanero.core;
 
 import android.bluetooth.BluetoothAdapter;
 import android.content.Context;
-import android.content.SharedPreferences;
 import android.net.wifi.WifiManager;
 import android.os.Build;
 import android.os.Environment;
@@ -13,6 +12,7 @@ import android.util.Log;
 
 import com.google.gson.Gson;
 
+import org.jdeferred.DoneCallback;
 import org.json.JSONException;
 import org.json.JSONObject;
 
@@ -21,8 +21,7 @@ import java.security.NoSuchAlgorithmException;
 import java.util.UUID;
 
 import io.ourglass.bucanero.api.BelliniDMAPI;
-import io.ourglass.bucanero.api.JSONCallback;
-import io.ourglass.bucanero.objects.NetworkException;
+import io.ourglass.bucanero.api.BelliniNetworkFailureCallback;
 import io.ourglass.bucanero.objects.SetTopBox;
 import io.ourglass.bucanero.objects.TVShow;
 import io.ourglass.bucanero.services.Connectivity.NetworkingUtils;
@@ -30,6 +29,13 @@ import io.ourglass.bucanero.services.STB.DirecTV.DirecTVAPI;
 import io.ourglass.bucanero.services.STB.DirecTV.DirecTVSetTopBox;
 import io.ourglass.bucanero.tv.Support.Size;
 
+import static io.ourglass.bucanero.core.OGSettings.getBoolFromPrefs;
+import static io.ourglass.bucanero.core.OGSettings.getIntFromPrefs;
+import static io.ourglass.bucanero.core.OGSettings.getStringFromPrefs;
+import static io.ourglass.bucanero.core.OGSettings.mPrefs;
+import static io.ourglass.bucanero.core.OGSettings.putBoolToPrefs;
+import static io.ourglass.bucanero.core.OGSettings.putIntToPrefs;
+import static io.ourglass.bucanero.core.OGSettings.putStringToPrefs;
 import static io.ourglass.bucanero.services.Connectivity.NetworkingUtils.getWiFiMACAddress;
 
 /**
@@ -46,62 +52,8 @@ public class OGSystem {
     private static SetTopBox mPairedSTB;
     private static TVShow mCurrentTVShow;
 
-    /*
-     *
-     * Shared Preferences Methods
-     *
-     *
-     */
 
-    private static SharedPreferences mPrefs = ABApplication.sharedContext.getSharedPreferences(
-            "ourglass.buc", Context.MODE_PRIVATE);
 
-    private static SharedPreferences.Editor mEditor = mPrefs.edit();
-
-    public static void putStringToPrefs(String key, String string) {
-
-        mEditor.putString(key, string);
-        mEditor.apply();
-    }
-
-    public static String getStringFromPrefs(String key, String defValue) {
-
-        return mPrefs.getString(key, defValue);
-
-    }
-
-    public static void putIntToPrefs(String key, int integer) {
-
-        mEditor.putInt(key, integer);
-        mEditor.apply();
-    }
-
-    public static int getIntFromPrefs(String key) {
-
-        return mPrefs.getInt(key, 0);
-
-    }
-
-    public static void putBoolToPrefs(String key, boolean bool) {
-
-        mEditor.putBoolean(key, bool);
-        mEditor.apply();
-    }
-
-    public static boolean getBoolFromPrefs(String key, boolean defaultValue) {
-        return mPrefs.getBoolean(key, defaultValue);
-    }
-
-    /*
-     * Verbose/Debug Mode
-     */
-    private static boolean getVerboseMode(){
-        return getBoolFromPrefs("verboseMode", OGConstants.SHOW_DB_TOASTS);
-    };
-
-    private static void setVerboseMode(boolean verbose){
-        putBoolToPrefs("verboseMode", verbose);
-    };
 
     /*
      * TV Resolution
@@ -451,28 +403,27 @@ public class OGSystem {
 
     public static void updateFromOGCloud(){
 
-        BelliniDMAPI.getMe(new JSONCallback() {
-            @Override
-            public void jsonCallback(JSONObject jsonData) {
-                // Assume OGCloud is canonical on the following and update local
-                String venueUUID = jsonData.optString("atVenueUUID", null);
-                if (venueUUID!=null){
-                    Log.d(TAG, "Updating local venue ID from OG Cloud");
-                    setVenueId(venueUUID);
-                }
+        BelliniDMAPI.getMe()
+                .done(new DoneCallback<JSONObject>() {
+                    @Override
+                    public void onDone(JSONObject jsonData) {
 
-                String name = jsonData.optString("name", "No Name");
-                if (name!=null){
-                    Log.d(TAG, "Updating local system name from OG Cloud");
-                    setSystemName(name);
-                }
-            }
+                        // Assume OGCloud is canonical on the following and update local
+                        String venueUUID = jsonData.optString("atVenueUUID", null);
+                        if (venueUUID!=null){
+                            Log.d(TAG, "Updating local venue ID from OG Cloud");
+                            setVenueId(venueUUID);
+                        }
 
-            @Override
-            public void error(NetworkException e) {
-                Log.e(TAG, "There was a problem retrieving OGDevice from OG Cloud.");
-            }
-        });
+                        String name = jsonData.optString("name", "No Name");
+                        if (name!=null){
+                            Log.d(TAG, "Updating local system name from OG Cloud");
+                            setSystemName(name);
+                        }
+                    }
+                })
+                .fail(new BelliniNetworkFailureCallback("Failed getting device info from Bellini in OGSystem", 1005));
+
     }
 
     /*******************************************************************************
@@ -521,7 +472,8 @@ public class OGSystem {
             new Thread(new Runnable() {
                 @Override
                 public void run() {
-                    BelliniDMAPI.programChange(mCurrentTVShow);
+                    BelliniDMAPI.programChange(mCurrentTVShow)
+                        .fail(new BelliniNetworkFailureCallback("Failed sending current TV show to Bellini", 1099));
                 }
             }).start();
         } else {

@@ -60,7 +60,7 @@ public class HTTPTransaction {
 
             @Override public void onFailure(Call call, IOException e) {
                 e.printStackTrace();
-                Log.wtf(TAG, "Was not able to execute request (1)");
+                Log.wtf(TAG, "Was not able to execute requestBuilder (1)");
                 if (cb!=null){
                     cb.error(new NetworkException(e.getMessage(), TRANSACTION_FAILURE));
                 }
@@ -78,7 +78,7 @@ public class HTTPTransaction {
                     }
 
                 } else {
-                    Log.v(TAG, "Was not able to execute request (2). Code: "+response.code());
+                    Log.v(TAG, "Was not able to execute requestBuilder (2). Code: "+response.code());
                     if (cb!=null){
                         cb.error(new NetworkException("Received error code from server", response.code()));
                     }

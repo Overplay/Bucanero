@@ -25,6 +25,9 @@ import io.ourglass.bucanero.messages.SystemStatusMessage;
 public class HDMIRxPlayer2 {
     private final String TAG = "HDMIRxPlayer2";
 
+    private static int sFruitlessAttempts = 0;
+    private static boolean sDidEverFuckingAttachToFuckingHDMI = false;
+
     // Class from Realtek
     private RtkHDMIRxManager mHDMIRX = null;
     private HDMIRxStatus rxStatus = null;
@@ -51,6 +54,9 @@ public class HDMIRxPlayer2 {
         @Override
         public void run() {
 
+
+            //mHDMIRX.release(); // force a release? Probably tied to package name tho...
+
             Log.d(TAG, "PlayWhenHDMIReady: Checking for HDMI Ready and openable.");
             rxStatus = mHDMIRX.getHDMIRxStatus();
 
@@ -59,17 +65,25 @@ public class HDMIRxPlayer2 {
                 if (configure()){
                     ABApplication.dbToast(mContext, "HDMI Setup Complete");
                     (new SystemStatusMessage(SystemStatusMessage.SystemStatus.HDMI_CONFIGURED)).post();
+                    sFruitlessAttempts = 0;
+                    sDidEverFuckingAttachToFuckingHDMI = true;
                     play();
                 } else {
                     ABApplication.dbToast(mContext, "Could not configure HDMI!!!");
-                    (new SystemStatusMessage(SystemStatusMessage.SystemStatus.HDMI_SEVERE_ERROR)).post();
+                    SystemStatusMessage.sendStatusMessage(SystemStatusMessage.SystemStatus.HDMI_SEVERE_ERROR);
 
                 }
             } else {
                 Log.d(TAG, "PlayWhenHDMIReady: open HDMI RX failed. Will try again in 500ms.");
-                mWidth = 0;
-                mHeight = 0;
-                mHandler.postDelayed(this, 500);
+                sFruitlessAttempts++;
+                if (sFruitlessAttempts<10){
+                    mWidth = 0;
+                    mHeight = 0;
+                    mHandler.postDelayed(this, 500);
+                } else {
+                    SystemStatusMessage.sendStatusMessage(SystemStatusMessage.SystemStatus.HDMI_SEVERE_ERROR);
+                }
+
             }
         }
     };
@@ -237,10 +251,15 @@ public class HDMIRxPlayer2 {
         mSurfaceHolder.removeCallback(HDMIRXCallback);
         mHandler.removeCallbacksAndMessages(null);
 
-        if (mHDMIRX != null) {
-            mHDMIRX.release();
-            mHDMIRX = null;
+        try {
+            if (mHDMIRX != null && sDidEverFuckingAttachToFuckingHDMI) {
+                mHDMIRX.release();
+                mHDMIRX = null;
+            }
+        } catch (Exception e){
+            Log.wtf(TAG, "Caught and swallowed error closing HDMI");
         }
+
     }
 
     public void setSurfaceSize(int width, int height) {

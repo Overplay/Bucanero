@@ -15,13 +15,14 @@ import android.widget.TextView;
 
 import com.squareup.otto.Subscribe;
 
+import org.jdeferred.DoneCallback;
+import org.jdeferred.FailCallback;
 import org.json.JSONArray;
 import org.json.JSONException;
 import org.json.JSONObject;
 
 import io.ourglass.bucanero.R;
 import io.ourglass.bucanero.api.BelliniDMAPI;
-import io.ourglass.bucanero.api.JSONCallback;
 import io.ourglass.bucanero.core.ABApplication;
 import io.ourglass.bucanero.core.HDMIRxPlayer2;
 import io.ourglass.bucanero.core.OGConstants;
@@ -29,15 +30,16 @@ import io.ourglass.bucanero.core.OGHardware;
 import io.ourglass.bucanero.core.OGSystem;
 import io.ourglass.bucanero.core.OGSystemExceptionHander;
 import io.ourglass.bucanero.messages.LaunchAppMessage;
+import io.ourglass.bucanero.messages.OGLogMessage;
 import io.ourglass.bucanero.messages.OnScreenNotificationMessage;
 import io.ourglass.bucanero.messages.SystemCommandMessage;
 import io.ourglass.bucanero.messages.SystemStatusMessage;
-import io.ourglass.bucanero.objects.NetworkException;
 import io.ourglass.bucanero.services.FFmpeg.AudioStreamer;
 import io.ourglass.bucanero.tv.Fragments.OGWebViewFragment;
 import io.ourglass.bucanero.tv.Fragments.OverlayFragmentListener;
 import io.ourglass.bucanero.tv.Fragments.SystemInfoFragment;
 import io.ourglass.bucanero.tv.STBPairing.PairDirecTVFragment;
+import io.ourglass.bucanero.tv.SettingsAndSetup.DeveloperSettingsFragment;
 import io.ourglass.bucanero.tv.SettingsAndSetup.SettingsFragment;
 import io.ourglass.bucanero.tv.SettingsAndSetup.WelcomeFragment;
 import io.ourglass.bucanero.tv.Support.Frame;
@@ -49,6 +51,7 @@ import io.ourglass.bucanero.tv.WiFi.WiFiPickerFragment;
 import io.socket.client.Socket;
 
 import static io.ourglass.bucanero.messages.SystemCommandMessage.SystemCommand.DISMISS_OVERLAY;
+import static io.ourglass.bucanero.messages.SystemStatusMessage.SystemStatus.NETWORK_ISSUE;
 
 
 public class MainFrameActivity extends BaseFullscreenActivity implements OverlayFragmentListener {
@@ -71,7 +74,7 @@ public class MainFrameActivity extends BaseFullscreenActivity implements Overlay
     private AudioStreamer mAudioStreamer;
     private HDMIRxPlayer2 mHDMIRxPlayer;
 
-    private enum OverlayMode {NONE, SYSINFO, STBPAIR, WIFI, SETUP, OTHER, VENUEPAIR, SETTINGS, WELCOME}
+    private enum OverlayMode {NONE, SYSINFO, STBPAIR, WIFI, SETUP, OTHER, VENUEPAIR, SETTINGS, WELCOME, DEVSETTINGS}
 
     private OverlayMode mOverlayMode = OverlayMode.NONE;
 
@@ -194,28 +197,40 @@ public class MainFrameActivity extends BaseFullscreenActivity implements Overlay
 
     private void getSavedStateFromCloud() {
 
-        BelliniDMAPI.getAppStatusFromCloud(new JSONCallback() {
-            @Override
-            public void jsonCallback(JSONObject jsonData) {
-                Log.d(TAG, "Got app status from cloud!");
-                JSONArray runningApps = jsonData.optJSONArray("running");
-                if (runningApps != null) {
-                    restoreAppState(runningApps);
-                }
-            }
-
-            @Override
-            public void error(NetworkException e) {
-                //TODO some intelligent handling!
-                Log.e(TAG, "FAILED getting app status from cloud!");
-                runOnUiThread(new Runnable() {
+        BelliniDMAPI.getAppStatusFromCloud()
+                .done(new DoneCallback<JSONObject>() {
                     @Override
-                    public void run() {
-                        showSystemToast("Error restoring app state!");
+                    public void onDone(JSONObject jsonData) {
+                        Log.d(TAG, "Got app status from cloud!");
+                        JSONArray runningApps = jsonData.optJSONArray("running");
+                        if (runningApps != null) {
+                            restoreAppState(runningApps);
+                        }
+                    }
+                })
+                .fail(new FailCallback<Exception>() {
+                    @Override
+                    public void onFail(Exception result) {
+
+                        Log.e(TAG, "FAILED getting app status from cloud!");
+                        OGLogMessage.newOGLog("network_issue")
+                                .addFieldToMessage("description", "Failure getting saved app status in MainframeActivity")
+                                .addFieldToMessage("exception", result.toString()  )
+                                .addFieldToMessage("issue_code", 1004)  // this is just some BS to test the generics
+                                .post();
+
+                        SystemStatusMessage.sendStatusMessageWithException(NETWORK_ISSUE, result);
+
+                        runOnUiThread(new Runnable() {
+                            @Override
+                            public void run() {
+                                showSystemToast("Error restoring app state!");
+                            }
+                        });
                     }
                 });
-            }
-        });
+
+
     }
 
     private void restoreAppState(final JSONArray runningApps) {
@@ -261,7 +276,7 @@ public class MainFrameActivity extends BaseFullscreenActivity implements Overlay
         super.onResume();
 
         mDebouncing = false;
-        showSystemToast("Starting up...");
+        //showSystemToast("Starting up...");
         Log.d(TAG, "onResume done");
 
     }
@@ -269,7 +284,24 @@ public class MainFrameActivity extends BaseFullscreenActivity implements Overlay
     @Override
     public void onPause() {
         super.onPause();
+        Log.d(TAG, "Mainframe onPause");
         mHDMIRxPlayer.release();
+        //finish();
+    }
+
+    //This needs to be here to prevent the dreaded illegal state exception
+    @Override
+    public void onResumeFragments(){
+        super.onResumeFragments();
+        // If the venueID is set, it can't be first time setup
+        if (OGSystem.isFirstTimeSetup() && OGSystem.getVenueId().isEmpty()){
+            mBootBugImageView.postDelayed(new Runnable() {
+                @Override
+                public void run() {
+                    launchWelcomeFragment();
+                }
+            }, 6000);
+        }
     }
 
     public void endBoot() {
@@ -287,16 +319,6 @@ public class MainFrameActivity extends BaseFullscreenActivity implements Overlay
 
         // TODO this seems like there's a race condition with the below
         //getSavedStateFromCloud();
-
-        // If the venueID is set, it can't be first time setup
-        if (OGSystem.isFirstTimeSetup() && OGSystem.getVenueId().isEmpty()){
-            mBootBugImageView.postDelayed(new Runnable() {
-                @Override
-                public void run() {
-                    launchWelcomeFragment();
-                }
-            }, 6000);
-        }
 
     }
 
@@ -379,6 +401,11 @@ public class MainFrameActivity extends BaseFullscreenActivity implements Overlay
 
         if (keyCode == KeyEvent.KEYCODE_1 || keyCode == KeyEvent.KEYCODE_4) {
             launchSettingsFragment();
+            return true;
+        }
+
+        if (keyCode == KeyEvent.KEYCODE_7){
+            launchDevSettingsFragment();
             return true;
         }
 
@@ -470,6 +497,17 @@ public class MainFrameActivity extends BaseFullscreenActivity implements Overlay
         insertOverlayFragment(wif);
     }
 
+    public void launchDevSettingsFragment() {
+
+        if (dismissIfNeeded(OverlayMode.SETTINGS))
+            return;
+
+        Log.d(TAG, "Launching Dev Settings  fragment");
+        mOverlayMode = OverlayMode.DEVSETTINGS;
+        DeveloperSettingsFragment wif = DeveloperSettingsFragment.newInstance();
+        insertOverlayFragment(wif);
+    }
+
     public void launchWelcomeFragment() {
 
         if (dismissIfNeeded(OverlayMode.WELCOME))
@@ -552,7 +590,8 @@ public class MainFrameActivity extends BaseFullscreenActivity implements Overlay
 
         switch ( status.status ){
             case BOOT_COMPLETE:
-                endBoot();
+                if (mBooting == true )
+                    endBoot();
                 break;
 
             case NETWORK_CONNECTED:
@@ -560,12 +599,17 @@ public class MainFrameActivity extends BaseFullscreenActivity implements Overlay
                 break;
 
             case HDMI_RX_LOS:
-                showSystemToast("The HDMI-In was unplugged.");
+                showSystemToast("HDMI input was unplugged.");
                 break;
 
             case HDMI_RX_LINK:
-                showSystemToast("HDMI plugged back in.");
+                showSystemToast("HDMI plugged in.");
                 break;
+
+            case HDMI_SEVERE_ERROR:
+                showSystemToast("Severe HDMI error, HDMI is probably locked by another application.");
+                break;
+
         }
 
 

@@ -10,7 +10,7 @@ import java.util.ArrayList;
 import java.util.Date;
 
 import io.ourglass.bucanero.messages.OGLogMessage;
-import io.ourglass.bucanero.services.Connectivity.ShellExecutor;
+import io.ourglass.bucanero.Support.ShellExecutor;
 
 /**
  * Created by mkahn on 3/31/17.

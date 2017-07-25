@@ -2,21 +2,20 @@ package io.ourglass.bucanero.api;
 
 import android.util.Log;
 
+import org.jdeferred.DoneFilter;
+import org.jdeferred.Promise;
+import org.jdeferred.impl.DeferredObject;
 import org.json.JSONException;
 import org.json.JSONObject;
 
 import java.io.IOException;
 
-import io.ourglass.bucanero.core.ABApplication;
-import io.ourglass.bucanero.core.OGConstants;
+import io.ourglass.bucanero.core.OGSettings;
 import io.ourglass.bucanero.core.OGSystem;
 import io.ourglass.bucanero.objects.NetworkException;
 import io.ourglass.bucanero.objects.SetTopBox;
 import io.ourglass.bucanero.objects.TVShow;
-import okhttp3.Call;
-import okhttp3.Callback;
 import okhttp3.MediaType;
-import okhttp3.Request;
 import okhttp3.RequestBody;
 import okhttp3.Response;
 
@@ -37,10 +36,55 @@ public class BelliniDMAPI {
     public static String SESSION_COOKIE;
 
     public static String fullUrlForApp(String appId){
-        return OGConstants.BELLINI_DM_ADDRESS + "/blueline/opp/" + appId + "/app/tv";
+        return OGSettings.getBelliniDMAddress() + "/blueline/opp/" + appId + "/app/tv";
     }
 
-    public static void authenticate( String username, String password, final StringCallback cb ){
+    /**
+     * Convenience factory for initial params object
+     * @return
+     */
+    private static JSONObject getParamsWithDeviceUDID(){
+        JSONObject params = new JSONObject();
+        try {
+            params.put("deviceUDID", OGSystem.getUDID());
+        } catch (JSONException e) {
+            e.printStackTrace();
+        }
+        return params;
+    }
+
+    public static Promise<String, Exception, Void> authenticateDevice(){
+
+        JSONObject params = new JSONObject();
+
+        try {
+            params.put("deviceUDID", OGSystem.getUDID());
+        } catch (JSONException e) {
+            e.printStackTrace();
+        }
+
+        DeferredRequest dr = DeferredRequest.post(OGSettings.getBelliniDMAddress() + "/auth/device", params, Response.class);
+        return dr.go()
+                .then(new DoneFilter<Response, String>() {
+
+                    @Override
+                    public String filterDone(Response response) {
+
+                        Log.v(TAG, "Device Login Request successful");
+                        if (response.headers().get("set-cookie")!=null){
+                            String cookie = response.headers().get("set-cookie");
+                            SESSION_COOKIE = cookie.split(";")[0];
+                        }
+
+                        return SESSION_COOKIE;
+                    }
+                });
+
+    }
+
+
+    // Not used currently
+    public static Promise<String, Exception, Integer> authenticateUser(String username, String password){
 
         JSONObject params = new JSONObject();
 
@@ -53,58 +97,36 @@ public class BelliniDMAPI {
             e.printStackTrace();
         }
 
-        RequestBody body = RequestBody.create(JSON, params.toString());
+        DeferredRequest dr = DeferredRequest.post(OGSettings.getBelliniDMAddress() + "/auth/login", params, Response.class);
+        return dr.go()
+                .then(new DoneFilter<Response, String>() {
 
-        Request request = new Request.Builder()
-                .url(OGConstants.BELLINI_DM_ADDRESS + "/auth/login")
-                .post(body)
-                .build();
+                    @Override
+                    public String filterDone(Response response) {
 
-        ABApplication.okclient.newCall(request).enqueue(new Callback() {
-
-            @Override public void onFailure(Call call, IOException e) {
-                e.printStackTrace();
-                Log.wtf(TAG, "Was not able to login");
-                if (cb!=null){
-                    cb.error(new NetworkException(e.getMessage(), 999));
-                }
-
-            }
-
-            @Override public void onResponse(Call call, Response response) throws IOException {
-                if (response.code() == 200){
-                    Log.v(TAG, "Login Request successful");
-                    if (response.headers().get("set-cookie")!=null){
-                        String cookie = response.headers().get("set-cookie");
-                        SESSION_COOKIE = cookie.split(";")[0];
-                        if (cb!=null){
-                            cb.stringCallback(SESSION_COOKIE);
+                        Log.v(TAG, "Login Request successful");
+                        if (response.headers().get("set-cookie")!=null){
+                            String cookie = response.headers().get("set-cookie");
+                            SESSION_COOKIE = cookie.split(";")[0];
                         }
-                    }
-                    String sresp = response.body().string();
 
-                } else {
-                    Log.v(TAG, "Was not able to execute login (2). Code: "+response.code());
-                    if (cb!=null){
-                        cb.error(new NetworkException("Received error code from server", response.code()));
+                        String sresp = null;
+
+                        try {
+                            sresp = response.body().string();
+                        } catch (IOException e) {
+                            e.printStackTrace();
+                        }
+
+                        return sresp;
                     }
-                }
-            }
-        });
+                });
 
     }
 
-    public static void registerDeviceWithBellini(final JSONCallback cb){
+    public static Promise<JSONObject, Exception, Void> registerDeviceWithBellini(){
 
-        JSONObject params = new JSONObject();
-
-        try {
-            params.put("deviceUDID", OGSystem.getUDID());
-        } catch (JSONException e) {
-            e.printStackTrace();
-        }
-
-        HTTPTransaction.post(OGConstants.BELLINI_DM_ADDRESS+"/ogdevice/register", params, cb);
+        return DeferredRequest.post(OGSettings.getBelliniDMAddress() + "/ogdevice/register", getParamsWithDeviceUDID(), JSONObject.class).go();
 
     }
 
@@ -123,57 +145,49 @@ public class BelliniDMAPI {
         };
     }
 
-    public static void associateDeviceWithVenueUUID(String venueUUID, JSONCallback cb){
+    public static Promise<JSONObject, Exception, Void> associateDeviceWithVenueUUID(String venueUUID){
 
-        if (cb==null)
-            cb = getFYICallback("OGDevice associate with Venue with Bellini");
+        return DeferredRequest.post(OGSettings.getBelliniDMAddress() + "/ogdevice/associateWithVenue", getParamsWithDeviceUDID(), JSONObject.class).go();
 
-        JSONObject params = new JSONObject();
+    }
+
+//    public static void associateDeviceWithVenueUUIDOld(String venueUUID, JSONCallback cb){
+//
+//        if (cb==null)
+//            cb = getFYICallback("OGDevice associate with Venue with Bellini");
+//
+//        JSONObject params = new JSONObject();
+//
+//        try {
+//            params.put("deviceUDID", OGSystem.getUDID());
+//            params.put("venueUUID", venueUUID);
+//        } catch (JSONException e) {
+//            e.printStackTrace();
+//        }
+//
+//        HTTPTransaction.post(OGSettings.getBelliniDMAddress() + "/ogdevice/associateWithVenue", params, cb);
+//
+//    }
+
+
+    public static Promise<JSONObject, Exception, Void> getRegCode(){
+        return DeferredRequest.post(OGSettings.getBelliniDMAddress() + "/ogdevice/regcode", getParamsWithDeviceUDID(), JSONObject.class).go();
+    }
+
+    public static Promise<JSONObject, Exception, Void> getAppStatusFromCloud(){
+        String url = OGSettings.getBelliniDMAddress()+"/ogdevice/appstatus?deviceUDID="+OGSystem.getUDID();
+        return DeferredRequest.get(url, JSONObject.class).go();
+    }
+
+    public static Promise<JSONObject, Exception, Void> pingCloud(){
+        return DeferredRequest.get(OGSettings.getBelliniDMAddress()+"/ogdevice/pingcloud", JSONObject.class).go();
+    }
+
+    public static Promise<JSONObject, Exception, Void> appLaunchAck(String appId, int layoutSlot){
+
+        JSONObject params = getParamsWithDeviceUDID();
 
         try {
-            params.put("deviceUDID", OGSystem.getUDID());
-            params.put("venueUUID", venueUUID);
-        } catch (JSONException e) {
-            e.printStackTrace();
-        }
-
-        HTTPTransaction.post(OGConstants.BELLINI_DM_ADDRESS + "/ogdevice/associateWithVenue", params, cb);
-
-    }
-
-    public static void getRegCode(JSONCallback cb){
-
-        if (cb==null)
-            cb = getFYICallback("OGDevice wants a code without a callback, this is dumb!");
-
-        JSONObject params = new JSONObject();
-
-        try {
-            params.put("deviceUDID", OGSystem.getUDID());
-        } catch (JSONException e) {
-            e.printStackTrace();
-        }
-
-        HTTPTransaction.post(OGConstants.BELLINI_DM_ADDRESS + "/ogdevice/regcode", params, cb);
-
-    }
-
-
-    public static void getAppStatusFromCloud(final JSONCallback callback){
-        String url = OGConstants.BELLINI_DM_ADDRESS+"/ogdevice/appstatus?deviceUDID="+OGSystem.getUDID();
-        HTTPTransaction.get(url, callback);
-    }
-
-    public static void pingCloud(final JSONCallback callback){
-        HTTPTransaction.get(OGConstants.BELLINI_DM_ADDRESS+"/ogdevice/pingcloud", callback);
-    }
-
-    public static void appLaunchAck(String appId, int layoutSlot){
-
-        JSONObject params = new JSONObject();
-
-        try {
-            params.put("deviceUDID", OGSystem.getUDID());
             params.put("appId", appId);
             // Not actuall used
             // TODO we should record this for a cold boot
@@ -184,16 +198,15 @@ public class BelliniDMAPI {
             e.printStackTrace();
         }
 
-        HTTPTransaction.post(OGConstants.BELLINI_DM_ADDRESS+"/ogdevice/commandack", params, null);
+        return DeferredRequest.post(OGSettings.getBelliniDMAddress()+"/ogdevice/commandack", params, JSONObject.class).go();
 
     }
 
-    public static void appKillAck(String appId){
+    public static Promise<JSONObject, Exception, Void> appKillAck(String appId){
 
-        JSONObject params = new JSONObject();
+        JSONObject params = getParamsWithDeviceUDID();
 
         try {
-            params.put("deviceUDID", OGSystem.getUDID());
             params.put("appId", appId);
             params.put("command", "kill");
 
@@ -201,16 +214,15 @@ public class BelliniDMAPI {
             e.printStackTrace();
         }
 
-        HTTPTransaction.post(OGConstants.BELLINI_DM_ADDRESS+"/ogdevice/commandack", params, null);
+        return DeferredRequest.post(OGSettings.getBelliniDMAddress()+"/ogdevice/commandack", params, JSONObject.class).go();
 
     }
 
-    public static void appMoveAck(String appId, int slot){
+    public static Promise<JSONObject, Exception, Void> appMoveAck(String appId, int slot){
 
-        JSONObject params = new JSONObject();
+        JSONObject params = getParamsWithDeviceUDID();
 
         try {
-            params.put("deviceUDID", OGSystem.getUDID());
             params.put("appId", appId);
             params.put("command", "move");
             params.put("slot", slot);
@@ -218,39 +230,40 @@ public class BelliniDMAPI {
             e.printStackTrace();
         }
 
-        HTTPTransaction.post(OGConstants.BELLINI_DM_ADDRESS+"/ogdevice/commandack", params, null);
+        return DeferredRequest.post(OGSettings.getBelliniDMAddress()+"/ogdevice/commandack", params, JSONObject.class).go();
 
     }
 
-    // TODO should we do something other than throw this on the floor if it fails?
-    public static void programChange(TVShow newShow){
+    public static Promise<JSONObject, Exception, Void> programChange(TVShow newShow){
 
         if (newShow==null){
             Log.wtf(TAG, "Fix null newShow bullshit, mitch");
-            return;
+            return new DeferredObject<JSONObject, Exception, Void>().reject(new Exception("New show is null"));
         }
 
-        JSONObject params = new JSONObject();
+        JSONObject params = getParamsWithDeviceUDID();
 
         try {
-            params.put("deviceUDID", OGSystem.getUDID());
             params.put("tvShow", newShow.toJsonString());
         } catch (JSONException e) {
             e.printStackTrace();
         }
 
-        HTTPTransaction.post(OGConstants.BELLINI_DM_ADDRESS+"/ogdevice/programchange", params, null);
+        return DeferredRequest.post(OGSettings.getBelliniDMAddress()+"/ogdevice/programchange", params, JSONObject.class).go();
 
     }
 
-    public static void registerSTBPairing(SetTopBox setTopBox){
-        String url = OGConstants.BELLINI_DM_ADDRESS+"/ogdevice/regstbpairing?deviceUDID="+OGSystem.getUDID();
+    public static Promise<JSONObject, Exception, Void> registerSTBPairing(SetTopBox setTopBox){
+
+        String url = OGSettings.getBelliniDMAddress() +"/ogdevice/regstbpairing?deviceUDID="+OGSystem.getUDID();
         RequestBody body = RequestBody.create(JSON, setTopBox.toJsonString());
-        HTTPTransaction.post(url, body, null);
+        return DeferredRequest.post(url, body, JSONObject.class).go();
+
     }
 
-    public static void getMe(JSONCallback callback){
-        String url = OGConstants.BELLINI_DM_ADDRESS+"/ogdevice/findByUDID?deviceUDID="+OGSystem.getUDID();
-        HTTPTransaction.get(url, callback);
+    public static Promise<JSONObject, Exception, Void> getMe(){
+
+        String url = OGSettings.getBelliniDMAddress() +"/ogdevice/findByUDID?deviceUDID="+OGSystem.getUDID();
+        return DeferredRequest.getJsonObject(url).go();
     }
 }

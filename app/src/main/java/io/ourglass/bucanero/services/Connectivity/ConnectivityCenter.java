@@ -13,27 +13,30 @@ import android.os.Handler;
 import android.text.format.Formatter;
 import android.util.Log;
 
+import org.jdeferred.DoneCallback;
+import org.jdeferred.DonePipe;
+import org.jdeferred.FailCallback;
+import org.jdeferred.Promise;
 import org.json.JSONObject;
 
 import io.ourglass.bucanero.api.BelliniDMAPI;
 import io.ourglass.bucanero.api.JSONCallback;
-import io.ourglass.bucanero.api.StringCallback;
+import io.ourglass.bucanero.api.OGHeaderInterceptor;
 import io.ourglass.bucanero.core.ABApplication;
-import io.ourglass.bucanero.core.OGSystem;
+import io.ourglass.bucanero.core.OGSettings;
 import io.ourglass.bucanero.messages.MainThreadBus;
-import io.ourglass.bucanero.messages.SystemStatusMessage;
-import io.ourglass.bucanero.objects.NetworkException;
 import io.ourglass.bucanero.services.SocketIO.SocketIOManager;
 
 import static android.content.Context.WIFI_SERVICE;
 
 /**
- *
  * Monitors the WiFi and Ethernet Connectivity for the system
- *
  */
 
-public class ConnectivityCenter  {
+
+//TODO look @ ConnectivityManager.NetworkCallback instead of Broadcasts
+
+public class ConnectivityCenter {
 
     public static final String TAG = "ConnectivityCenter";
 
@@ -51,6 +54,8 @@ public class ConnectivityCenter  {
     // Cloud Stuff
     public static String cloudDMCookie;
     public static boolean isCloudDMReachable;
+    public static boolean isDeviceAuthenticated;
+
     public static boolean isCloudDMWebsocketOpen;
 
     private MainThreadBus bus = ABApplication.ottobus;
@@ -60,13 +65,14 @@ public class ConnectivityCenter  {
     private NetworkInfo mEthernetNetworkInfo;
     private Context mContext = ABApplication.sharedContext;
 
-    private Handler mHandler = new Handler();;
+    private Handler mHandler = new Handler();
+    ;
 
     private static ConnectivityCenter mInstance;
 
-    public static ConnectivityCenter getInstance(){
+    public static ConnectivityCenter getInstance() {
 
-        if (mInstance==null){
+        if (mInstance == null) {
             mInstance = new ConnectivityCenter();
         }
 
@@ -74,13 +80,17 @@ public class ConnectivityCenter  {
 
     }
 
-    private ConnectivityCenter(){
+    private ConnectivityCenter() {
         init();
     }
 
     private void init() {
 
-        cm = (ConnectivityManager)mContext.getSystemService(Context.CONNECTIVITY_SERVICE);
+        // Magic and insecure device authorization header
+        //This is done in HeaderINtercepter now
+        //DeferredRequest.addSharedHeader("x-dev-authorization", "x-ogdevice-1234");
+
+        cm = (ConnectivityManager) mContext.getSystemService(Context.CONNECTIVITY_SERVICE);
         mWifiNetworkInfo = cm.getNetworkInfo(ConnectivityManager.TYPE_WIFI);
 
         mEthernetNetworkInfo = cm.getNetworkInfo(ConnectivityManager.TYPE_ETHERNET);
@@ -95,8 +105,8 @@ public class ConnectivityCenter  {
 
     }
 
-    public String getWiFiIPAddress(){
-        WifiManager wifiMgr = (WifiManager)ABApplication.sharedContext.getSystemService(WIFI_SERVICE);
+    public String getWiFiIPAddress() {
+        WifiManager wifiMgr = (WifiManager) ABApplication.sharedContext.getSystemService(WIFI_SERVICE);
         WifiInfo wifiInfo = wifiMgr.getConnectionInfo();
         int ip = wifiInfo.getIpAddress();
         wifiIPAddress = Formatter.formatIpAddress(ip);
@@ -104,12 +114,12 @@ public class ConnectivityCenter  {
     }
 
 
-    public void refreshNetworkState(){
+    public void refreshNetworkState() {
         try {
             boolean isWiFiConnected = mWifiNetworkInfo.isConnectedOrConnecting();
             boolean isEthConnected = mEthernetNetworkInfo.isConnectedOrConnecting();
             getWiFiIPAddress();
-        } catch (Exception e){
+        } catch (Exception e) {
             e.printStackTrace();
         }
 
@@ -127,99 +137,154 @@ public class ConnectivityCenter  {
 
     }
 
-    // Connection to cloud-dm
+    public void initializeCloudComms() {
 
-    public void initializeCloudComms(final StringCallback callback){
+        // Reset state
+        isCloudDMReachable = false;
+        isDeviceAuthenticated = false;
+        cloudDMCookie = null;
 
-        Log.d(TAG, "Initializing cloud communications. Authorizing.");
-
-        BelliniDMAPI.authenticate("admin@test.com", "beerchugs", new StringCallback() {
-            @Override
-            public void stringCallback(final String cookie) {
-
-                Log.d(TAG, "Was able to authenticate with Bellini-DM");
-                isCloudDMReachable = true;
-                cloudDMCookie = cookie;
-                // promote to main thread
-                mHandler.post(new Runnable() {
+        Log.d(TAG, "Using the following Bellini-DM instance: "+ OGSettings.getBelliniDMAddress());
+        Log.d(TAG, "Initializing cloud communications. Regsitering.");
+        BelliniDMAPI.registerDeviceWithBellini()
+                .then(new DonePipe<JSONObject, String, Exception, Void>() {
                     @Override
-                    public void run() {
-
-                        if (sioManager==null){
-                            Log.d(TAG, "Starting SocketIO after successful login");
-                            sioManager = new SocketIOManager(cookie);
-                        } else {
-                            sioManager.reset(cookie);
-                        }
-
-                        registerDeviceWithCloud(new JSONCallback() {
+                    public Promise<String, Exception, Void> pipeDone(JSONObject result) {
+                        isCloudDMReachable = true;
+                        Log.d(TAG, "Authenticating.");
+                        return BelliniDMAPI.authenticateDevice();
+                    }
+                })
+                .done(new DoneCallback<String>() {
+                    @Override
+                    public void onDone(String result) {
+                        Log.d(TAG, "Registered and logged in.");
+                        isDeviceAuthenticated = true;
+                        cloudDMCookie = result;
+                        OGHeaderInterceptor.sessionCookie = result;
+                        // promote to main thread
+                        mHandler.post(new Runnable() {
                             @Override
-                            public void jsonCallback(JSONObject jsonData) {
-                                Log.d(TAG, "Was able to register this OG device with cloud.");
-                                if (callback!=null){
-                                    callback.stringCallback("Network bringup complete");
-                                }
-                            }
+                            public void run() {
 
-                            @Override
-                            public void error(NetworkException e) {
-                                Log.e(TAG, "Was NOT able to register this OG device with the cloud.");
-                                if (callback!=null){
-                                    callback.error(e);
+                                if (sioManager == null) {
+                                    Log.d(TAG, "Starting SocketIO after successful login");
+                                    sioManager = new SocketIOManager(cloudDMCookie);
+                                } else {
+                                    Log.d(TAG, "Resetting SocketIO after successful login");
+                                    sioManager.reset(cloudDMCookie);
                                 }
                             }
                         });
                     }
-                });
-
-                new SystemStatusMessage(SystemStatusMessage.SystemStatus.NETWORK_CONNECTED).post();
-            }
-
-            @Override
-            public void error(NetworkException e) {
-
-                Log.e(TAG, "Was NOT able to authenticate with Bellini-DM");
-                new SystemStatusMessage(SystemStatusMessage.SystemStatus.NETWORK_LOS).post();
-                mHandler.postDelayed(new Runnable() {
+                })
+                .fail(new FailCallback<Exception>() {
                     @Override
-                    public void run() {
-                        Log.d(TAG, "~~~ ATTEMPTING TO RESTART CLOUD COMMS ~~~");
-                        initializeCloudComms(null);
+                    public void onFail(Exception result) {
+                        Log.e(TAG, "Cloud comms initialization FAIL");
                     }
-                }, 60*1000);
-            }
-        });
+                });
 
     }
 
-    public void registerDeviceWithCloud(final JSONCallback callback){
+//    // Connection to cloud-dm
+//
+//    public void initializeCloudCommsOld(final StringCallback callback) {
+//
+//        Log.d(TAG, "Initializing cloud communications. Authorizing.");
+//
+//        BelliniDMAPI.authenticate("admin@test.com", "beerchugs", new StringCallback() {
+//            @Override
+//            public void stringCallback(final String cookie) {
+//
+//                Log.d(TAG, "Was able to authenticate with Bellini-DM");
+//                isCloudDMReachable = true;
+//                cloudDMCookie = cookie;
+//                // promote to main thread
+//                mHandler.post(new Runnable() {
+//                    @Override
+//                    public void run() {
+//
+//                        if (sioManager == null) {
+//                            Log.d(TAG, "Starting SocketIO after successful login");
+//                            sioManager = new SocketIOManager(cookie);
+//                        } else {
+//                            sioManager.reset(cookie);
+//                        }
+//
+//                        registerDeviceWithCloud(new JSONCallback() {
+//                            @Override
+//                            public void jsonCallback(JSONObject jsonData) {
+//                                Log.d(TAG, "Was able to register this OG device with cloud.");
+//                                if (callback != null) {
+//                                    callback.stringCallback("Network bringup complete");
+//                                }
+//                            }
+//
+//                            @Override
+//                            public void error(NetworkException e) {
+//                                Log.e(TAG, "Was NOT able to register this OG device with the cloud.");
+//                                if (callback != null) {
+//                                    callback.error(e);
+//                                }
+//                            }
+//                        });
+//                    }
+//                });
+//
+//                new SystemStatusMessage(SystemStatusMessage.SystemStatus.NETWORK_CONNECTED).post();
+//            }
+//
+//            @Override
+//            public void error(NetworkException e) {
+//
+//                Log.e(TAG, "Was NOT able to authenticate with Bellini-DM");
+//                new SystemStatusMessage(SystemStatusMessage.SystemStatus.NETWORK_LOS).post();
+//                mHandler.postDelayed(new Runnable() {
+//                    @Override
+//                    public void run() {
+//                        Log.d(TAG, "~~~ ATTEMPTING TO RESTART CLOUD COMMS ~~~");
+//                        initializeCloudComms();
+//                    }
+//                }, 60 * 1000);
+//            }
+//        });
+//
+//    }
+
+    public void registerDeviceWithCloud(final JSONCallback callback) {
 
         // 1. Run a registration pass. If this box is already registered, we get back the last settings
         // saved in the cloud which we sync into this box.
-        BelliniDMAPI.registerDeviceWithBellini(new JSONCallback() {
-            @Override
-            public void jsonCallback(JSONObject jsonData) {
+//        BelliniDMAPI.registerDeviceWithBellini(new JSONCallback() {
+//            @Override
+//            public void jsonCallback(JSONObject jsonData) {
+//
+//                Log.d(TAG, "Registered device with Bellini-DM");
+//                if (OGSystem.getVenueId().isEmpty()) {
+//                    BelliniDMAPI.associateDeviceWithVenueUUID(BelliniDMAPI.BULLPEN_VUUID, callback);
+//                } else if (callback != null) {
+//                    callback.jsonCallback(jsonData);
+//                }
+//
+//            }
+//
+//            @Override
+//            public void error(NetworkException e) {
+//                Log.e(TAG, "Could NOT register device with Bellini-DM");
+//                new SystemStatusMessage(SystemStatusMessage.SystemStatus.NETWORK_LOS).post();
+//                if (callback != null) {
+//                    callback.error(e);
+//                }
+//            }
+//        });
 
-                Log.d(TAG, "Registered device with Bellini-DM");
-                if (OGSystem.getVenueId().isEmpty()){
-                    BelliniDMAPI.associateDeviceWithVenueUUID(BelliniDMAPI.BULLPEN_VUUID, callback);
-                } else if (callback!=null){
-                    callback.jsonCallback(jsonData);
-                }
 
-            }
+    }
 
-            @Override
-            public void error(NetworkException e) {
-                Log.e(TAG, "Could NOT register device with Bellini-DM");
-                new SystemStatusMessage(SystemStatusMessage.SystemStatus.NETWORK_LOS).post();
-               if (callback!=null){
-                   callback.error(e);
-               }
-            }
-        });
-
-
+    public void cloudUrlChange() {
+        Log.d(TAG, "Cloud URL changed, reinitializing cloud comms");
+        //TODO do something with this....
     }
 
 }

@@ -21,6 +21,7 @@ public class NetworkingUtils {
 
     private static final String TAG = "NetworkingUtils";
 
+    // Used by OGSystem
     public static String getWiFiMACAddress() {
         WifiManager manager = (WifiManager) ABApplication.sharedContext.getSystemService(Context.WIFI_SERVICE);
         WifiInfo info = manager.getConnectionInfo();
@@ -33,6 +34,9 @@ public class NetworkingUtils {
         return macAddress;
     }
 
+    // This same method exists in ConnectivityCenter
+    // Called from OGSystem
+    // TODO: Kill dupe code
     public static String getWiFiIPAddressString() {
         WifiManager manager = (WifiManager) ABApplication.sharedContext.getSystemService(Context.WIFI_SERVICE);
         WifiInfo info = manager.getConnectionInfo();
@@ -45,6 +49,7 @@ public class NetworkingUtils {
     }
 
 
+    // Only used below (line 87)
     /**
      * Returns a hash map with the wlan0 and eth0 ipv4 and ipv6 addresses
      * @return
@@ -78,6 +83,7 @@ public class NetworkingUtils {
         return rval;
     }
 
+    // Used by OGSystem
     public static String getEthernetIPAddressString(){
         return getDeviceIpAddresses().get("eth0");
     }

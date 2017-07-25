@@ -11,7 +11,7 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 
-import io.ourglass.bucanero.core.OGConstants;
+import io.ourglass.bucanero.core.OGSettings;
 import io.socket.client.Ack;
 import io.socket.client.IO;
 import io.socket.client.Manager;
@@ -55,7 +55,7 @@ public class SailsSocketIO {
         opts.reconnection = true;
         opts.reconnectionDelay = 1000; // TODO is this right?
         //opts.timeout = 5000;
-        socket = IO.socket(OGConstants.SOCKET_IO_ADDRESS, opts);
+        socket = IO.socket(OGSettings.getBelliniDMAddress(), opts);
 
         socket.io().on(Manager.EVENT_TRANSPORT, new Emitter.Listener() {
             @Override
@@ -69,7 +69,7 @@ public class SailsSocketIO {
 
                         @SuppressWarnings("unchecked")
                         Map<String, List<String>> headers = (Map<String, List<String>>) args[0];
-                        // modify request headers
+                        // modify requestBuilder headers
                         List<String> cookies = new ArrayList<String>();
                         cookies.add(mCookie);
                         headers.put("Cookie", cookies);

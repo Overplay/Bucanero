@@ -1,4 +1,4 @@
-package io.ourglass.bucanero.services.Connectivity;
+package io.ourglass.bucanero.Support;
 
 import java.io.BufferedReader;
 import java.io.InputStreamReader;

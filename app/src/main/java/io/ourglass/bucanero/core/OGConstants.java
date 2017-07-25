@@ -12,7 +12,8 @@ public class OGConstants {
     /**
      * SocketIO constants
      */
-    public static final Boolean USE_LOCAL_SERVER = false;
+    public static final Boolean USE_LOCAL_DM_SERVER = false;
+
     public static final String CODE_REV_NAME = "Bucanero";
 
     public static final String DEVICE_AUTH_HDR = "x-ogdevice-1234";
@@ -23,11 +24,9 @@ public class OGConstants {
 
     public static final int BOOT_DELAY = 500; //ms between boot steps in Slow Boot Mode
 
-    public static String BELLINI_DM_ADDRESS = USE_LOCAL_SERVER ? "http://10.0.2.2:2001" : "https://cloud-dm.ourglass.tv";
-    //public static String BELLINI_DM_ADDRESS = USE_LOCAL_SERVER ? "http://10.0.2.2:2001" : "http://138.68.230.239:2001";
-    //public static String BELLINI_DM_ADDRESS = USE_LOCAL_SERVER ? "http://10.0.2.2:2001" : "http://192.168.1.172:2001";
-
-    public static String SOCKET_IO_ADDRESS = BELLINI_DM_ADDRESS; //alias
+    public static final String BELLINI_DM_PRODUCTION_ADDRESS = "https://cloud-dm.ourglass.tv";
+    public static final String BELLINI_DM_DEV_ADDRESS = "http://138.68.230.239:2001";
+    public static final String BELLINI_DM_EMU_LOCAL_ADDRESS = "http://10.0.2.2:2001";
 
     // Force automatic venue registration to the OG Office in Campbell
     public static final Boolean AUTO_REG_TO_OGOFFICE = false;
@@ -35,7 +34,7 @@ public class OGConstants {
     // How far down from top is the widget limit (or up from bottom)
     public static final float WIDGET_Y_INSET = 0.12f;
 
-    public static final boolean ENABLE_RESTART_ON_UNCAUGHT_EXCEPTIONS = true;
+    public static final boolean ENABLE_RESTART_ON_UNCAUGHT_EXCEPTIONS = false;
 
 
     // TEST and DEBUG

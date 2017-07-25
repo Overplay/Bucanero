@@ -178,7 +178,7 @@ public class SocketIOManager {
                     (new OnScreenNotificationMessage("We've lost the network! Trying to reconnect.")).post();
 
                     Log.d(TAG, "~~~ ISSUING RECONNECT ~~~~");
-                    ConnectivityCenter.getInstance().initializeCloudComms(null);
+                    ConnectivityCenter.getInstance().initializeCloudComms();
 
                 } else {
 

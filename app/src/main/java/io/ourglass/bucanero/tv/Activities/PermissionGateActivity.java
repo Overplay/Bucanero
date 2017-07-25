@@ -6,6 +6,7 @@ import android.content.pm.PackageManager;
 import android.os.Bundle;
 import android.support.v4.app.ActivityCompat;
 import android.support.v4.content.ContextCompat;
+import android.util.Log;
 import android.widget.TextView;
 
 import io.ourglass.bucanero.R;
@@ -22,10 +23,40 @@ public class PermissionGateActivity extends BaseFullscreenActivity {
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
 
+        Log.d(TAG, "onCreate in PermissionGate");
         setContentView(R.layout.activity_permission_gate);
         mMessageTV = (TextView) findViewById(R.id.permissionMessageTV);
 
         mMessageTV.setText("Initial Permission Settings");
+
+
+
+    }
+
+    @Override
+    public void onResume(){
+        super.onResume();
+        Log.d(TAG, "onResume in PermissionGate");
+
+        fishOrCutBait();
+
+    }
+
+    @Override
+    public void onPause(){
+        super.onPause();
+        Log.d(TAG, "Pausing");
+        finish();
+    }
+
+    @Override
+    public void onNewIntent(Intent i){
+        Log.d(TAG, "New inbound intent, hoss");
+        ABApplication.dbToast(this, "PG new intent path");
+        fishOrCutBait();
+    }
+
+    public void fishOrCutBait(){
 
         // Turns out the WiFi ones don't require a dialog, but added it because WiFi not working on Zidoo
         if (getAndOfAllPermissions()) {
@@ -50,7 +81,7 @@ public class PermissionGateActivity extends BaseFullscreenActivity {
 
         ((ABApplication)getApplication()).boot();
         startActivity(new Intent(this, MainFrameActivity.class));
-        //finish();
+        //psfinish();
     }
 
     public void die() {
@@ -98,7 +129,7 @@ public class PermissionGateActivity extends BaseFullscreenActivity {
                                            String permissions[], int[] grantResults) {
         switch (requestCode) {
             case 2727: {
-                // If request is cancelled, the result arrays are empty.
+                // If requestBuilder is cancelled, the result arrays are empty.
                 // TODO this logic blows. It should be only
                 if (getAndOfAllPermissions()) {
                     goMain();

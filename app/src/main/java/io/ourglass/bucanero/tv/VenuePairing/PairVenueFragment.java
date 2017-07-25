@@ -13,20 +13,23 @@ import android.widget.TextView;
 
 import com.squareup.otto.Subscribe;
 
+import org.jdeferred.DoneCallback;
+import org.jdeferred.FailCallback;
 import org.json.JSONObject;
 
 import io.ourglass.bucanero.R;
 import io.ourglass.bucanero.api.BelliniDMAPI;
-import io.ourglass.bucanero.api.JSONCallback;
 import io.ourglass.bucanero.core.ABApplication;
 import io.ourglass.bucanero.core.OGConstants;
 import io.ourglass.bucanero.core.OGSystem;
 import io.ourglass.bucanero.core.OGUi;
 import io.ourglass.bucanero.messages.MainThreadBus;
+import io.ourglass.bucanero.messages.OGLogMessage;
+import io.ourglass.bucanero.messages.SystemStatusMessage;
 import io.ourglass.bucanero.messages.VenuePairCompleteMessage;
-import io.ourglass.bucanero.objects.NetworkException;
 import io.ourglass.bucanero.tv.Fragments.OverlayFragment;
 
+import static io.ourglass.bucanero.messages.SystemStatusMessage.SystemStatus.NETWORK_ISSUE;
 import static io.ourglass.bucanero.tv.VenuePairing.PairVenueFragment.PairMode.CODE;
 
 /**
@@ -179,18 +182,29 @@ public class PairVenueFragment extends OverlayFragment {
     }
 
     private void getCode(){
-        BelliniDMAPI.getRegCode(new JSONCallback() {
-            @Override
-            public void jsonCallback(JSONObject jsonData) {
-                String code = jsonData.optString("code", "ERROR");
-                updateCodeText(code);
-            }
 
-            @Override
-            public void error(NetworkException e) {
-                updateCodeText("NETWORK PROBLEM");
-            }
-        });
+        BelliniDMAPI.getRegCode()
+                .done(new DoneCallback<JSONObject>() {
+                    @Override
+                    public void onDone(JSONObject jsonData) {
+                        String code = jsonData.optString("code", "ERROR");
+                        updateCodeText(code);
+                    }
+                })
+                .fail(new FailCallback<Exception>() {
+                    @Override
+                    public void onFail(Exception result) {
+                        updateCodeText("NETWORK PROBLEM");
+                        OGLogMessage.newOGLog("network_issue")
+                                .addFieldToMessage("description", "Failure getting reg key in PairVenueFragment")
+                                .addFieldToMessage("exception", result.toString()  )
+                                .addFieldToMessage("issue_code", 1003)  // this is just some BS to test the generics
+                                .post();
+
+                        SystemStatusMessage.sendStatusMessageWithException(NETWORK_ISSUE, result);
+                    }
+                });
+
     }
 
     private void updateUI(){
@@ -220,14 +234,12 @@ public class PairVenueFragment extends OverlayFragment {
     }
 
 
-
     @Subscribe
     public void venuePairComplete(VenuePairCompleteMessage msg) {
         Log.d(TAG, "Got venue pair complete msg, dimissing!");
         OGSystem.setFirstTimeSetup(false); // if you get this message, all else is cool.
         dismissMe();
     }
-
 
 
 }
