@@ -357,20 +357,6 @@ public class MainFrameActivity extends BaseFullscreenActivity implements Overlay
 
     }
 
-    @Override
-    public boolean dispatchKeyEvent(KeyEvent event) {
-        int keyCode = event.getKeyCode();
-        int keyAction = event.getAction();
-        boolean processed = false;
-        if (keyAction == KeyEvent.ACTION_UP) {
-            switch (keyCode) {
-                case KeyEvent.KEYCODE_1:
-                    break;
-            }
-        }
-        return processed || super.dispatchKeyEvent(event);
-    }
-
     /**
      * This was copied over from AB as placeholder
      *
