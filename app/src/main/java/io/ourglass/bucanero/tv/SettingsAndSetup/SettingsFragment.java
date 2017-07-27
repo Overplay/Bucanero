@@ -96,7 +96,12 @@ public class SettingsFragment extends OverlayFragment {
                 break;
 
             case "wifi":
-                ((MainFrameActivity)getActivity()).launchWiFiFragment();
+                MainFrameActivity mf = ((MainFrameActivity)getActivity());
+                Intent launchIntent = mf.getPackageManager().getLaunchIntentForPackage("io.ourglass.wort");
+                if (launchIntent != null) {
+                    startActivity(launchIntent);
+                    mf.finish();
+                }
                 break;
 
             case "venue":

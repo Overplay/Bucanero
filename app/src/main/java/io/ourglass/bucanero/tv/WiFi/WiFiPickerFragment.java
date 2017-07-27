@@ -1,6 +1,7 @@
 package io.ourglass.bucanero.tv.WiFi;
 
 
+import android.content.Intent;
 import android.net.wifi.ScanResult;
 import android.net.wifi.SupplicantState;
 import android.net.wifi.WifiInfo;
@@ -24,6 +25,7 @@ import java.util.ArrayList;
 
 import io.ourglass.bucanero.R;
 import io.ourglass.bucanero.core.ABApplication;
+import io.ourglass.bucanero.core.OGConstants;
 import io.ourglass.bucanero.core.OGSystem;
 import io.ourglass.bucanero.core.OGUi;
 import io.ourglass.bucanero.services.ConnectivityMonitor;
@@ -210,15 +212,28 @@ public class WiFiPickerFragment extends OverlayFragment {
         super.onPause();
     }
 
+    @Override
+    public void onActivityResult(int requestCode, int resultCode, Intent data){
+        Log.d(TAG, "Back from activity, request code was: "+requestCode);
+    }
+
     private void goToMode(WiFiSetupMode mode){
+
         mMode = mode;
 
-        switch (mMode){
-            case SEARCH:
+        if (mMode == SEARCH ){
+            Log.d(TAG, "Setting up WiFi");
+            if (OGConstants.USE_NATIVE_ANDROID_WIFI_SETTINGS == true){
+                Log.d(TAG, ">>> Using native Android settings");
+                startActivityForResult(new Intent(android.provider.Settings.ACTION_WIFI_SETTINGS), 99);
+
+            } else {
+                Log.d(TAG, ">>> Using in-app settings (experimental)");
                 mConnMon.startWiFiScan();
-                break;
+                updateUI();
+            }
+
         }
-        updateUI();
     }
 
     private void updateUI(){

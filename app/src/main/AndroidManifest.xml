@@ -31,6 +31,8 @@
     <!-- permission required to use Alarm Manager used for restart on uncaught exception! -->
     <uses-permission android:name="com.android.alarm.permission.SET_ALARM"/>
 
+
+
     <!-- Application is subclassed for a default Realm -->
     <application
         android:name=".core.ABApplication"
