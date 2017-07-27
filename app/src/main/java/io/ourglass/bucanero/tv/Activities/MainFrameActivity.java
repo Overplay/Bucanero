@@ -8,6 +8,7 @@ import android.support.v4.app.FragmentTransaction;
 import android.util.Log;
 import android.view.KeyEvent;
 import android.view.SurfaceView;
+import android.view.ViewGroup;
 import android.view.ViewTreeObserver;
 import android.widget.ImageView;
 import android.widget.RelativeLayout;
@@ -29,6 +30,7 @@ import io.ourglass.bucanero.core.OGConstants;
 import io.ourglass.bucanero.core.OGHardware;
 import io.ourglass.bucanero.core.OGSystem;
 import io.ourglass.bucanero.core.OGSystemExceptionHander;
+import io.ourglass.bucanero.core.ZidooHdmiDisPlay;
 import io.ourglass.bucanero.messages.LaunchAppMessage;
 import io.ourglass.bucanero.messages.OGLogMessage;
 import io.ourglass.bucanero.messages.OnScreenNotificationMessage;
@@ -72,7 +74,8 @@ public class MainFrameActivity extends BaseFullscreenActivity implements Overlay
     SurfaceView mTVSurface;
 
     private AudioStreamer mAudioStreamer;
-    private HDMIRxPlayer2 mHDMIRxPlayer;
+    //SJMprivate HDMIRxPlayer2 mHDMIRxPlayer;
+    private ZidooHdmiDisPlay mRealtekeHdmi;
 
     private enum OverlayMode {NONE, SYSINFO, STBPAIR, WIFI, SETUP, OTHER, VENUEPAIR, SETTINGS, WELCOME, DEVSETTINGS}
 
@@ -111,17 +114,17 @@ public class MainFrameActivity extends BaseFullscreenActivity implements Overlay
             finish();
         }
 
-        mTVSurface = (SurfaceView) findViewById(R.id.surfaceView);
-        enableHDMISurface();
+        //SJMmTVSurface = (SurfaceView) findViewById(R.id.surfaceView);
+        //SJMenableHDMISurface();
 
         if (OGConstants.ENABLE_RESTART_ON_UNCAUGHT_EXCEPTIONS) {
             Thread.setDefaultUncaughtExceptionHandler(new OGSystemExceptionHander(this,
                     MainFrameActivity.class));
         }
 
-        mAudioStreamer = new AudioStreamer(this);
+        //SJMNOAUDIOmAudioStreamer = new AudioStreamer(this);
         // This will start streaming audio in 10 secs
-        mAudioStreamer.recorderRekick(10000);
+        //SJMNOAUDIOmAudioStreamer.recorderRekick(10000);
 
         // Register to receive messages
         ABApplication.ottobus.register(this);
@@ -188,8 +191,13 @@ public class MainFrameActivity extends BaseFullscreenActivity implements Overlay
             OGHardware.enableTronsmartHDMI();
         } else if (OGSystem.isRealOG()) {
             Log.d(TAG, "Enabling Video for ZidooX9S/Realtek");
-            mHDMIRxPlayer = new HDMIRxPlayer2(this, mTVSurface, 1920, 1080);
+            //SJMmHDMIRxPlayer = new HDMIRxPlayer2(this, mTVSurface, 1920, 1080);
             //mTVSurface.setVisibility(View.INVISIBLE);
+            ViewGroup hdmiGroud = (ViewGroup) findViewById(R.id.mainframeLayout);
+            mRealtekeHdmi = new ZidooHdmiDisPlay(MainFrameActivity.this, hdmiGroud, null,ZidooHdmiDisPlay.TYPE_SURFACEVIEW);
+            //SJMif (mRealtekeHdmi != null) {
+            //SJM    mRealtekeHdmi.startDisPlay();
+            //SJM}
         }
     }
 
@@ -278,15 +286,22 @@ public class MainFrameActivity extends BaseFullscreenActivity implements Overlay
         mDebouncing = false;
         //showSystemToast("Starting up...");
         Log.d(TAG, "onResume done");
+        enableHDMISurface();
+        if (mRealtekeHdmi != null) {
+            mRealtekeHdmi.startDisPlay();
+        }
 
     }
 
     @Override
     public void onPause() {
+        //SJMsuper.onPause();
+        //SJMmHDMIRxPlayer.release();
+        if (mRealtekeHdmi != null) {
+            mRealtekeHdmi.exit();
+            mRealtekeHdmi = null;
+        }
         super.onPause();
-        Log.d(TAG, "Mainframe onPause");
-        mHDMIRxPlayer.release();
-        //finish();
     }
 
     //This needs to be here to prevent the dreaded illegal state exception
