@@ -174,7 +174,7 @@ public class ABApplication extends Application {
         startService(stbIntent);
 
         Intent ffmpegBinaryIntent = new Intent(this, FFmpegBinaryService.class);
-        //startService(ffmpegBinaryIntent);
+        startService(ffmpegBinaryIntent);
 
         // Logcat messages go to a file...
 //        if (OGSystem.isExternalStorageWritable() && OGConstants.LOGCAT_TO_FILE) {

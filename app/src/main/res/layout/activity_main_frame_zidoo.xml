@@ -20,6 +20,12 @@
         android:layout_width="match_parent"
         android:layout_height="match_parent" />
 
+    <io.ourglass.bucanero.tv.Views.HDMIView
+        android:id="@+id/home_hdmi_parent"
+        android:layout_width="match_parent"
+        android:layout_height="match_parent"
+        android:background="#333" />
+
     <TextView
         android:layout_width="400dip"
         android:layout_height="wrap_content"

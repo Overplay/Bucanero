@@ -25,12 +25,10 @@ import org.json.JSONObject;
 import io.ourglass.bucanero.R;
 import io.ourglass.bucanero.api.BelliniDMAPI;
 import io.ourglass.bucanero.core.ABApplication;
-import io.ourglass.bucanero.core.HDMIRxPlayer2;
 import io.ourglass.bucanero.core.OGConstants;
 import io.ourglass.bucanero.core.OGHardware;
 import io.ourglass.bucanero.core.OGSystem;
 import io.ourglass.bucanero.core.OGSystemExceptionHander;
-import io.ourglass.bucanero.core.ZidooHdmiDisPlay;
 import io.ourglass.bucanero.messages.LaunchAppMessage;
 import io.ourglass.bucanero.messages.OGLogMessage;
 import io.ourglass.bucanero.messages.OnScreenNotificationMessage;
@@ -49,6 +47,8 @@ import io.ourglass.bucanero.tv.Support.OGAnimations;
 import io.ourglass.bucanero.tv.Support.OGApp;
 import io.ourglass.bucanero.tv.Support.Size;
 import io.ourglass.bucanero.tv.VenuePairing.PairVenueFragment;
+import io.ourglass.bucanero.tv.Views.HDMIView;
+import io.ourglass.bucanero.tv.Views.ZidooHdmiDisPlay;
 import io.ourglass.bucanero.tv.WiFi.WiFiPickerFragment;
 import io.socket.client.Socket;
 
@@ -74,6 +74,7 @@ public class MainFrameActivity extends BaseFullscreenActivity implements Overlay
     SurfaceView mTVSurface;
 
     private AudioStreamer mAudioStreamer;
+    private HDMIView mHDMIView;
     //SJMprivate HDMIRxPlayer2 mHDMIRxPlayer;
     private ZidooHdmiDisPlay mRealtekeHdmi;
 
@@ -122,9 +123,9 @@ public class MainFrameActivity extends BaseFullscreenActivity implements Overlay
                     MainFrameActivity.class));
         }
 
-        //SJMNOAUDIOmAudioStreamer = new AudioStreamer(this);
+        //mAudioStreamer = new AudioStreamer(this);
         // This will start streaming audio in 10 secs
-        //SJMNOAUDIOmAudioStreamer.recorderRekick(10000);
+        //mAudioStreamer.recorderRekick(10000);
 
         // Register to receive messages
         ABApplication.ottobus.register(this);
@@ -180,6 +181,7 @@ public class MainFrameActivity extends BaseFullscreenActivity implements Overlay
         });
 
         mBootBugImageView = (ImageView) findViewById(R.id.bootBugIV);
+        mHDMIView = (HDMIView)findViewById(R.id.home_hdmi_parent);
         Log.d(TAG, "onCreate done");
 
     }
@@ -193,8 +195,8 @@ public class MainFrameActivity extends BaseFullscreenActivity implements Overlay
             Log.d(TAG, "Enabling Video for ZidooX9S/Realtek");
             //SJMmHDMIRxPlayer = new HDMIRxPlayer2(this, mTVSurface, 1920, 1080);
             //mTVSurface.setVisibility(View.INVISIBLE);
-            ViewGroup hdmiGroud = (ViewGroup) findViewById(R.id.mainframeLayout);
-            mRealtekeHdmi = new ZidooHdmiDisPlay(MainFrameActivity.this, hdmiGroud, null,ZidooHdmiDisPlay.TYPE_SURFACEVIEW);
+            //SJMNEWViewGroup hdmiGroud = (ViewGroup) findViewById(R.id.mainframeLayout);
+            //SJMNEWmRealtekeHdmi = new ZidooHdmiDisPlay(MainFrameActivity.this, hdmiGroud, null,ZidooHdmiDisPlay.TYPE_SURFACEVIEW);
             //SJMif (mRealtekeHdmi != null) {
             //SJM    mRealtekeHdmi.startDisPlay();
             //SJM}
@@ -287,9 +289,10 @@ public class MainFrameActivity extends BaseFullscreenActivity implements Overlay
         //showSystemToast("Starting up...");
         Log.d(TAG, "onResume done");
         enableHDMISurface();
-        if (mRealtekeHdmi != null) {
-            mRealtekeHdmi.startDisPlay();
-        }
+        mHDMIView.startDisplay();
+        //if (mRealtekeHdmi != null) {
+        //    mRealtekeHdmi.startDisPlay();
+        //}
 
     }
 
@@ -297,10 +300,11 @@ public class MainFrameActivity extends BaseFullscreenActivity implements Overlay
     public void onPause() {
         //SJMsuper.onPause();
         //SJMmHDMIRxPlayer.release();
-        if (mRealtekeHdmi != null) {
-            mRealtekeHdmi.exit();
-            mRealtekeHdmi = null;
-        }
+        mHDMIView.stopDisplay();
+        //if (mRealtekeHdmi != null) {
+        //    mRealtekeHdmi.exit();
+        //    mRealtekeHdmi = null;
+        //}
         super.onPause();
     }
 
