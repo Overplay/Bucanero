@@ -4,8 +4,7 @@
     <!-- TODO: Remove or change this placeholder text -->
     <string name="hello_blank_fragment">Hello blank fragment</string>
 
-    <string name="venue_pair_instructions">Please enter the code below into your Ourglass app,
-        or through the Ourglass web site, to register this OG System with your account. The
+    <string name="venue_pair_instructions">To assign a venue for this OG1 system, you will need to add your venue through the Ourglass mobile app (if you have not already done so), then enter the code below to complete the process.\n\nThe
     code will automatically expire in 5 minutes, so get busy.</string>
 
     <string name="venue_code_placeholder">----</string>

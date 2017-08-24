@@ -1,4 +1,4 @@
-package io.ourglass.bucanero.messages;
+package io.ourglass.bucanero.services.SocketIO.SIOMessages;
 
 import org.json.JSONObject;
 

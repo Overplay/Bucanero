@@ -30,7 +30,7 @@
 
     <!-- permission required to use Alarm Manager used for restart on uncaught exception! -->
     <uses-permission android:name="com.android.alarm.permission.SET_ALARM"/>
-
+    <permission android:name="android.permission.REBOOT"/>
 
 
     <!-- Application is subclassed for a default Realm -->

@@ -67,7 +67,7 @@ public class WelcomeFragment extends OverlayFragment {
         nextStepButton.setOnClickListener(new View.OnClickListener() {
             @Override
             public void onClick(View v) {
-                ((MainFrameActivity)getActivity()).launchWiFiFragment();
+                ((MainFrameActivity)getActivity()).launchVenuePairFragment();
             }
         });
 
