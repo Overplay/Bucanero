@@ -13,6 +13,7 @@ import android.util.Log;
 import com.google.gson.Gson;
 
 import org.jdeferred.DoneCallback;
+import org.jdeferred.FailCallback;
 import org.json.JSONException;
 import org.json.JSONObject;
 
@@ -22,6 +23,7 @@ import java.util.UUID;
 
 import io.ourglass.bucanero.api.BelliniDMAPI;
 import io.ourglass.bucanero.api.BelliniNetworkFailureCallback;
+import io.ourglass.bucanero.messages.BestPositionMessage;
 import io.ourglass.bucanero.objects.SetTopBox;
 import io.ourglass.bucanero.objects.TVShow;
 import io.ourglass.bucanero.services.Connectivity.NetworkingUtils;
@@ -469,6 +471,7 @@ public class OGSystem {
             mCurrentTVShow = currentlyOnTV;
             ABApplication.ottobus.post(mCurrentTVShow);
             // Send it upstream
+            //I don't think this needs to be in a thread with Defferred
             new Thread(new Runnable() {
                 @Override
                 public void run() {
@@ -476,6 +479,21 @@ public class OGSystem {
                         .fail(new BelliniNetworkFailureCallback("Failed sending current TV show to Bellini", 1099));
                 }
             }).start();
+
+            BelliniDMAPI.getBestPosition(Integer.parseInt(currentlyOnTV.channelNumber))
+                    .done(new DoneCallback<JSONObject>() {
+                        @Override
+                        public void onDone(JSONObject result) {
+                            Log.d(TAG, "Received new BestPosition info");
+                            (new BestPositionMessage(result)).post();
+                        }
+                    })
+                    .fail(new FailCallback<Exception>() {
+                        @Override
+                        public void onFail(Exception result) {
+                            Log.e(TAG, "Get of BestPosition failed. Ignoring.");
+                        }
+                    });
         } else {
             Log.d(TAG, "Got a TV show update, but it is the same as what I have, so ignoring");
         }

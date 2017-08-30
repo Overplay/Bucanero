@@ -17,6 +17,8 @@ public class PermissionGateActivity extends BaseFullscreenActivity {
 
     public static final String TAG = "PermissionGate";
 
+    public static final boolean BUILT_FOR_API_19 = true;
+
     TextView mMessageTV;
 
     @Override
@@ -28,8 +30,6 @@ public class PermissionGateActivity extends BaseFullscreenActivity {
         mMessageTV = (TextView) findViewById(R.id.permissionMessageTV);
 
         mMessageTV.setText("Initial Permission Settings");
-
-
 
     }
 
@@ -49,32 +49,47 @@ public class PermissionGateActivity extends BaseFullscreenActivity {
         finish();
     }
 
-    @Override
-    public void onNewIntent(Intent i){
-        Log.d(TAG, "New inbound intent, hoss");
-        ABApplication.dbToast(this, "PG new intent path");
-        fishOrCutBait();
-    }
+//    @Override
+//    public void onNewIntent(Intent i){
+//        Log.d(TAG, "New inbound intent, hoss");
+//        ABApplication.dbToast(this, "PG new intent path");
+//        fishOrCutBait();
+//    }
 
     public void fishOrCutBait(){
 
         // Turns out the WiFi ones don't require a dialog, but added it because WiFi not working on Zidoo
-        if (getAndOfAllPermissions()) {
+        if (BUILT_FOR_API_19 || getAndOfAllPermissions()) {
             goMain();
         } else {
 
-            ActivityCompat.requestPermissions(this,
-                    new String[]{Manifest.permission.RECORD_AUDIO,
-                            Manifest.permission.CAMERA,
-                            Manifest.permission.ACCESS_WIFI_STATE,
-                            Manifest.permission.CHANGE_WIFI_STATE,
-                            Manifest.permission.ACCESS_COARSE_LOCATION,
-                            Manifest.permission.BLUETOOTH,
-                            Manifest.permission.READ_PHONE_STATE},
-                    2727);
+            requestPermissions();
+
+            // WELL THIS DIDN"T FUCKING WORK EITHER
+//            // Seeing weirdness on jump from Wort on initial install that UI does not appear before
+//            // prompts come up for permisions...
+//            mMessageTV.postDelayed(new Runnable() {
+//                @Override
+//                public void run() {
+//                    requestPermissions();
+//                }
+//            }, 2000);
+
 
         }
 
+    }
+
+    public void requestPermissions(){
+        ActivityCompat.requestPermissions(this,
+                new String[]{Manifest.permission.RECORD_AUDIO,
+                        Manifest.permission.CAMERA,
+                        Manifest.permission.ACCESS_WIFI_STATE,
+                        Manifest.permission.CHANGE_WIFI_STATE,
+                        Manifest.permission.ACCESS_COARSE_LOCATION,
+                        Manifest.permission.BLUETOOTH,
+                        Manifest.permission.READ_PHONE_STATE},
+                2727);
     }
 
     public void goMain() {

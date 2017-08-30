@@ -61,10 +61,10 @@
             android:id="@+id/instructionsTV"
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
+            android:layout_marginTop="60px"
+            android:text="@string/venue_pair_instructions"
             android:textAlignment="center"
             android:textColor="@color/White"
-            android:text="@string/venue_pair_instructions"
-            android:layout_marginTop="60px"
             android:textSize="20dip" />
 
         <TextView

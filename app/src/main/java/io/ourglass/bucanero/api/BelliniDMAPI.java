@@ -253,6 +253,20 @@ public class BelliniDMAPI {
 
     }
 
+    public static Promise<JSONObject, Exception, Void> getBestPosition(int channel){
+
+        JSONObject params = getParamsWithDeviceUDID();
+
+        try {
+            params.put("channel", channel);
+        } catch (JSONException e) {
+            e.printStackTrace();
+        }
+
+        return DeferredRequest.post(OGSettings.getBelliniDMAddress()+"/pgs/bestposition", params, JSONObject.class).go();
+
+    }
+
     public static Promise<JSONObject, Exception, Void> registerSTBPairing(SetTopBox setTopBox){
 
         String url = OGSettings.getBelliniDMAddress() +"/ogdevice/regstbpairing?deviceUDID="+OGSystem.getUDID();

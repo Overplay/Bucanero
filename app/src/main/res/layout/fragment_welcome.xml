@@ -62,7 +62,7 @@
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
             android:layout_marginBottom="100px"
-            android:text="First, install the Ourglass app on your Android or iOS device. You can find it on Google Play or the Apple App Store. When that's done, click on SETUP WIFI below."
+            android:text="First, install the Ourglass app on your Android or iOS device. You can find it on Google Play or the Apple App Store. When that's done, click on SETUP VENUE below."
             android:textAlignment="center"
             android:textColor="@color/White"
             android:textSize="50px" />
@@ -74,7 +74,7 @@
             android:layout_marginBottom="10px"
             android:background="@drawable/action_button"
             android:tag="sysinfo"
-            android:text="SETUP WIFI"
+            android:text="SETUP VENUE"
             android:textColor="@color/White">
             <requestFocus />
         </Button>

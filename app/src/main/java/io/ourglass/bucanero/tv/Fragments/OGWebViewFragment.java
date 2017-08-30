@@ -25,6 +25,7 @@ import io.ourglass.bucanero.api.BelliniDMAPI;
 import io.ourglass.bucanero.core.ABApplication;
 import io.ourglass.bucanero.core.OGConstants;
 import io.ourglass.bucanero.core.OGSystem;
+import io.ourglass.bucanero.messages.BestPositionMessage;
 import io.ourglass.bucanero.messages.KillAppMessage;
 import io.ourglass.bucanero.messages.MoveAppMessage;
 import io.ourglass.bucanero.messages.MoveWebViewMessage;
@@ -347,6 +348,30 @@ public class OGWebViewFragment extends WebViewFragment {
         Log.d(TAG, "Got an explicit slot move message, yo!");
         if (appType.equalsIgnoreCase(moveMsg.type)){
             setFrameForSlot(moveMsg.slot);
+        }
+    }
+
+    @Subscribe
+    public void inboundBestPosition(BestPositionMessage bpMsg) {
+        Log.d(TAG, "Got a BestPosition message, yo!");
+
+        int slot = mLayoutSlot;
+
+        switch (appType){
+
+            case "crawler":
+                slot = bpMsg.getPreferredCrawlerSlot(mLayoutSlot);
+                break;
+
+            case "widget":
+                slot = bpMsg.getPreferredWidgetSlot(mLayoutSlot);
+                break;
+
+        }
+
+        if (slot != mLayoutSlot){
+            Log.d(TAG, "Moving " + appType + " app in response to BestPosition message!");
+            setFrameForSlot(slot);
         }
     }
 

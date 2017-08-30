@@ -1,8 +1,11 @@
 package io.ourglass.bucanero.tv.Activities;
 
+import android.content.Context;
 import android.content.Intent;
 import android.graphics.Point;
 import android.os.Bundle;
+import android.os.Handler;
+import android.os.PowerManager;
 import android.support.v4.app.Fragment;
 import android.support.v4.app.FragmentTransaction;
 import android.util.Log;
@@ -50,7 +53,6 @@ import io.ourglass.bucanero.tv.Views.HDMIView;
 import io.ourglass.bucanero.tv.WiFi.WiFiPickerFragment;
 import io.socket.client.Socket;
 
-import static io.ourglass.bucanero.messages.SystemCommandMessage.SystemCommand.DISMISS_OVERLAY;
 import static io.ourglass.bucanero.messages.SystemStatusMessage.SystemStatus.NETWORK_ISSUE;
 
 
@@ -80,6 +82,8 @@ public class MainFrameActivity extends BaseFullscreenActivity implements Overlay
     private boolean mBooting = true;
 
     public boolean mFirstTimeSetupSkipped = false;  // set this to temprarily disable the sequencing thru setup screens
+
+    Handler mHandler = new Handler();
 
     @Override
     protected void onCreate(final Bundle savedInstanceState) {
@@ -623,9 +627,25 @@ public class MainFrameActivity extends BaseFullscreenActivity implements Overlay
 
     @Subscribe
     public void inboundSystemMessage(SystemCommandMessage message){
-        if (message.status == DISMISS_OVERLAY ){
-            dismissMe();
+
+        switch (message.status){
+
+            case DISMISS_OVERLAY:
+                dismissMe();
+                break;
+
+            case REBOOT:
+                Log.d(TAG, "Received REBOOT request. Going down in 5 seconds.");
+                mHandler.postDelayed(new Runnable() {
+                    @Override
+                    public void run() {
+                        PowerManager pm = (PowerManager) getSystemService(Context.POWER_SERVICE);
+                        pm.reboot(null);
+                    }
+                }, 5000);
+                break;
         }
+
     }
 
     @Override

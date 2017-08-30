@@ -17,17 +17,19 @@ import io.ourglass.bucanero.api.BelliniDMAPI;
 import io.ourglass.bucanero.core.ABApplication;
 import io.ourglass.bucanero.core.OGSystem;
 import io.ourglass.bucanero.messages.AppLaunchAckMessage;
-import io.ourglass.bucanero.messages.BadOttoMessageException;
-import io.ourglass.bucanero.messages.KillAppMessage;
-import io.ourglass.bucanero.messages.LaunchAppMessage;
-import io.ourglass.bucanero.messages.MoveAppMessage;
-import io.ourglass.bucanero.messages.MoveWebViewMessage;
 import io.ourglass.bucanero.messages.OnScreenNotificationMessage;
-import io.ourglass.bucanero.messages.SystemCommandMessage;
-import io.ourglass.bucanero.messages.TVControlMessage;
-import io.ourglass.bucanero.messages.VenuePairCompleteMessage;
 import io.ourglass.bucanero.objects.TVShow;
 import io.ourglass.bucanero.services.Connectivity.ConnectivityCenter;
+import io.ourglass.bucanero.services.SocketIO.SIOActions.ChannelChangeAction;
+import io.ourglass.bucanero.services.SocketIO.SIOActions.CloudUpdateAction;
+import io.ourglass.bucanero.services.SocketIO.SIOActions.IdentifyAction;
+import io.ourglass.bucanero.services.SocketIO.SIOActions.KillAppAction;
+import io.ourglass.bucanero.services.SocketIO.SIOActions.LaunchAppAction;
+import io.ourglass.bucanero.services.SocketIO.SIOActions.MoveAppAction;
+import io.ourglass.bucanero.services.SocketIO.SIOActions.PingAction;
+import io.ourglass.bucanero.services.SocketIO.SIOActions.SIOActionDispatcher;
+import io.ourglass.bucanero.services.SocketIO.SIOActions.SystemSettingAction;
+import io.ourglass.bucanero.services.SocketIO.SIOActions.VenuePairDoneAction;
 import io.socket.client.Socket;
 import io.socket.emitter.Emitter;
 
@@ -52,6 +54,8 @@ public class SocketIOManager {
 
     HashMap<Long, Long> mDedupMap = new HashMap<>();
 
+    SIOActionDispatcher mDispatcher = new SIOActionDispatcher();
+
     private boolean hasConnected = false;
 
     private Handler mHandler = new Handler();
@@ -59,6 +63,7 @@ public class SocketIOManager {
     public SocketIOManager(String cookie) {
 
         mCookie = cookie;
+        registerActions();
         initialize();
 
         // Register to receive messages
@@ -233,7 +238,6 @@ public class SocketIOManager {
 
     }
 
-
     private void processMessage(Object o) {
         JSONObject robj = (JSONObject) o;
         Log.d(TAG, "Received inbound device DM: " + robj.toString());
@@ -245,60 +249,8 @@ public class SocketIOManager {
         if (deDedup(ts)) {
 
             Log.d(TAG, "Inbound command accepted: " + action);
-
-            switch (action) {
-                case "ping":
-                    Log.d(TAG, "Socket ping received");
-                    sailsSIODeviceMessage(new PingAckMessage().toJson(), null);
-                    break;
-
-                case "identify":
-                    Log.d(TAG, "Socket identify received");
-                    sailsSIODeviceMessage(new IdentifyMessage().toJson(), null);
-                    break;
-
-                case "launch":
-                    Log.d(TAG, "Socket app launch received");
-                    launchApp(robj);
-                    break;
-
-                case "kill":
-                    Log.d(TAG, "Socket app kill received");
-                    killApp(robj);
-                    break;
-
-                case "move":
-                    Log.d(TAG, "Socket app move received");
-                    moveApp(robj);
-                    break;
-
-                case "tune":
-                    Log.d(TAG, "Socket channel tune received");
-                    changeChannel(robj);
-                    break;
-
-                case "cloud_record_update":
-                    Log.d(TAG, "Socket cloud record update received");
-                    OGSystem.updateFromOGCloud();
-                    try {
-                        JSONObject change = robj.getJSONObject("change");
-                        if (change.has("atVenueUUID")) {
-                            (new VenuePairCompleteMessage()).post();
-                        }
-                    } catch (JSONException e) {
-                        e.printStackTrace();
-                    }
-
-                    break;
-
-                case "venue_pair_done":
-                    Log.d(TAG, "Socket venue pair done received");
-                    (new SystemCommandMessage(SystemCommandMessage.SystemCommand.VENUE_PAIR_DONE)).post();
-                    break;
-
-                default:
-                    Log.d(TAG, "Socket did not recognize inbound action");
-            }
+            boolean actionResult = mDispatcher.processAction(action, robj);
+            Log.d(TAG, actionResult ? "Command processed." : "Command not recognized.");
 
         }
 
@@ -306,7 +258,7 @@ public class SocketIOManager {
     }
 
 
-    public void sailsSIODeviceMessage(JSONObject messageJson, final SailsSocketIO.SailsSIOCallback callback) {
+    public static void sailsSIODeviceMessage(JSONObject messageJson, final SailsSocketIO.SailsSIOCallback callback) {
 
         Log.d(TAG, "Sending sails SIO device message to clients");
 
@@ -321,46 +273,6 @@ public class SocketIOManager {
 
 
     }
-
-    private void launchApp(JSONObject launchObj) {
-        try {
-            bus.post(new LaunchAppMessage(launchObj));
-        } catch (BadOttoMessageException e) {
-            Log.e(TAG, "Malformed launch command, ignoring");
-        }
-    }
-
-    private void killApp(JSONObject killObj) {
-        try {
-            bus.post(new KillAppMessage(killObj));
-        } catch (BadOttoMessageException e) {
-            Log.e(TAG, "Malformed kill command, ignoring");
-        }
-    }
-
-    private void moveApp(JSONObject moveObj) {
-        try {
-            bus.post(new MoveAppMessage(moveObj));
-        } catch (BadOttoMessageException e) {
-            Log.e(TAG, "Malformed move command, ignoring");
-        }
-    }
-
-    private void changeChannel(JSONObject tuneObj) {
-        TVControlMessage tvcm = new TVControlMessage(tuneObj);
-        bus.post(tvcm); // in case anyone cares
-        OGSystem.changeTVChannel(tvcm.toChannel);
-
-        // TODO: Hack Alert!!
-
-        if ( tuneObj.optInt("channel", 0) == 620 ){
-            Log.d(TAG, "BeIn Hack, moving to floor");
-            (new MoveWebViewMessage("crawler", 1)).post();
-        } else {
-            (new MoveWebViewMessage("crawler", 0)).post();
-        }
-    }
-
 
 
     @Subscribe
@@ -400,6 +312,21 @@ public class SocketIOManager {
 
         Log.d(TAG, "Inbound: This is a dup, tossing");
         return false;
+    }
+
+    private void registerActions(){
+
+        mDispatcher.registerAction(new ChannelChangeAction());
+        mDispatcher.registerAction(new CloudUpdateAction());
+        mDispatcher.registerAction(new IdentifyAction());
+        mDispatcher.registerAction(new KillAppAction());
+        mDispatcher.registerAction(new LaunchAppAction());
+        mDispatcher.registerAction(new MoveAppAction());
+        mDispatcher.registerAction(new PingAction());
+        mDispatcher.registerAction(new SystemSettingAction());
+        mDispatcher.registerAction(new VenuePairDoneAction());
+
+
     }
 
 

@@ -15,7 +15,6 @@ public class OGConstants {
     public static final Boolean USE_LOCAL_DM_SERVER = false;
 
     public static final String CODE_REV_NAME = "Bucanero";
-
     public static final String DEVICE_AUTH_HDR = "x-ogdevice-1234";
     public static final boolean FORCE_EMULATOR = false;  // use this to run on a tablet for testing
 
@@ -36,6 +35,7 @@ public class OGConstants {
 
     public static final boolean ENABLE_RESTART_ON_UNCAUGHT_EXCEPTIONS = false;
 
+    public static final boolean USE_NATIVE_ANDROID_WIFI_SETTINGS = true;
 
     // TEST and DEBUG
     public static final boolean TEST_MODE = true;

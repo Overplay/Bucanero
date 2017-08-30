@@ -77,7 +77,7 @@
             android:layout_marginBottom="10dip"
             android:background="@drawable/action_button"
             android:textColor="@color/White"
-            android:text="WIFI SETUP"
+            android:text="UPGRADES and WIFI"
             android:tag="wifi"/>
 
         <Button
