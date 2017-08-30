@@ -1,12 +1,11 @@
 package io.ourglass.bucanero.services.FFmpeg;
 
 import android.content.Context;
-import android.media.MediaRecorder;
 import android.os.ParcelFileDescriptor;
 import android.util.Log;
+import android.widget.Toast;
 
 import java.io.File;
-import java.io.FileDescriptor;
 import java.io.FileOutputStream;
 import java.io.IOException;
 
@@ -15,9 +14,9 @@ import io.ourglass.bucanero.core.OGSystem;
 //import io.ourglass.bucanero.core.ABApplication;
 //SJMimport io.ourglass.bucanero.messages.MainThreadBus;
 
-public class AudioStreamer implements MediaRecorder.OnErrorListener, MediaRecorder.OnInfoListener {
+public class AudioStreamer {
 
-    public static final String TAG = "AudioSampler";
+    public static final String TAG = "AudioStreamer";
 
     public static boolean USE_HTTPS = false;
 
@@ -30,11 +29,11 @@ public class AudioStreamer implements MediaRecorder.OnErrorListener, MediaRecord
     public static final long AUDIO_SERVERRECONNECTTIME_MS = 60000;
 
     public String mHostURL;
+    public String mFFBinaryCmd;
 
     //SJMpublic MainThreadBus mBus = ABApplication.ottobus;
     private Context mContext;
 
-    private MediaRecorder mMediaRecorder = null;
     private Process mFFMpegProcess = null;
     private LazyTransferThread ltt = null;
     private ParcelFileDescriptor[] ffPipe = null;
@@ -42,11 +41,20 @@ public class AudioStreamer implements MediaRecorder.OnErrorListener, MediaRecord
     public AudioStreamer(Context context) {
         mContext = context;
         if ( AUDIO_PORT != 80 ){
-            mHostURL = "http://" + AUDIO_HOST + ":" + AUDIO_PORT + "/" + AUDIO_SECRET + "/" + OGSystem.getUDID();
+            mHostURL = "http://" + AUDIO_HOST + ":" + AUDIO_PORT + "/" + AUDIO_SECRET + "/" + getUDID();
         } else {
             // nginx barfs with the port 80 explicit
-            mHostURL = "https://" + AUDIO_HOST + "/" + AUDIO_SECRET + "/" + OGSystem.getUDID();
+            mHostURL = "https://" + AUDIO_HOST + "/" + AUDIO_SECRET + "/" + getUDID();
         }
+
+        mHostURL = "http://192.241.217.88:4000/as/supersecret/" + getUDID(); //SJMDBG
+        mFFBinaryCmd = mContext.getFilesDir().getAbsolutePath() + File.separator + "ffmpeg";
+        Log.d(TAG, "This is binary: " + mFFBinaryCmd);
+        Log.d(TAG, "This is hostURL: " + mHostURL);
+    }
+
+    public String getUDID() {
+        return OGSystem.getUDID(); //"12345678";
     }
 
     public void recorderRekick(final long millisDelay) {
@@ -58,50 +66,12 @@ public class AudioStreamer implements MediaRecorder.OnErrorListener, MediaRecord
                 } catch (InterruptedException e) {
                     e.printStackTrace();
                 }
-                recorderStop();
-                recorderDestroy();
-                recorderInit();
                 //ltt.interrupt();
-                recorderStart();
             }
         }).start();
     }
 
-    private void recorderInit() {
-        mMediaRecorder=new MediaRecorder();
-        mMediaRecorder.setOnErrorListener(this);
-        mMediaRecorder.setOnInfoListener(this);
-    }
-
-    private void recorderStart() {
-        if ((mMediaRecorder != null) && ffExists()) {
-            configAudioZidoo(true);
-
-            try {
-                mMediaRecorder.prepare();
-                mMediaRecorder.start();
-            }
-            catch (Exception e) {
-                Log.e(TAG, "Exception in preparing recorder", e);
-                //Toast.makeText(this, e.getMessage(), Toast.LENGTH_LONG).show();
-            }
-        }
-    }
-
-    private void recorderStop() {
-        try {
-            if (mMediaRecorder != null) {
-                mMediaRecorder.stop();
-            }
-        }
-        catch (Exception e) {
-            Log.w(TAG, "Exception in stopping recorder", e);
-            // can fail if start() failed for some reason
-        }
-
-        if (mMediaRecorder != null) {
-            mMediaRecorder.reset();
-        }
+    public ParcelFileDescriptor getStreamFd() {
 
         try {
             if (mFFMpegProcess != null) {
@@ -113,69 +83,42 @@ public class AudioStreamer implements MediaRecorder.OnErrorListener, MediaRecord
             // can fail if destroy() failed for some reason
         }
 
-    }
-    private void recorderDestroy() {
-        if (mMediaRecorder != null) {
-            mMediaRecorder.release();
+        File ffFile = new File( mFFBinaryCmd );
+        if (!ffFile.exists()) {
+            Log.w(TAG, "Can't find exec");
+            return null;
         }
-        mMediaRecorder=null;
-    }
-
-    @Override
-    public void onError(MediaRecorder mr, int what, int extra) {
-        String msg = "Media Recorder Error";//getString(R.string.strange);
-        switch (what) {
-            case MediaRecorder.MEDIA_RECORDER_ERROR_UNKNOWN:
-                msg="Media Recorder Error Unknown";//getString(R.string.unknown_error);
-                break;
-
-            case MediaRecorder.MEDIA_ERROR_SERVER_DIED:
-                msg="Media Recorder Server Died";//getString(R.string.server_died);
-                recorderRekick(AUDIO_SERVERRECONNECTTIME_MS);
-                break;
-        }
-        Log.w(TAG, msg);
-        //SJMToast.makeText(this, msg, Toast.LENGTH_LONG).show();
-    }
-
-    @Override
-    public void onInfo(MediaRecorder mr, int what, int extra) {
-        // Is not usually called, supposedly
-        String msg="Media Recorder Info";//getString(R.string.strange);
-        switch (what) {
-            case MediaRecorder.MEDIA_RECORDER_INFO_MAX_DURATION_REACHED:
-                msg="Media Recorder Max Duration Reached";//getString(R.string.max_duration);
-                break;
-
-            case MediaRecorder.MEDIA_RECORDER_INFO_MAX_FILESIZE_REACHED:
-                msg="Media Recorder Max File Size Reached";//getString(R.string.max_size);
-                break;
-        }
-        Log.d(TAG, msg);
-        //SJMToast.makeText(this, msg, Toast.LENGTH_LONG).show();
-    }
-
-    private void configAudioZidoo(boolean inStereo) {
-        if ((mMediaRecorder != null) && ffExists()) {
-            mMediaRecorder.setAudioSource(MediaRecorder.AudioSource.MIC);
-            mMediaRecorder.setOutputFormat(8);
-            mMediaRecorder.setOutputFile(getStreamFd());
-            mMediaRecorder.setAudioEncoder(MediaRecorder.AudioEncoder.AAC);
-            if (inStereo) {
-                mMediaRecorder.setAudioChannels(2);
-                mMediaRecorder.setAudioSamplingRate(44100);
-            } else {
-                mMediaRecorder.setAudioChannels(1);
-                mMediaRecorder.setAudioSamplingRate(22050);
-            }
-            mMediaRecorder.setAudioEncodingBitRate(128000); // Was 44100
-        }
-    }
-
-    private FileDescriptor getStreamFd() {
 
         try {
-            mFFMpegProcess = Runtime.getRuntime().exec(getFFCommand());
+            String ff = getFFCommand();
+            Log.d(TAG, "starting " + ff);
+            mFFMpegProcess = Runtime.getRuntime().exec(ff);
+
+
+            new Thread(new Runnable() {
+                @Override
+                public void run() {
+                    try {
+                        int rv = mFFMpegProcess.waitFor();
+                        Log.w(TAG, "ffmpeg exited with code " + rv);
+                    } catch (InterruptedException e) {
+                        //e.printStackTrace();
+                        Log.e(TAG, "ffmpeg exited", e);
+                    }
+                    ltt.interrupt();
+                    try {
+                        if (mFFMpegProcess != null) {
+                            mFFMpegProcess.destroy();
+                            mFFMpegProcess = null;
+                        }
+                    }
+                    catch (Exception e) {
+                        Log.w(TAG, "Exception in destroying mFFMpegProcess", e);
+                        // can fail if destroy() failed for some reason
+                    }
+                }
+            }).start();
+
         }
         catch (IOException e) {
             //Log.e(getClass().getSimpleName(), "Exception starting exec", e);
@@ -186,16 +129,16 @@ public class AudioStreamer implements MediaRecorder.OnErrorListener, MediaRecord
             if (mFFMpegProcess != null) {
                 ffPipe = ParcelFileDescriptor.createReliablePipe();
 
-                //SJMThread.UncaughtExceptionHandler h = new Thread.UncaughtExceptionHandler() {
-                //SJM    public void uncaughtException(Thread th, Throwable ex) {
-                //SJM        Log.e("SJM", "Uncaught exception: " + ex);
-                //SJM    }
-                //SJM};
+                Thread.UncaughtExceptionHandler h = new Thread.UncaughtExceptionHandler() {
+                    public void uncaughtException(Thread th, Throwable ex) {
+                        Log.e("SJM", "Uncaught exception: " + ex);
+                    }
+                };
 
                 ltt = new LazyTransferThread(new ParcelFileDescriptor.AutoCloseInputStream(ffPipe[0]),
                         (FileOutputStream)mFFMpegProcess.getOutputStream(),
                         AUDIO_BUFFERFILLTIME_MS);
-                //SJMltt.setUncaughtExceptionHandler(h);
+                ltt.setUncaughtExceptionHandler(h);
                 ltt.start();
 
             }
@@ -205,28 +148,14 @@ public class AudioStreamer implements MediaRecorder.OnErrorListener, MediaRecord
         }
 
         if (ffPipe != null) {
-            return ffPipe[1].getFileDescriptor();
+            //return ffPipe[1].getFileDescriptor();
+            return ffPipe[1];
         } else {
             return null;
         }
     }
 
-    private String ffBinaryCmd() {
-        //String c = getApplicationContext().getFilesDir()
-        String cc = mContext.getFilesDir().getAbsolutePath() + File.separator + "ffmpeg";
-        //String cc = "/data/data/io.ourglass.bucanero/files" + File.separator + FFmpegBinaryService.BINNAME;
-        Log.d(TAG, "This is cc: " + cc);
-        return cc;
-    }
-
-    public boolean ffExists() {
-        String ffCmd = ffBinaryCmd();
-        File ffFile = new File( ffCmd );
-        return ffFile.exists();
-    }
-
     private String getFFCommand() {
-        String bin = ffBinaryCmd();
         String cmd = new String(
                 " -i -" +
                         " -dn -sn -vn" +
@@ -247,7 +176,6 @@ public class AudioStreamer implements MediaRecorder.OnErrorListener, MediaRecord
                         //        " http://192.168.86.105:8081/supersecret/12345678" +
                         " " + mHostURL +
                         "");
-        Log.d(TAG, "starting ffmpeg " + cmd);
 
         // ffmpeg
         // -hide_banner -loglevel quiet -nostats
@@ -256,7 +184,7 @@ public class AudioStreamer implements MediaRecorder.OnErrorListener, MediaRecord
         // -dn -sn -vn -bsf:v dump_extra
         // -codec:a mp2 -b:a 128k -ar 44100 -ac 2 -muxdelay 0.001 -f mpegts http://localhost:3000/supersecret/abc
         // For testing:  -re -stream_loop -1
-        return bin +  " -hide_banner -loglevel quiet -nostats" + cmd;
+        return mFFBinaryCmd +  " -hide_banner -loglevel quiet -nostats" + cmd;
     }
 
 }

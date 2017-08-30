@@ -7,60 +7,65 @@ import android.view.LayoutInflater;
 import android.view.ViewGroup;
 import android.widget.RelativeLayout;
 
+//import io.ourglass.bucanero.tv.Views.OurglassHdmiDisplay;
 import io.ourglass.bucanero.R;
 
 public class HDMIView extends RelativeLayout {
     private static final String TAG = "HDMIView";
-    public ZidooHdmiDisPlay mRealtekeHdmi = null;
     private Context	mContext = null;
     private LayoutInflater mInflater;
+    private OurglassHdmiDisplay mRealtekeHdmi = null;
 
     public HDMIView(Context context) {
         super(context);
-        mContext = context;
-        mInflater = LayoutInflater.from(context);
-        init();
+        init(context);
     }
 
     public HDMIView(Context context, AttributeSet attrs) {
         super(context, attrs);
-        mContext = context;
-        mInflater = LayoutInflater.from(context);
-        init();
+        init(context);
     }
 
     public HDMIView(Context context, AttributeSet attrs, int defStyleAttr) {
         super(context, attrs, defStyleAttr);
-        mContext = context;
-        mInflater = LayoutInflater.from(context);
-        init();
+        init(context);
     }
 
     public HDMIView(Context context, AttributeSet attrs, int defStyleAttr, int defStyleRes) {
         super(context, attrs, defStyleAttr, defStyleRes);
-        mContext = context;
-        mInflater = LayoutInflater.from(context);
-        init();
+        init(context);
     }
 
-    public void init()
+    public void init(Context context)
     {
+        mContext = context;
+        mInflater = LayoutInflater.from(context);
         View v = mInflater.inflate(R.layout.hdmi_view, this, true);
         RelativeLayout rl = (RelativeLayout) v.findViewById(R.id.home_ac_hdmi);
         //TextView tv = (TextView) v.findViewById(R.id.textView1);
         //tv.setText(" Custom RelativeLayout");
-        mRealtekeHdmi = new ZidooHdmiDisPlay(mContext, rl);
+        mRealtekeHdmi = new OurglassHdmiDisplay(mContext, rl);
     }
 
     public void startDisplay() {
         if (mRealtekeHdmi != null) {
             mRealtekeHdmi.startDisplay();
+            mRealtekeHdmi.setSize(true);
         }
     }
 
     public void stopDisplay() {
         if (mRealtekeHdmi != null) {
             mRealtekeHdmi.stopDisplay();
+        }
+    }
+
+    public void streamAudio() {
+        if (mRealtekeHdmi.isStreaming()) {
+            mRealtekeHdmi.stopStreamer();
+        } else {
+            if (mRealtekeHdmi.startStreamer()) {
+            }
         }
     }
 }

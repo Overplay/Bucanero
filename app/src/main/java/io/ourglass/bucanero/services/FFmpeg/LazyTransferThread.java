@@ -34,6 +34,8 @@ public class LazyTransferThread extends Thread {
                     }
                 }
                 catch (IOException e) {
+
+                    // EPIPE (Broken pipe) gets sent when the server is dead or a connection is lost.
                     Log.e(getClass().getSimpleName(), "Exception transferring file", e);
                     looping = false;
                 }
@@ -54,8 +56,14 @@ public class LazyTransferThread extends Thread {
         try {
             doit();
         }
-        catch (IOException e) {
-            Log.e(getClass().getSimpleName(), "Exception closing file", e);
+        catch (IOException ioe) {
+            Log.e(getClass().getSimpleName(), "Exception closing file", ioe);
+        }
+        catch (SecurityException se) {
+            Log.e(getClass().getSimpleName(), "Thread interrupt", se);
+        }
+        catch (Exception e) {
+            Log.e(getClass().getSimpleName(), "Thread exception", e);
         }
     }
 }

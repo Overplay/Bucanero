@@ -34,7 +34,6 @@ import io.ourglass.bucanero.messages.OGLogMessage;
 import io.ourglass.bucanero.messages.OnScreenNotificationMessage;
 import io.ourglass.bucanero.messages.SystemCommandMessage;
 import io.ourglass.bucanero.messages.SystemStatusMessage;
-import io.ourglass.bucanero.services.FFmpeg.AudioStreamer;
 import io.ourglass.bucanero.tv.Fragments.OGWebViewFragment;
 import io.ourglass.bucanero.tv.Fragments.OverlayFragmentListener;
 import io.ourglass.bucanero.tv.Fragments.SystemInfoFragment;
@@ -48,7 +47,6 @@ import io.ourglass.bucanero.tv.Support.OGApp;
 import io.ourglass.bucanero.tv.Support.Size;
 import io.ourglass.bucanero.tv.VenuePairing.PairVenueFragment;
 import io.ourglass.bucanero.tv.Views.HDMIView;
-import io.ourglass.bucanero.tv.Views.ZidooHdmiDisPlay;
 import io.ourglass.bucanero.tv.WiFi.WiFiPickerFragment;
 import io.socket.client.Socket;
 
@@ -73,10 +71,7 @@ public class MainFrameActivity extends BaseFullscreenActivity implements Overlay
     RelativeLayout mOverlayFragmentHolder;
     SurfaceView mTVSurface;
 
-    private AudioStreamer mAudioStreamer;
     private HDMIView mHDMIView;
-    //SJMprivate HDMIRxPlayer2 mHDMIRxPlayer;
-    private ZidooHdmiDisPlay mRealtekeHdmi;
 
     private enum OverlayMode {NONE, SYSINFO, STBPAIR, WIFI, SETUP, OTHER, VENUEPAIR, SETTINGS, WELCOME, DEVSETTINGS}
 
@@ -123,10 +118,6 @@ public class MainFrameActivity extends BaseFullscreenActivity implements Overlay
                     MainFrameActivity.class));
         }
 
-        //mAudioStreamer = new AudioStreamer(this);
-        // This will start streaming audio in 10 secs
-        //mAudioStreamer.recorderRekick(10000);
-
         // Register to receive messages
         ABApplication.ottobus.register(this);
 
@@ -149,6 +140,9 @@ public class MainFrameActivity extends BaseFullscreenActivity implements Overlay
                 OGSystem.setTVResolution(new Size(mScreenWidth, mScreenHeight));
                 mMainLayout.getViewTreeObserver().removeOnGlobalLayoutListener(this);
 
+                if (mScreenHeight>0) {
+                //    return;//SJM
+                }
                 // Check that the activity is using the layout version with
                 // the fragment_container FrameLayout
                 if (findViewById(R.id.mainframeLayout) != null) {
@@ -193,13 +187,6 @@ public class MainFrameActivity extends BaseFullscreenActivity implements Overlay
             OGHardware.enableTronsmartHDMI();
         } else if (OGSystem.isRealOG()) {
             Log.d(TAG, "Enabling Video for ZidooX9S/Realtek");
-            //SJMmHDMIRxPlayer = new HDMIRxPlayer2(this, mTVSurface, 1920, 1080);
-            //mTVSurface.setVisibility(View.INVISIBLE);
-            //SJMNEWViewGroup hdmiGroud = (ViewGroup) findViewById(R.id.mainframeLayout);
-            //SJMNEWmRealtekeHdmi = new ZidooHdmiDisPlay(MainFrameActivity.this, hdmiGroud, null,ZidooHdmiDisPlay.TYPE_SURFACEVIEW);
-            //SJMif (mRealtekeHdmi != null) {
-            //SJM    mRealtekeHdmi.startDisPlay();
-            //SJM}
         }
     }
 
@@ -290,21 +277,11 @@ public class MainFrameActivity extends BaseFullscreenActivity implements Overlay
         Log.d(TAG, "onResume done");
         enableHDMISurface();
         mHDMIView.startDisplay();
-        //if (mRealtekeHdmi != null) {
-        //    mRealtekeHdmi.startDisPlay();
-        //}
-
     }
 
     @Override
     public void onPause() {
-        //SJMsuper.onPause();
-        //SJMmHDMIRxPlayer.release();
         mHDMIView.stopDisplay();
-        //if (mRealtekeHdmi != null) {
-        //    mRealtekeHdmi.exit();
-        //    mRealtekeHdmi = null;
-        //}
         super.onPause();
     }
 
@@ -394,6 +371,10 @@ public class MainFrameActivity extends BaseFullscreenActivity implements Overlay
             return true;
         }
 
+        if ( keyCode == KeyEvent.KEYCODE_MEDIA_PLAY_PAUSE ) {
+            Log.d(TAG, "Pressed play-pause button.");
+            mHDMIView.streamAudio();
+        }
 
         // Launch settings from button 0 on remote
         if ( keyCode == KeyEvent.KEYCODE_0 ) {
