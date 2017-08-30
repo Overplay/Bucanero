@@ -71,6 +71,9 @@
         <service
             android:name=".services.OGLog.OGLogService"
             android:exported="false" />
+        <service
+            android:name=".services.FFmpeg.FFmpegBinaryService"
+            android:exported="false" />
 
         <activity
             android:name=".tv.Activities.PermissionGateActivity">
@@ -92,11 +95,7 @@
                 <!--<category android:name="android.intent.category.LAUNCHER" />-->
             <!--</intent-filter>-->
         </activity>
-            android:exported="false" />
-        <service
-            android:name=".services.FFmpeg.FFmpegBinaryService"
-            android:exported="false" />
-    </application>
 
+    </application>
 
 </manifest>
