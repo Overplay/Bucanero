@@ -2,6 +2,7 @@ package io.ourglass.bucanero.tv.Views;
 
 import java.util.List;
 
+import android.app.Activity;
 import android.content.BroadcastReceiver;
 import android.content.Context;
 import android.content.Intent;
@@ -73,7 +74,21 @@ public class OurglassHdmiDisplay {
             }
         };
         initHdmiConnect();
-        mAudioStreamer = new AudioStreamer(mContext);
+        mAudioStreamer = new AudioStreamer(mContext, new AudioStreamer.StreamDeadListener() {
+            @Override
+            public void streamDead(Context lContext) {
+                Log.v(TAG, "fucking dead");
+
+                ((Activity)lContext).runOnUiThread(new Runnable() {
+                    @Override
+                    public void run() {
+                        if (isStreaming()) {
+                            stopStreamer();
+                        }
+                    }
+                });
+            }
+        });
     }
 
     private void initHdmiConnect() {
