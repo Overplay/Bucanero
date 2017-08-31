@@ -6,31 +6,48 @@ import java.io.InputStream;
 
 import android.util.Log;
 
-public class LazyTransferThread extends Thread {
-    InputStream in;
-    FileOutputStream out;
-    long loopDelayMillis;
+/**
+ * Class to lazily transfer from the read to write side of a pipe.  Most transfers exit when the
+ * read size is empty (returns 0), but in this case that is perfectly acceptable.  Designed to
+ * run infinitely provided the receiver does not go away.
+ *
+ */
 
-    LazyTransferThread(InputStream in,
+public class LazyTransferThread extends Thread {
+    InputStream      mInStream;
+    FileOutputStream mOutStream;
+    long             mLoopDelayMillis;
+    int              mBufferSize;
+
+    /**
+     *
+     * @param in
+     * @param out
+     * @param bufferSize
+     * @param loopDelayMillis
+     */
+    LazyTransferThread(InputStream      in,
                        FileOutputStream out,
-                       long loopDelayMillis ) {
+                       int              bufferSize,
+                       long             loopDelayMillis ) {
         super("LazyTransferThread");
-        this.in=in;
-        this.out=out;
-        this.loopDelayMillis = loopDelayMillis;
+        this.mInStream        = in;
+        this.mOutStream       = out;
+        this.mBufferSize      = bufferSize;
+        this.mLoopDelayMillis = loopDelayMillis;
     }
 
     public void doit() throws IOException {
-        byte[] buf=new byte[4096];
+        byte[] buf=new byte[mBufferSize];
         boolean looping = true;
         try {
             while(looping) {
                 int len;
-                sleep(loopDelayMillis);
+                sleep(mLoopDelayMillis);
 
                 try {
-                    while ((len=in.read(buf)) >= 0) {       // Throws IOException or NullPointerException
-                        out.write(buf, 0, len);             // Throws IOException
+                    while ((len=mInStream.read(buf)) >= 0) {       // Throws IOException or NullPointerException
+                        mOutStream.write(buf, 0, len);             // Throws IOException
                     }
                 }
                 catch (IOException e) {
@@ -44,15 +61,16 @@ public class LazyTransferThread extends Thread {
         } catch (InterruptedException e) {
             Log.e(getClass().getSimpleName(), "Exception interrupted file", e);
         }
-        in.close();
-        out.flush();
-        //out.getFD().sync();
-        out.close();
+        mInStream.close();
+        mOutStream.flush();
+        //mOutStream.getFD().sync();
+        mOutStream.close();
         interrupt();
     }
 
     @Override
     public void run() {
+        Log.i(getClass().getSimpleName(), "SJM Running transfer thread");
         try {
             doit();
         }

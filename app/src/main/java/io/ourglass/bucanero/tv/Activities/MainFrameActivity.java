@@ -280,12 +280,12 @@ public class MainFrameActivity extends BaseFullscreenActivity implements Overlay
         //showSystemToast("Starting up...");
         Log.d(TAG, "onResume done");
         enableHDMISurface();
-        mHDMIView.startDisplay();
+        mHDMIView.onResume();
     }
 
     @Override
     public void onPause() {
-        mHDMIView.stopDisplay();
+        mHDMIView.onPause();
         super.onPause();
     }
 

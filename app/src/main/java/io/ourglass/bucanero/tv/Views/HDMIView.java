@@ -1,5 +1,6 @@
 package io.ourglass.bucanero.tv.Views;
 
+import android.annotation.TargetApi;
 import android.content.Context;
 import android.util.AttributeSet;
 import android.view.View;
@@ -7,7 +8,6 @@ import android.view.LayoutInflater;
 import android.view.ViewGroup;
 import android.widget.RelativeLayout;
 
-//import io.ourglass.bucanero.tv.Views.OurglassHdmiDisplay;
 import io.ourglass.bucanero.R;
 
 public class HDMIView extends RelativeLayout {
@@ -31,6 +31,7 @@ public class HDMIView extends RelativeLayout {
         init(context);
     }
 
+    @TargetApi(21)
     public HDMIView(Context context, AttributeSet attrs, int defStyleAttr, int defStyleRes) {
         super(context, attrs, defStyleAttr, defStyleRes);
         init(context);
@@ -47,14 +48,14 @@ public class HDMIView extends RelativeLayout {
         mRealtekeHdmi = new OurglassHdmiDisplay(mContext, rl);
     }
 
-    public void startDisplay() {
+    public void onResume() {
         if (mRealtekeHdmi != null) {
             mRealtekeHdmi.startDisplay();
             mRealtekeHdmi.setSize(true);
         }
     }
 
-    public void stopDisplay() {
+    public void onPause() {
         if (mRealtekeHdmi != null) {
             mRealtekeHdmi.stopDisplay();
         }
@@ -64,8 +65,7 @@ public class HDMIView extends RelativeLayout {
         if (mRealtekeHdmi.isStreaming()) {
             mRealtekeHdmi.stopStreamer();
         } else {
-            if (mRealtekeHdmi.startStreamer()) {
-            }
+            mRealtekeHdmi.startStreamer();
         }
     }
 }
