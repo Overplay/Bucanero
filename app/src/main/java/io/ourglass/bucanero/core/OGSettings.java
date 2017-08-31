@@ -34,7 +34,7 @@ public class OGSettings {
     }
 
     public static String getBelliniDMMode(){
-        return getStringFromPrefs("belliniDMMode", "dev");
+        return getStringFromPrefs("belliniDMMode", "production");
     }
 
     public static void setBelliniDMMode(String mode) {
