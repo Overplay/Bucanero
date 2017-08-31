@@ -37,9 +37,17 @@ public class AudioStreamer {
     private Process mFFMpegProcess = null;
     private LazyTransferThread ltt = null;
     private ParcelFileDescriptor[] ffPipe = null;
+    private StreamDeadListener mStreamDeadListener = null;
 
-    public AudioStreamer(Context context) {
+    public interface StreamDeadListener
+    {
+        public void streamDead(Context context);
+    }
+
+    public AudioStreamer(Context context, StreamDeadListener streamDeadListener) {
         mContext = context;
+        mStreamDeadListener = streamDeadListener;
+
         if ( AUDIO_PORT != 80 ){
             mHostURL = "http://" + AUDIO_HOST + ":" + AUDIO_PORT + "/" + AUDIO_SECRET + "/" + getUDID();
         } else {
@@ -116,6 +124,11 @@ public class AudioStreamer {
                         Log.w(TAG, "Exception in destroying mFFMpegProcess", e);
                         // can fail if destroy() failed for some reason
                     }
+                    if (mStreamDeadListener != null) {
+                        Log.v(TAG, "mStreamDeadListener != null");
+                        mStreamDeadListener.streamDead(mContext);
+                    }
+
                 }
             }).start();
 
