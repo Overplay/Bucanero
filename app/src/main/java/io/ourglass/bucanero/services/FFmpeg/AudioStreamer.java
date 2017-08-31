@@ -10,9 +10,6 @@ import java.io.FileOutputStream;
 import java.io.IOException;
 
 import io.ourglass.bucanero.core.OGSystem;
-//import io.ourglass.bucanero.services.FFmpeg.LazyTransferThread;
-//import io.ourglass.bucanero.core.ABApplication;
-//SJMimport io.ourglass.bucanero.messages.MainThreadBus;
 
 public class AudioStreamer {
 
@@ -31,7 +28,6 @@ public class AudioStreamer {
     public String mHostURL;
     public String mFFBinaryCmd;
 
-    //SJMpublic MainThreadBus mBus = ABApplication.ottobus;
     private Context mContext;
 
     private Process mFFMpegProcess = null;
@@ -63,20 +59,6 @@ public class AudioStreamer {
 
     public String getUDID() {
         return OGSystem.getUDID(); //"12345678";
-    }
-
-    public void recorderRekick(final long millisDelay) {
-        new Thread(new Runnable() {
-            @Override
-            public void run() {
-                try {
-                    Thread.sleep(millisDelay);
-                } catch (InterruptedException e) {
-                    e.printStackTrace();
-                }
-                //ltt.interrupt();
-            }
-        }).start();
     }
 
     public ParcelFileDescriptor getStreamFd() {
@@ -142,18 +124,10 @@ public class AudioStreamer {
             if (mFFMpegProcess != null) {
                 ffPipe = ParcelFileDescriptor.createReliablePipe();
 
-                Thread.UncaughtExceptionHandler h = new Thread.UncaughtExceptionHandler() {
-                    public void uncaughtException(Thread th, Throwable ex) {
-                        Log.e("SJM", "Uncaught exception: " + ex);
-                    }
-                };
-
                 ltt = new LazyTransferThread(new ParcelFileDescriptor.AutoCloseInputStream(ffPipe[0]),
                         (FileOutputStream)mFFMpegProcess.getOutputStream(),
                         AUDIO_BUFFERFILLTIME_MS);
-                ltt.setUncaughtExceptionHandler(h);
                 ltt.start();
-
             }
         }
         catch (IOException e) {
