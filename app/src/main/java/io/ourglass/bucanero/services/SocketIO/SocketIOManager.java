@@ -35,6 +35,27 @@ import io.socket.emitter.Emitter;
 
 import static io.ourglass.bucanero.services.SocketIO.SailsSocketIO.socket;
 
+/****
+ *
+ * Flow:
+ *
+ * 1) Constructor is passed a cookie that it gets via logging in (?)
+ * 2) All action handlers are registered with the action dispatcher (mDispatcher)
+ * 3) A "SailsSocket" is created which is configured the way Sails likes it. This is a static
+ *    socket (singleton).
+ * 4)
+ *
+ *
+ *
+ *
+ *
+ * Loopback Flow
+ * -------------
+ * The `keepAliveRunnable` runs every `KEEP_ALIVE_DELAY` which is set at 15 seconds. This runnable
+ * POSTS to /ogdevice/checkconnection which responds with `CHECK-GOOD` on the device room.
+ *
+ */
+
 
 // TODO Auto-reconnect happens, it just takes too long. This is probably an IO.Options setting
 
@@ -62,6 +83,7 @@ public class SocketIOManager {
 
     public SocketIOManager(String cookie) {
 
+        Log.d(TAG, "Creating SocketIOManager");
         mCookie = cookie;
         registerActions();
         initialize();
@@ -195,7 +217,7 @@ public class SocketIOManager {
                     SailsSocketIO.post(url, params, new SailsSocketIO.SailsSIOCallback() {
                         @Override
                         public void sioCallback(Object... args) {
-                            Log.d(TAG, "Check connection POST returned");
+                            Log.d(TAG, "Check connection POST returned from Bellini");
                         }
                     });
 

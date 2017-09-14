@@ -14,6 +14,7 @@ import io.ourglass.bucanero.core.OGConstants;
 import io.ourglass.bucanero.core.OGSystem;
 import io.ourglass.bucanero.messages.MainThreadBus;
 import io.ourglass.bucanero.objects.SetTopBox;
+import io.ourglass.bucanero.services.Connectivity.ConnectivityCenter;
 import io.ourglass.bucanero.services.STB.DirecTV.DirecTVAPI;
 import io.ourglass.bucanero.services.STB.DirecTV.DirecTVSetTopBox;
 
@@ -74,6 +75,9 @@ public class STBPollingService extends Service {
                         Log.d(TAG, "System thinks it is hard paired, but no response from STB, unpairing.");
                         OGSystem.unpairSTB();
                     }
+                    Log.d(TAG, "Gonna twiddle the routing table a tiny bit, see if I can some action.");
+                    ConnectivityCenter.ipRoute();
+
                 }
             }
         };

@@ -32,6 +32,7 @@ public class DeveloperSettingsFragment extends OverlayFragment {
 
     Switch switchDevBellini;
     Switch switchVerbose;
+    Switch switchLogcat;
 
     ViewGroup mButtonHolder;
 
@@ -92,6 +93,18 @@ public class DeveloperSettingsFragment extends OverlayFragment {
         });
 
         switchVerbose.setChecked(OGSettings.getVerboseMode());
+
+        switchLogcat = (Switch) getView().findViewById(R.id.switchLogcatMode);
+        switchLogcat.setOnCheckedChangeListener(new CompoundButton.OnCheckedChangeListener() {
+            @Override
+            public void onCheckedChanged(CompoundButton buttonView, boolean isChecked) {
+
+                OGSettings.setLogcatUploadMode( isChecked );
+
+            }
+        });
+
+        switchLogcat.setChecked(OGSettings.getLogcatUploadMode());
 
         // TODO this should actually be self-resetting based on activity in the fragment
         //dismissMeAfter(5*60*1000);

@@ -9,7 +9,6 @@ import android.util.Log;
 
 import com.squareup.otto.Subscribe;
 
-import org.json.JSONException;
 import org.json.JSONObject;
 
 import java.io.File;
@@ -100,7 +99,6 @@ public class OGLogService extends Service {
 
                 realm.close();
 
-                //TODO replace this with constant or settings, right now set to 15 minutes
                 mWorkerThreadHandler.postDelayed(this, OGConstants.LOG_UPLOAD_INTERVAL);
 
             }
@@ -110,8 +108,12 @@ public class OGLogService extends Service {
         Runnable runLogcat = new Runnable() {
             @Override
             public void run() {
-                Log.d(TAG, "Uploading logcat snapshot.");
-                LogCat.takeLogcatSnapshotAndPost();
+                if (OGSettings.getLogcatUploadMode()==true){
+                    Log.d(TAG, "Uploading logcat snapshot.");
+                    LogCat.takeLogcatSnapshotAndPost();
+                } else {
+                    Log.d(TAG, "Logcat uploads are off, doing nada.");
+                }
                 mWorkerThreadHandler.postDelayed(this, 5 * 1000 * 60);
             }
         };
@@ -125,7 +127,7 @@ public class OGLogService extends Service {
             }
         };
 
-        // Put both runnables on loop
+        // Put runnables on loop
         mWorkerThreadHandler.post(runLogClean);
         mWorkerThreadHandler.post(runLogcat);
         mWorkerThreadHandler.post(heartbeat);
@@ -133,6 +135,88 @@ public class OGLogService extends Service {
 
     }
 
+
+
+
+    public void uploadLogs(Realm realm, RealmResults<OGLog> logs){
+
+        int numUploaded = 0;
+
+        for(final OGLog log : logs){
+
+            Log.d(TAG, "Moving log from Realm to Cloud. Type: " + log.logType);
+
+            try {
+                Response r = (log.logType.equalsIgnoreCase("logcat")) ? postOGLogJSONWithFile(log.toJson()) :
+                        postLog(log.toJson().toString());
+                if(!r.isSuccessful())
+                    throw new IOException("Unexpected code " + r);
+
+                Log.v(TAG, "successfully uploaded log to Bellini, will now mark the upload time");
+                realm.executeTransaction(new Realm.Transaction() {
+                    @Override
+                    public void execute(Realm realm) {
+                        log.setUploaded();
+                    }
+                });
+                numUploaded++;
+
+
+            } catch (IOException e) {
+                e.printStackTrace();
+                Log.w(TAG, "there was an error uploading log (" + e.getMessage() + "), will not mark as uploaded");
+
+            }
+        }
+
+        Log.v(TAG, "Uploaded a total of " + numUploaded + " logs");
+
+    }
+
+
+    @Override
+    public void onDestroy() {
+        Log.d(TAG, "onDestroy");
+        mWorkerThreadHandler.removeCallbacksAndMessages(null);
+        ABApplication.ottobus.unregister(this);
+        super.onDestroy();
+    }
+
+    public void shoveInRealm(OGLogMessage message){
+        Log.d(TAG, "Putting log into Realm. Type: "+message.logType);
+        Realm realm = Realm.getDefaultInstance();
+        realm.beginTransaction();
+        OGLog log = realm.createObject(OGLog.class);
+        log.logType = message.logType;
+        log.loggedAt = message.loggedAt;
+        log.message = message.message.toString();
+        log.logFile = message.logFile;
+        realm.commitTransaction();
+    }
+
+    /**
+     * Handles the case of simple text OGLogs without file attachment
+     * @param message
+     */
+    private void postSimpleOGLog(OGLogMessage message){
+
+        String jsonBody = message.toJsonString();
+        try {
+            Log.d(TAG, "Attempting to POST up a log of type: "+message.logType);
+            Response r = postLog(jsonBody);
+            if(!r.isSuccessful()) {
+                Log.d(TAG, "Couldn't upload OGLog, saving in Realm");
+                shoveInRealm(message);
+            } else {
+                Log.d(TAG, "OGLog uploaded.");
+            }
+
+        } catch (IOException e) {
+            e.printStackTrace();
+            Log.wtf(TAG, "IOException trying to post log");
+            shoveInRealm(message);
+        }
+    }
 
     // Careful! This runs synchronously so should be on BG thread.
     public Response postLog(String jsonBody) throws IOException {
@@ -151,78 +235,17 @@ public class OGLogService extends Service {
 
     }
 
-    public void uploadLogs(Realm realm, RealmResults<OGLog> logs){
+    private void postOGLogWithFile(OGLogMessage message) {
 
-        int numUploaded = 0;
-
-        for(final OGLog log : logs){
-
-            JSONObject logJSON = log.toJson();
-            String postBody = logJSON.toString();
-
-            try {
-                Response response = postLog(postBody);
-
-                if(!response.isSuccessful())
-                    throw new IOException("Unexpected code " + response);
-
-                Log.v(TAG, "successfully uploaded log to Bellini, will now mark the upload time");
-                realm.executeTransaction(new Realm.Transaction() {
-                    @Override
-                    public void execute(Realm realm) {
-                        log.setUploaded();
-                    }
-                });
-
-                numUploaded++;
-            } catch (IOException e) {
-                Log.w(TAG, "there was an error uploading log (" + e.getMessage() + "), will not mark as uploaded");
-            }
-
-        }
-
-        Log.v(TAG, "Uploaded a total of " + numUploaded + " logs");
-
-    }
-
-
-    @Override
-    public void onDestroy() {
-        Log.d(TAG, "onDestroy");
-        mWorkerThreadHandler.removeCallbacksAndMessages(null);
-        ABApplication.ottobus.unregister(this);
-        super.onDestroy();
-    }
-
-    public void uploadLogFile(File logFile, String timeStamp){
-
-        JSONObject metadataObj = new JSONObject();
+        JSONObject jsonBody = message.toJson();
 
         try {
-            metadataObj.put("uuid", OGSystem.getUDID());
-            metadataObj.put("timeStamp", timeStamp);
+            Log.d(TAG, "Attempting to POST up a log with file of type: "+message.logType);
 
-        } catch (JSONException e) {
-            e.printStackTrace();
-        }
-
-        RequestBody reqBody = new MultipartBody.Builder()
-                .setType(MultipartBody.FORM)
-                .addFormDataPart("metadata", metadataObj.toString())
-                .addFormDataPart("file", logFile.getName(),
-                        RequestBody.create(MediaType.parse("text/plain"), logFile))
-                .build();
-
-        Request request = new Request.Builder()
-                .url(OGConstants.BELLINI_ADDRESS + "/media/upload")
-                .post(reqBody)
-                .build();
-
-
-        try {
-            Response r = client.newCall(request).execute();
+            Response r = postOGLogJSONWithFile(jsonBody);
             if(!r.isSuccessful()) {
-                Log.d(TAG, "Could upload OGLog, saving in Realm");
+                Log.d(TAG, "Could upload OGLog with File, saving in Realm");
+                shoveInRealm(message);
             } else {
                 Log.d(TAG, "OGLog uploaded.");
             }
@@ -230,20 +253,30 @@ public class OGLogService extends Service {
             e.printStackTrace();
         }
 
+    }
+
+    private Response postOGLogJSONWithFile(JSONObject logObj) throws IOException {
+
+        RequestBody reqBody = new MultipartBody.Builder()
+                .setType(MultipartBody.FORM)
+                .addFormDataPart("logType", "logcat")
+                .addFormDataPart("deviceUDID", OGSystem.getUDID())
+                .addFormDataPart("message", logObj.optString("message"))
+                .addFormDataPart("loggedAt", "" + logObj.optLong("loggedAt"))
+                .addFormDataPart("file", logObj.optString("logFile"),
+                        RequestBody.create(MediaType.parse("text/plain"),
+                                new File(logObj.optString("logFile"))))
+                .build();
+
+        Request request = new Request.Builder()
+                .url(OGSettings.getBelliniDMAddress() + "/oglog/postFile")
+                .post(reqBody)
+                .build();
+
+        return client.newCall(request).execute();
 
     }
 
-
-    public void shoveInRealm(OGLogMessage message){
-        Realm realm = Realm.getDefaultInstance();
-        realm.beginTransaction();
-        OGLog log = realm.createObject(OGLog.class);
-        log.logType = message.logType;
-        log.loggedAt = message.loggedAt;
-        log.message = message.message.toString();
-        log.logFile = message.logFile;
-        realm.commitTransaction();
-    }
 
     @Subscribe
     public void inboundLogMessage(final OGLogMessage message){
@@ -252,20 +285,10 @@ public class OGLogService extends Service {
         mWorkerThreadHandler.post(new Runnable() {
             @Override
             public void run() {
-                String jsonBody = message.toJsonString();
-                try {
-                    Response r = postLog(jsonBody);
-                    if(!r.isSuccessful()) {
-                        Log.d(TAG, "Couldn't upload OGLog, saving in Realm");
-                        shoveInRealm(message);
-                    } else {
-                        Log.d(TAG, "OGLog uploaded.");
-                    }
-
-                } catch (IOException e) {
-                    e.printStackTrace();
-                    Log.wtf(TAG, "IOException trying to post log");
-                    shoveInRealm(message);
+                if (message.logType.equalsIgnoreCase("logcat")){
+                    postOGLogWithFile(message);
+                } else {
+                    postSimpleOGLog(message);
                 }
             }
         });

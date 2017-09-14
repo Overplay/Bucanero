@@ -38,7 +38,7 @@ public class OGLog extends RealmObject {
             toReturn.put("message", new JSONObject(message));
             toReturn.put("loggedAt", loggedAt);
             toReturn.put("uploadedAt", uploadedAt);
-            toReturn.put("deviceUDID", OGSystem.getDeviceId());
+            toReturn.put("deviceUDID", OGSystem.getUDID());
             return toReturn;
 
         } catch (JSONException e){

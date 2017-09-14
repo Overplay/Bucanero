@@ -11,7 +11,7 @@ import android.support.v4.app.FragmentTransaction;
 import android.util.Log;
 import android.view.KeyEvent;
 import android.view.SurfaceView;
-import android.view.ViewGroup;
+import android.view.View;
 import android.view.ViewTreeObserver;
 import android.widget.ImageView;
 import android.widget.RelativeLayout;
@@ -108,11 +108,15 @@ public class MainFrameActivity extends BaseFullscreenActivity implements Overlay
 //                }
 //            });
         } else if (OGSystem.isRealOG()) {
+
             setContentView(R.layout.activity_main_frame_zidoo);
+
         } else {
             Log.wtf(TAG, "Hmmm, this is not any recognized hardware. Exiting");
             finish();
         }
+
+
 
         //SJMmTVSurface = (SurfaceView) findViewById(R.id.surfaceView);
         //SJMenableHDMISurface();
@@ -236,7 +240,8 @@ public class MainFrameActivity extends BaseFullscreenActivity implements Overlay
 
     private void restoreAppState(final JSONArray runningApps) {
 
-        runOnUiThread(new Runnable() {
+        // TODO this is kind of gross, the webviewFrags should grab from a central place
+        mHandler.postDelayed(new Runnable() {
             @Override
             public void run() {
 
@@ -258,10 +263,36 @@ public class MainFrameActivity extends BaseFullscreenActivity implements Overlay
                     }
 
                 }
-
-
             }
-        });
+        }, 5000);
+
+//        runOnUiThread(new Runnable() {
+//            @Override
+//            public void run() {
+//
+//                if (mWidgetWebViewFrag.getWebView()==null || mCrawlerWebViewFrag.getWebView()==null){
+//                    Log.e(TAG, "Trying to update app state and Activity not done booting!");
+//                } else {
+//
+//                    for (int i = 0; i < runningApps.length(); i++) {
+//                        try {
+//                            JSONObject app = runningApps.getJSONObject(i);
+//                            OGApp ogApp = new OGApp(app);
+//                            OGWebViewFragment target = ogApp.appType.equalsIgnoreCase("widget") ?
+//                                    mWidgetWebViewFrag : mCrawlerWebViewFrag;
+//                            target.launchApp(ogApp.appId);
+//                            target.setSizeAsPctOfScreen(ogApp.getSize());
+//                        } catch (JSONException e) {
+//                            e.printStackTrace();
+//                        }
+//                    }
+//
+//                }
+//
+//
+//            }
+//        });
+
     }
 
     // This has to be here or you'll crash entering Android settings!!!!!
@@ -281,6 +312,14 @@ public class MainFrameActivity extends BaseFullscreenActivity implements Overlay
         Log.d(TAG, "onResume done");
         enableHDMISurface();
         mHDMIView.startDisplay();
+
+        if (OGConstants.USE_LOCAL_DM_SERVER){
+            Log.d(TAG, "Using local server, throwing up a message!");
+            TextView tv = (TextView)findViewById(R.id.textViewWarning);
+            tv.setVisibility(View.VISIBLE);
+            tv.setText("USING LOCAL BELLINI-DM @ "+OGConstants.BELLINI_DM_LAN_LOCAL_ADDRESS);
+        }
+
     }
 
     @Override
@@ -294,7 +333,7 @@ public class MainFrameActivity extends BaseFullscreenActivity implements Overlay
     public void onResumeFragments(){
         super.onResumeFragments();
         // If the venueID is set, it can't be first time setup
-        if (OGSystem.isFirstTimeSetup() && OGSystem.getVenueId().isEmpty()){
+        if (OGSystem.isFirstTimeSetup() && OGSystem.getVenueUUID().isEmpty()){
             mBootBugImageView.postDelayed(new Runnable() {
                 @Override
                 public void run() {
@@ -413,19 +452,8 @@ public class MainFrameActivity extends BaseFullscreenActivity implements Overlay
             return true;
         }
 
-//        if (keyCode == 12) {
-//
-//            launchWiFiFragment();
-//
-//        }
-
-//        if (keyCode == 13) {
-//            OGLogMessage.newHeartbeatLog().post();
-//            return true;
-//        }
-
         if ((keyCode == 16) && OGConstants.CRASH_TEST_DUMMY) {
-            //int zed = 1 / 0;
+            int zed = 1 / 0;
         }
 
         return false;
@@ -584,8 +612,7 @@ public class MainFrameActivity extends BaseFullscreenActivity implements Overlay
         target.launchApp(launchMsg.appId);
         target.setSizeAsPctOfScreen(launchMsg.appSize);
 
-        //TODO add slot info
-        BelliniDMAPI.appLaunchAck(launchMsg.appId, 0);
+        BelliniDMAPI.appLaunchAck(launchMsg.appId, target.mLayoutSlot);
 
     }
 

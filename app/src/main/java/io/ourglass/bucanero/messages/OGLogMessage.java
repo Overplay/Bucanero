@@ -57,7 +57,7 @@ public class OGLogMessage extends OttobusMainThreadMessage {
         this(type, message, null);
     }
 
-    public String toJsonString(){
+    public JSONObject toJson(){
 
         JSONObject jobj = new JSONObject();
         try {
@@ -75,7 +75,12 @@ public class OGLogMessage extends OttobusMainThreadMessage {
             e.printStackTrace();
         }
 
-        return jobj.toString();
+        return jobj;
+
+    }
+
+    public String toJsonString(){
+        return this.toJson().toString();
     }
 
     /**

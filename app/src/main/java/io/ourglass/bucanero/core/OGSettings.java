@@ -5,6 +5,9 @@ import android.content.SharedPreferences;
 
 /**
  * Created by mkahn on 7/15/17.
+ *
+ * These are operating modes. Not statusy stuff. That's in OGSystem.
+ *
  */
 
 public class OGSettings {
@@ -15,7 +18,8 @@ public class OGSettings {
     }
 
     public static String getBelliniDMAddress() {
-        String mode = getStringFromPrefs("belliniDMMode", "dev");
+
+        String mode = getBelliniDMMode();
 
         if (OGConstants.USE_LOCAL_DM_SERVER) {
             mode = "local"; // hard override
@@ -26,6 +30,8 @@ public class OGSettings {
             case "dev":
                 return OGConstants.BELLINI_DM_DEV_ADDRESS;
             case "local":
+                return OGConstants.BELLINI_DM_LAN_LOCAL_ADDRESS;
+            case "emu":
                 return OGConstants.BELLINI_DM_EMU_LOCAL_ADDRESS;
             case "production":
             default:
@@ -51,6 +57,19 @@ public class OGSettings {
 
     public static void setVerboseMode(boolean verbose) {
         putBoolToPrefs("verboseMode", verbose);
+    }
+
+    ;
+
+    /*
+    * Logcat Upload Mode
+    */
+    public static boolean getLogcatUploadMode() {
+        return getBoolFromPrefs( "logcatUpload", true );
+    };
+
+    public static void setLogcatUploadMode(boolean upload) {
+        putBoolToPrefs("logcatUpload", upload);
     }
 
     ;

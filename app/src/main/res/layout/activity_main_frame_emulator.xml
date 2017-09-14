@@ -13,6 +13,18 @@
         <!--android:id="@+id/surfaceView"-->
         <!--android:layout_centerHorizontal="true" />-->
 
+    <TextView
+        android:id="@+id/textViewWarning"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:text="TextView"
+        android:layout_alignParentTop="true"
+        android:layout_centerHorizontal="true"
+        android:layout_marginTop="64sp"
+        android:textSize="32sp"
+        android:visibility="invisible"
+        android:textColor="@color/OGOLDFASH_ORANGE"/>
+
     <!-- This weird view is here for the Zidoo to properly size the window at startup -->
     <ImageView
         android:layout_width="match_parent"

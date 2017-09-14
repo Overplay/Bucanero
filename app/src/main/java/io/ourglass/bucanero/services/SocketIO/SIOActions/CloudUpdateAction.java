@@ -21,7 +21,6 @@ public class CloudUpdateAction extends SIOAction {
     @Override
     public void process(JSONObject inboundObject) {
         Log.d(TAG, "Socket cloud_record_update command received");
-
         OGSystem.updateFromOGCloud();
         try {
             JSONObject change = inboundObject.getJSONObject("change");

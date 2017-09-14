@@ -19,11 +19,15 @@ import org.jdeferred.FailCallback;
 import org.jdeferred.Promise;
 import org.json.JSONObject;
 
+import java.util.ArrayList;
+
+import io.ourglass.bucanero.Support.OGShellE;
 import io.ourglass.bucanero.api.BelliniDMAPI;
 import io.ourglass.bucanero.api.JSONCallback;
 import io.ourglass.bucanero.api.OGHeaderInterceptor;
 import io.ourglass.bucanero.core.ABApplication;
 import io.ourglass.bucanero.core.OGSettings;
+import io.ourglass.bucanero.core.OGSystem;
 import io.ourglass.bucanero.messages.MainThreadBus;
 import io.ourglass.bucanero.services.SocketIO.SocketIOManager;
 
@@ -105,6 +109,28 @@ public class ConnectivityCenter {
 
     }
 
+    public static void ipRoute(){
+
+        OGShellE.execRoot("ip route add table wlan0 10.21.200.0/24 via 10.21.200.1 dev eth0", new OGShellE.OGShellEListener() {
+            @Override
+            public void stdout(ArrayList<String> results) {
+                Log.d(TAG, "ip route table add completed without fail. We should be good to go, homie.");
+            }
+
+            @Override
+            public void stderr(ArrayList<String> errors) {
+                Log.e(TAG, "Turds in stderr after ip route add.");
+                Log.e(TAG, errors.toString());
+                Log.e(TAG, "That's a wrap. It might work, maybe not.");
+            }
+
+            @Override
+            public void fail(Exception e) {
+                Log.wtf(TAG, "Failed out at ip route add. Oyvey.");
+            }
+        });
+    }
+
     public String getWiFiIPAddress() {
         WifiManager wifiMgr = (WifiManager) ABApplication.sharedContext.getSystemService(WIFI_SERVICE);
         WifiInfo wifiInfo = wifiMgr.getConnectionInfo();
@@ -151,6 +177,8 @@ public class ConnectivityCenter {
                     @Override
                     public Promise<String, Exception, Void> pipeDone(JSONObject result) {
                         isCloudDMReachable = true;
+                        OGSystem.updateSystemFromCloudObject(result);
+
                         Log.d(TAG, "Authenticating.");
                         return BelliniDMAPI.authenticateDevice();
                     }
@@ -261,7 +289,7 @@ public class ConnectivityCenter {
 //            public void jsonCallback(JSONObject jsonData) {
 //
 //                Log.d(TAG, "Registered device with Bellini-DM");
-//                if (OGSystem.getVenueId().isEmpty()) {
+//                if (OGSystem.getVenueUUID().isEmpty()) {
 //                    BelliniDMAPI.associateDeviceWithVenueUUID(BelliniDMAPI.BULLPEN_VUUID, callback);
 //                } else if (callback != null) {
 //                    callback.jsonCallback(jsonData);

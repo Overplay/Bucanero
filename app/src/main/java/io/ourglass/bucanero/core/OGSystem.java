@@ -1,29 +1,26 @@
 package io.ourglass.bucanero.core;
 
 
-import android.bluetooth.BluetoothAdapter;
-import android.content.Context;
-import android.net.wifi.WifiManager;
 import android.os.Build;
 import android.os.Environment;
-import android.provider.Settings;
-import android.telephony.TelephonyManager;
 import android.util.Log;
 
 import com.google.gson.Gson;
+import com.snatik.storage.Storage;
 
 import org.jdeferred.DoneCallback;
 import org.jdeferred.FailCallback;
 import org.json.JSONException;
 import org.json.JSONObject;
 
-import java.security.MessageDigest;
-import java.security.NoSuchAlgorithmException;
+import java.util.HashMap;
 import java.util.UUID;
 
 import io.ourglass.bucanero.api.BelliniDMAPI;
 import io.ourglass.bucanero.api.BelliniNetworkFailureCallback;
 import io.ourglass.bucanero.messages.BestPositionMessage;
+import io.ourglass.bucanero.messages.OGLogMessage;
+import io.ourglass.bucanero.messages.SystemStatusMessage;
 import io.ourglass.bucanero.objects.SetTopBox;
 import io.ourglass.bucanero.objects.TVShow;
 import io.ourglass.bucanero.services.Connectivity.NetworkingUtils;
@@ -38,6 +35,7 @@ import static io.ourglass.bucanero.core.OGSettings.mPrefs;
 import static io.ourglass.bucanero.core.OGSettings.putBoolToPrefs;
 import static io.ourglass.bucanero.core.OGSettings.putIntToPrefs;
 import static io.ourglass.bucanero.core.OGSettings.putStringToPrefs;
+import static io.ourglass.bucanero.messages.SystemStatusMessage.SystemStatus.NETWORK_ISSUE;
 import static io.ourglass.bucanero.services.Connectivity.NetworkingUtils.getWiFiMACAddress;
 
 /**
@@ -54,8 +52,9 @@ public class OGSystem {
     private static SetTopBox mPairedSTB;
     private static TVShow mCurrentTVShow;
 
+    public static HashMap<String, AppMapEntry> screenMap = new HashMap<>();
 
-
+    public static JSONObject cloudDeviceState;
 
     /*
      * TV Resolution
@@ -70,16 +69,6 @@ public class OGSystem {
 
     public static Size getTVResolution() {
         return mTVResolution;
-    }
-
-    /*
-     * OLD System UDID
-     * See bottom of file for new SJM stuff
-     */
-
-    public static String getNonUniqueUDID() {
-        return Settings.Secure.getString(ABApplication.sharedContext.getContentResolver(),
-                Settings.Secure.ANDROID_ID);
     }
 
     /**
@@ -156,13 +145,6 @@ public class OGSystem {
         return getStringFromPrefs("systemName", "No Name");
     }
 
-    public static void setSystemLocation(String location) {
-        putStringToPrefs("systemLocation", location);
-    }
-
-    public static String getSystemLocation() {
-        return getStringFromPrefs("systemLocation", "No Location");
-    }
 
     // Set top pairing
 
@@ -283,19 +265,29 @@ public class OGSystem {
         JSONObject deviceJSON = new JSONObject();
         try {
             deviceJSON.put("name", getSystemName());
-            deviceJSON.put("locationWithinVenue", getSystemLocation());
             deviceJSON.put("randomFactoid", "Bunnies are cute");
             deviceJSON.put("codeRevName", OGConstants.CODE_REV_NAME);
-
-
-
             deviceJSON.put("wifiMacAddress", getWiFiMACAddress());
-            //deviceJSON.put("settings", device.settings);
-            //deviceJSON.put("apiToken", device.apiToken);
-            //deviceJSON.put("uuid", device.uuid);
             String pairIp = getPairedSTBIpAddress();
             deviceJSON.put("isPairedToSTB", isPairedToSTB());
             deviceJSON.put("pairedSTBIP", pairIp);
+
+            AppMapEntry we = screenMap.get("widget");
+
+            JSONObject wejson = new JSONObject();
+            if ( we != null ){
+                wejson = we.toJson();
+            }
+            deviceJSON.put("widget", wejson );
+
+            AppMapEntry ce = screenMap.get("crawler");
+            JSONObject cejson = new JSONObject();
+            if ( ce != null ){
+                cejson = ce.toJson();
+            }
+            deviceJSON.put("widget", wejson );
+            deviceJSON.put("crawler", cejson );
+
 
             if (isPairedToSTB()){
                 if (mCurrentTVShow!=null){
@@ -318,7 +310,9 @@ public class OGSystem {
             deviceJSON.put("osVersion", getOsVersion());
             deviceJSON.put("osApiLevel", getOsLevel());
 
-            deviceJSON.put("venue", getVenueId());
+            deviceJSON.put("venue", getVenueUUID());
+            deviceJSON.put("venueName", getVenueName());
+
             deviceJSON.put("udid", getUDID());
 
             deviceJSON.put("ts", System.currentTimeMillis());
@@ -341,10 +335,11 @@ public class OGSystem {
 
         sb.append("System Name: " + getSystemName() + "\n");
         sb.append("System UUID: " + getUDID() + "\n");
-        if (getVenueId().equalsIgnoreCase("")){
-            sb.append("Venue ID: Not assigned to a venue"+"\n");
+        if (getVenueUUID().equalsIgnoreCase("")){
+            sb.append("Venue: Not assigned to a venue"+"\n");
         } else {
-            sb.append("Venue ID: " + getVenueId()+"\n");
+            sb.append("Venue: " + getVenueName() + "\n");
+            sb.append("Venue UUID: "+ getVenueUUID()+ "\n");
         }
         sb.append("-----------\n");
         sb.append("Code Name Rev: " + OGConstants.CODE_REV_NAME+"\n");
@@ -371,21 +366,37 @@ public class OGSystem {
 
     }
 
-    public static void setVenueId(String venueId) {
+    public static void setVenueUUID(String venueId) {
         putStringToPrefs("venueId", venueId);
+        fetchVenueName();
     }
 
-    public static String getVenueId() {
+    public static String getVenueUUID() {
         return getStringFromPrefs("venueId", "");
     }
 
-    public static void setDeviceId(String deviceId) {
-        putStringToPrefs("deviceId", deviceId);
+    public static void fetchVenueName(){
+        BelliniDMAPI.getVenueByUUID(getVenueUUID())
+                .done(new DoneCallback<JSONObject>() {
+                    @Override
+                    public void onDone(JSONObject result) {
+                        String vname = result.optString("name", "unknown");
+                        Log.d(TAG, "Got a new venue name: "+vname);
+                        putStringToPrefs("venueName", vname);
+                    }
+                })
+                .fail(new FailCallback<Exception>() {
+                    @Override
+                    public void onFail(Exception result) {
+                        Log.d(TAG, "Failed getting venue name...");
+                    }
+                });
     }
 
-    public static String getDeviceId() {
-        return getStringFromPrefs("deviceId", "");
+    public static String getVenueName(){
+        return getStringFromPrefs("venueName", "???");
     }
+
 
     public static void setDeviceAPIToken(String venueId) {
         putStringToPrefs("deviceToken", venueId);
@@ -403,25 +414,36 @@ public class OGSystem {
         putBoolToPrefs("firstTimeSetup", isFirst);
     }
 
+    public static void updateSystemFromCloudObject(JSONObject cloudOGJson){
+
+        String venueUUID = cloudOGJson.optString("atVenueUUID", null);
+        if (venueUUID!=null){
+            Log.d(TAG, "Updating local venue ID from OG Cloud");
+            setVenueUUID(venueUUID);
+        }
+
+        String name = cloudOGJson.optString("name", "No Name");
+        if (name!=null){
+            Log.d(TAG, "Updating local system name from OG Cloud");
+            setSystemName(name);
+        }
+
+        if (cloudOGJson.optBoolean("isNew", false)){
+                Log.d(TAG, "This is a NEW device, setting firstTimeSetup to true");
+                OGSystem.setFirstTimeSetup(true);
+        }
+
+    }
+
     public static void updateFromOGCloud(){
 
         BelliniDMAPI.getMe()
                 .done(new DoneCallback<JSONObject>() {
                     @Override
                     public void onDone(JSONObject jsonData) {
-
                         // Assume OGCloud is canonical on the following and update local
-                        String venueUUID = jsonData.optString("atVenueUUID", null);
-                        if (venueUUID!=null){
-                            Log.d(TAG, "Updating local venue ID from OG Cloud");
-                            setVenueId(venueUUID);
-                        }
+                        updateSystemFromCloudObject(jsonData);
 
-                        String name = jsonData.optString("name", "No Name");
-                        if (name!=null){
-                            Log.d(TAG, "Updating local system name from OG Cloud");
-                            setSystemName(name);
-                        }
                     }
                 })
                 .fail(new BelliniNetworkFailureCallback("Failed getting device info from Bellini in OGSystem", 1005));
@@ -539,14 +561,22 @@ public class OGSystem {
 
     // Crazy UDID nonsense!!
 
-    // Had to comment this out because on Android 6 it was crashing
-    protected static final String _mUDID = "this doesn't work on Android 6"; //_getUDID();
 
     public static String getUDID(){
 
         String udid = getStringFromPrefs("devUDID", null);
         if (udid == null){
-            udid = UUID.randomUUID().toString();
+            Log.d(TAG, "Got a null UDID. Checking for one saved to SDCARD.");
+            Storage storage = new Storage(ABApplication.sharedContext);
+            String udidpath = storage.getExternalStorageDirectory() + "/udid.txt";
+
+            if (!storage.isFileExist(udidpath)) {
+                Log.d(TAG, "No SDCARD udid file, creating one.");
+                String newudid = UUID.randomUUID().toString();
+                storage.createFile(udidpath, newudid);
+            }
+
+            udid = storage.readTextFile(udidpath);
             putStringToPrefs("devUDID", udid);
         }
 
@@ -554,79 +584,32 @@ public class OGSystem {
 
     }
 
-    public static String getUDIDScott() {
-        return _mUDID;
-    }
+    public static void synchronizeDeviceStateWithCloud(){
 
-    protected static synchronized String _getUDID() {
+        BelliniDMAPI.getAppStatusFromCloud()
+                .done(new DoneCallback<JSONObject>() {
+                    @Override
+                    public void onDone(JSONObject jsonData) {
+                        Log.d(TAG, "Got app status from cloud!");
+                        cloudDeviceState = jsonData;
+                    }
+                })
+                .fail(new FailCallback<Exception>() {
+                    @Override
+                    public void onFail(Exception result) {
 
-        if (isEmulator()){
-            return getNonUniqueUDID(); // for now, this won't fault out on emu
-        }
-        //return Settings.Secure.getString(ABApplication.sharedContext.getContentResolver(),
-        //        Settings.Secure.ANDROID_ID);
-        String m_szUniqueID = new String();
+                        Log.e(TAG, "FAILED getting app status from cloud!");
+                        OGLogMessage.newOGLog("network_issue")
+                                .addFieldToMessage("description", "Failure getting saved app status in MainframeActivity")
+                                .addFieldToMessage("exception", result.toString()  )
+                                .addFieldToMessage("issue_code", 1004)  // this is just some BS to test the generics
+                                .post();
 
-        //if (_mUDID == null) {
-        // http://www.pocketmagic.net/android-unique-device-id/
+                        SystemStatusMessage.sendStatusMessageWithException(NETWORK_ISSUE, result);
+                    }
+                });
 
-            /*
-                String tmDevice, tmSerial, tmPhone, androidId;
-                tmDevice = "" + tm.getDeviceId();
-                tmSerial = "" + tm.getSimSerialNumber();
-                androidId = "" + android.provider.Settings.Secure.getString(ABApplication.sharedContext.getContentResolver(), Settings.Secure.ANDROID_ID);
 
-                UUID deviceUuid = new UUID(androidId.hashCode(), ((long)tmDevice.hashCode() << 32) | tmSerial.hashCode());
-                String deviceId = deviceUuid.toString();*/
-
-        TelephonyManager TelephonyMgr = (TelephonyManager)ABApplication.sharedContext.getSystemService(Context.TELEPHONY_SERVICE);
-        String m_szImei = TelephonyMgr.getDeviceId(); // Requires READ_PHONE_STATE
-
-        String m_szDevIDShort = "35" + //we make this look like a valid IMEI
-                Build.BOARD.length()%10+ Build.BRAND.length()%10 +
-                Build.CPU_ABI.length()%10 + Build.DEVICE.length()%10 +
-                Build.DISPLAY.length()%10 + Build.HOST.length()%10 +
-                Build.ID.length()%10 + Build.MANUFACTURER.length()%10 +
-                Build.MODEL.length()%10 + Build.PRODUCT.length()%10 +
-                Build.TAGS.length()%10 + Build.TYPE.length()%10 +
-                Build.USER.length()%10 ; //13 digits
-
-        String m_szAndroidID = Settings.Secure.getString(ABApplication.sharedContext.getContentResolver(),
-                Settings.Secure.ANDROID_ID);
-
-        WifiManager wm = (WifiManager)ABApplication.sharedContext.getSystemService(Context.WIFI_SERVICE);
-        String m_szWLANMAC = wm.getConnectionInfo().getMacAddress();
-
-        BluetoothAdapter m_BluetoothAdapter    = null; // Local Bluetooth adapter
-        m_BluetoothAdapter = BluetoothAdapter.getDefaultAdapter();
-        String m_szBTMAC = m_BluetoothAdapter.getAddress();
-
-        String m_szLongID = m_szImei + m_szDevIDShort + m_szAndroidID+ m_szWLANMAC + m_szBTMAC;
-
-        // compute md5
-        MessageDigest m = null;
-        try {
-            m = MessageDigest.getInstance("MD5");
-        } catch (NoSuchAlgorithmException e) {
-            Log.e("MD5", e.toString());
-            return null;
-        }
-        m.update(m_szLongID.getBytes(),0,m_szLongID.length());
-        // get md5 bytes
-        byte p_md5Data[] = m.digest();
-        // create a hex string
-
-        for (int i=0;i<p_md5Data.length;i++) {
-            int b =  (0xFF & p_md5Data[i]);
-            // if it is a single digit, make sure it have 0 in front (proper padding)
-            if (b <= 0xF) m_szUniqueID+="0";
-            // add number to string
-            m_szUniqueID+=Integer.toHexString(b);
-        }
-        // hex string to uppercase
-        m_szUniqueID = m_szUniqueID.toUpperCase();
-        //}
-        return m_szUniqueID;
     }
 
 }

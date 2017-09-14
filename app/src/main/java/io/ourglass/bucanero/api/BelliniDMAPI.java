@@ -124,6 +124,11 @@ public class BelliniDMAPI {
 
     }
 
+    /**
+     * Runs a `findOrCreate` upstream based on UDID. Either way, you get back a device JSON object.
+     * An object created for the first time has the `isNew` filed set to true.
+     * @return
+     */
     public static Promise<JSONObject, Exception, Void> registerDeviceWithBellini(){
 
         return DeferredRequest.post(OGSettings.getBelliniDMAddress() + "/ogdevice/register", getParamsWithDeviceUDID(), JSONObject.class).go();
@@ -146,11 +151,14 @@ public class BelliniDMAPI {
     }
 
     public static Promise<JSONObject, Exception, Void> associateDeviceWithVenueUUID(String venueUUID){
-
         return DeferredRequest.post(OGSettings.getBelliniDMAddress() + "/ogdevice/associateWithVenue", getParamsWithDeviceUDID(), JSONObject.class).go();
-
     }
 
+    public static Promise<JSONObject, Exception, Void> getVenueByUUID(String venueUUID){
+
+        return DeferredRequest.getJsonObject(OGSettings.getBelliniDMAddress() + "/venue/findByUUID/" + venueUUID).go();
+
+    }
 //    public static void associateDeviceWithVenueUUIDOld(String venueUUID, JSONCallback cb){
 //
 //        if (cb==null)
@@ -191,7 +199,7 @@ public class BelliniDMAPI {
             params.put("appId", appId);
             // Not actuall used
             // TODO we should record this for a cold boot
-            params.put("layoutSlot", layoutSlot);
+            params.put("slot", layoutSlot);
             params.put("command", "launch");
 
         } catch (JSONException e) {

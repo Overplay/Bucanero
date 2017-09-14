@@ -61,13 +61,33 @@
             android:id="@+id/switchDevBellini"
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
-            android:text="Use Development Bellini-DM Server" />
+            android:track="@drawable/switch_track"
+            android:showText="false"
+            android:thumb="@drawable/switch_knob"
+            android:text="Use Development Bellini-DM Server"
+            android:textSize="@dimen/overlay_subtitle_font_size"/>
 
         <Switch
             android:id="@+id/switchVerboseMode"
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
-            android:text="Verbose On-Screen Messages" />
+            android:track="@drawable/switch_track"
+            android:showText="false"
+            android:thumb="@drawable/switch_knob"
+            android:text="Verbose On-Screen Messages"
+            android:layout_marginTop="20sp"
+            android:textSize="@dimen/overlay_subtitle_font_size"/>
+
+        <Switch
+            android:id="@+id/switchLogcatMode"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:track="@drawable/switch_track"
+            android:showText="false"
+            android:thumb="@drawable/switch_knob"
+            android:text="Periodically upload full log files"
+            android:layout_marginTop="20sp"
+            android:textSize="@dimen/overlay_subtitle_font_size"/>
 
     </LinearLayout>
 

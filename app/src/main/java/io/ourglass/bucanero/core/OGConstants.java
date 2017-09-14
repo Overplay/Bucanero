@@ -12,7 +12,6 @@ public class OGConstants {
     /**
      * SocketIO constants
      */
-    public static final Boolean USE_LOCAL_DM_SERVER = false;
 
     public static final String CODE_REV_NAME = "Bucanero";
     public static final String DEVICE_AUTH_HDR = "x-ogdevice-1234";
@@ -26,6 +25,10 @@ public class OGConstants {
     public static final String BELLINI_DM_PRODUCTION_ADDRESS = "https://cloud-dm.ourglass.tv";
     public static final String BELLINI_DM_DEV_ADDRESS = "http://138.68.230.239:2001";
     public static final String BELLINI_DM_EMU_LOCAL_ADDRESS = "http://10.0.2.2:2001";
+    //when debugging with a local instance of Bellini running on a Mac. Set this to true and set IP
+    //to your workstation IP address
+    public static final Boolean USE_LOCAL_DM_SERVER = false;
+    public static final String BELLINI_DM_LAN_LOCAL_ADDRESS = "http://192.168.1.172:2001";
 
     // Force automatic venue registration to the OG Office in Campbell
     public static final Boolean AUTO_REG_TO_OGOFFICE = false;
@@ -39,7 +42,7 @@ public class OGConstants {
 
     // TEST and DEBUG
     public static final boolean TEST_MODE = true;
-    public static final boolean CRASH_TEST_DUMMY = true; // enable force crash on '5' button
+    public static final boolean CRASH_TEST_DUMMY = false; // enable force crash on '5' button
     public static final boolean SHOW_DB_TOASTS = true;
     public static final boolean LOGCAT_TO_FILE = true; // Off until I am sure it works [mak]
 

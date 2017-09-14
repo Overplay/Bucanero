@@ -1,7 +1,6 @@
 package io.ourglass.bucanero.core;
 
 import android.app.Application;
-
 import android.content.Context;
 import android.content.Intent;
 import android.content.pm.PackageInfo;
@@ -30,7 +29,6 @@ import io.ourglass.bucanero.messages.OnScreenNotificationMessage;
 import io.ourglass.bucanero.messages.SystemStatusMessage;
 import io.ourglass.bucanero.objects.NetworkException;
 import io.ourglass.bucanero.services.Connectivity.ConnectivityCenter;
-import io.ourglass.bucanero.services.Connectivity.EthernetPort;
 import io.ourglass.bucanero.services.FFmpeg.FFmpegBinaryService;
 import io.ourglass.bucanero.services.OGLog.OGLogService;
 import io.ourglass.bucanero.services.STB.STBPollingService;
@@ -112,40 +110,7 @@ public class ABApplication extends Application {
 
         connectivityCenter = ConnectivityCenter.getInstance();
         connectivityCenter.initializeCloudComms();
-        //LogCat.takeLogcatSnapshotAndPost();
-        //boot();
 
-//        DeferredRequest.addSharedHeader("x-dev-authorization", "x-ogdevice-1234");
-//
-//        DeferredRequest.get("https://cloud-dm.ourglass.tv/ping/ping", JSONObject.class).go()
-//                .done(new DoneCallback<JSONObject>() {
-//
-//                    @Override
-//                    public void onDone(JSONObject result) {
-//                        Log.d(TAG, result.toString());
-//                    }
-//                })
-//                .fail(new FailCallback<Exception>() {
-//
-//                    @Override
-//                    public void onFail(Exception result) {
-//                        Log.d(TAG, result.toString());
-//                    }
-//                });
-
-
-//        HTTPTransaction.get("https://cloud-dm.ourglass.tv/ping/ping", new JSONCallback() {
-//            @Override
-//            public void jsonCallback(JSONObject jsonData) {
-//                Log.d(TAG, jsonData.toString());
-//
-//            }
-//
-//            @Override
-//            public void error(NetworkException e) {
-//                Log.e(TAG, e.toString());
-//            }
-//        });
     }
 
     public static void dbToast(Context context, String message) {
@@ -196,12 +161,6 @@ public class ABApplication extends Application {
             @Override
             public void run() {
                 try {
-                    Thread.sleep(delay);
-
-                    sendBootMessage("Setting up Networking");
-                    EthernetPort.bringUpEthernetPort();
-
-                    Thread.sleep(delay);
 
                     sendBootMessage("Starting Services");
                     startServices();

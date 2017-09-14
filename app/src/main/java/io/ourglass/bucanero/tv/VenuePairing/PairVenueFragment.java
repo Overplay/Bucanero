@@ -138,7 +138,7 @@ public class PairVenueFragment extends OverlayFragment {
 
         bus.register(this);
         // If hard-paired, just show a message
-        mMode = ( OGSystem.getVenueId().isEmpty() || OGConstants.FORCE_VENUE_PAIR )  ? CODE : PairMode.PAIRED;
+        mMode = ( OGSystem.getVenueUUID().isEmpty() || OGConstants.FORCE_VENUE_PAIR )  ? CODE : PairMode.PAIRED;
         if (mMode== CODE){
             goToCodeMode();
         }

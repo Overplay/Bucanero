@@ -23,6 +23,7 @@ import org.json.JSONObject;
 
 import io.ourglass.bucanero.api.BelliniDMAPI;
 import io.ourglass.bucanero.core.ABApplication;
+import io.ourglass.bucanero.core.AppMapEntry;
 import io.ourglass.bucanero.core.OGConstants;
 import io.ourglass.bucanero.core.OGSystem;
 import io.ourglass.bucanero.messages.BestPositionMessage;
@@ -44,7 +45,7 @@ public class OGWebViewFragment extends WebViewFragment {
     private Context mContext;
     private Frame mFrame;
     private String mUrl;
-    private int mLayoutSlot = 0;
+    public int mLayoutSlot = 0;
     public String appType;
 
     private String mAppId;
@@ -338,8 +339,8 @@ public class OGWebViewFragment extends WebViewFragment {
         Log.d(TAG, "Got a move message, yo!");
         if (moveMsg.appId.equalsIgnoreCase(mAppId)) {
             moveToNextLayoutSlot();
+            OGSystem.screenMap.put(appType, new AppMapEntry(mAppId, mLayoutSlot, AppMapEntry.mapFromString(appType)));
             BelliniDMAPI.appMoveAck(mAppId, mLayoutSlot);
-
         }
     }
 

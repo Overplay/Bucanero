@@ -53,7 +53,7 @@ screen and then it calls `ABApplication.boot()` and transfers control to `MainFr
 - Decides (based on a setting in `OGConstants`) whether to run Fast Boot or Slow Boot. Slow boot just slows the process down enough for
 messages to be readable on-screen. This is the default.
 - In a seperate Thread runs:
-    - Brings up the Ethernet port to a static IP address for hard-pair to the STB.
+    - ~~Brings up the Ethernet port to a static IP address for hard-pair to the STB.~~ This is now in Wort.
     - Starts all true services:
         - OGLogService
         - STBPollingService
@@ -95,3 +95,12 @@ Networking boots up as follows:
                 
 ### More Networking Code
 
+##UDHCPD Configuration File
+
+This file gets written in `ABApplication`. It's stored in `raw` assets.
+
+
+##Device UDID
+
+The UDID is saved to the sdcard root on first install, that way if Buc is uninstalled, it will find the original UDID and use it.
+The only way to generate a new UDID is to manually erase the file `udid.txt` in the root of the SDCARD. This is by design.

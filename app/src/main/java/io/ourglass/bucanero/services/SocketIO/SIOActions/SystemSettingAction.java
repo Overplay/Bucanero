@@ -39,6 +39,13 @@ public class SystemSettingAction extends SIOAction {
                 sailsSIODeviceMessage(new SettingResponseMessage("verboseMode", OGSettings.getVerboseMode()?"true":"false").toJson(), null);
                 break;
 
+            case "uploadLogcat":
+
+                boolean upload = inboundObject.optBoolean("value");
+                OGSettings.setLogcatUploadMode(upload);
+                sailsSIODeviceMessage(new SettingResponseMessage("uploadLogcat", OGSettings.getLogcatUploadMode()?"true":"false").toJson(), null);
+                break;
+
             case "relaunch":
                 //FIXME this is not going to work until we become a system app
                 sailsSIODeviceMessage(new SettingResponseMessage("relaunch", "Relaunching 5 seconds. Except this won't since we don't have privs yet.").toJson(), null);
