@@ -311,7 +311,7 @@ public class MainFrameActivity extends BaseFullscreenActivity implements Overlay
         //showSystemToast("Starting up...");
         Log.d(TAG, "onResume done");
         enableHDMISurface();
-        mHDMIView.startDisplay();
+        //mHDMIView.startDisplay();
 
         if (OGConstants.USE_LOCAL_DM_SERVER){
             Log.d(TAG, "Using local server, throwing up a message!");
@@ -320,11 +320,12 @@ public class MainFrameActivity extends BaseFullscreenActivity implements Overlay
             tv.setText("USING LOCAL BELLINI-DM @ "+OGConstants.BELLINI_DM_LAN_LOCAL_ADDRESS);
         }
 
+        mHDMIView.onResume();
     }
 
     @Override
     public void onPause() {
-        mHDMIView.stopDisplay();
+        mHDMIView.onPause();
         super.onPause();
     }
 
@@ -453,7 +454,7 @@ public class MainFrameActivity extends BaseFullscreenActivity implements Overlay
         }
 
         if ((keyCode == 16) && OGConstants.CRASH_TEST_DUMMY) {
-            int zed = 1 / 0;
+            //int zed = 1 / 0;
         }
 
         return false;

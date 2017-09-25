@@ -6,7 +6,6 @@ import android.app.Service;
 import android.content.Context;
 import android.content.Intent;
 import android.content.IntentFilter;
-import android.os.Environment;
 import android.os.IBinder;
 import android.support.annotation.Nullable;
 import android.util.Log;
@@ -17,14 +16,12 @@ import com.github.hiteshsondhi88.libffmpeg.LoadBinaryResponseHandler;
 import com.github.hiteshsondhi88.libffmpeg.exceptions.FFmpegCommandAlreadyRunningException;
 import com.github.hiteshsondhi88.libffmpeg.exceptions.FFmpegNotSupportedException;
 
-
 public class FFmpegBinaryService extends Service {
 
     public static final String TAG = "FFmpegBinaryService";
     public static final String BINNAME = "ffmpeg";
 
-    public FFmpegBinaryService() {
-    }
+    public FFmpegBinaryService() {}
 
     // Stock stuff that needs to be here for all services
 
@@ -41,8 +38,6 @@ public class FFmpegBinaryService extends Service {
         Log.d(TAG, "cmd: " + ffBinaryCmd());
 
         ffLoad();
-        String[] c = {"-version"};
-        ffCheck(c);
     }
 
     @Override
@@ -56,8 +51,7 @@ public class FFmpegBinaryService extends Service {
     }
 
     public String ffBinaryCmd() {
-        String cc = ((Context)this).getFilesDir().getAbsolutePath() + File.separator + BINNAME;
-        return cc;
+        return ((Context)this).getFilesDir().getAbsolutePath() + File.separator + BINNAME;
     }
 
     public boolean ffExists() {
@@ -76,10 +70,13 @@ public class FFmpegBinaryService extends Service {
                 public void onStart() { Log.d(TAG, "ffLoad start"); }
 
                 @Override
-                public void onFailure() { Log.d(TAG, "ffLoad failure"); }
+                public void onFailure() { Log.w(TAG, "ffLoad failure"); }
 
                 @Override
-                public void onSuccess() { Log.d(TAG, "ffLoad success"); }
+                public void onSuccess() {
+                    Log.i(TAG, "ffLoad success");
+                    ffCheck();
+                }
 
                 @Override
                 public void onFinish() { Log.d(TAG, "ffLoad finish"); }
@@ -90,11 +87,12 @@ public class FFmpegBinaryService extends Service {
         }
     }
 
-    private void ffCheck(String[] cmd) {
+    private void ffCheck() {
         Context context = this;
         FFmpeg ffmpeg = FFmpeg.getInstance(context);
         try {
             // to execute "ffmpeg -version" command you just need to pass "-version"
+            String[] cmd = {"-version"};
             ffmpeg.execute(cmd, new ExecuteBinaryResponseHandler() {
 
                 @Override
@@ -104,10 +102,10 @@ public class FFmpegBinaryService extends Service {
                 public void onProgress(String message) { Log.d(TAG, "ffCheck progress " + message); }
 
                 @Override
-                public void onFailure(String message) { Log.d(TAG, "ffCheck failure " + message); }
+                public void onFailure(String message) { Log.w(TAG, "ffCheck failure " + message); }
 
                 @Override
-                public void onSuccess(String message) { Log.d(TAG, "ffCheck success " + message); }
+                public void onSuccess(String message) { Log.i(TAG, "ffCheck success " + message); }
 
                 @Override
                 public void onFinish() { Log.d(TAG, "ffCheck finish"); }

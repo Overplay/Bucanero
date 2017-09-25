@@ -1,5 +1,6 @@
 package io.ourglass.bucanero.tv.Views;
 
+import java.io.IOException;
 import java.util.List;
 
 import android.app.Activity;
@@ -17,14 +18,20 @@ import android.view.View;
 import android.view.ViewGroup;
 import android.widget.RelativeLayout;
 import android.widget.RelativeLayout.LayoutParams;
-import android.widget.Toast;
 
 import com.realtek.hardware.RtkHDMIRxManager;
 import com.realtek.server.HDMIRxParameters;
 import com.realtek.server.HDMIRxStatus;
 
+import io.ourglass.bucanero.core.ABApplication;
+import io.ourglass.bucanero.core.OGConstants;
+import io.ourglass.bucanero.messages.OGLogMessage;
+import io.ourglass.bucanero.messages.SystemStatusMessage;
+
 import io.ourglass.bucanero.services.FFmpeg.AudioStreamer;
 import io.ourglass.bucanero.R;
+
+import static io.ourglass.bucanero.messages.SystemStatusMessage.SystemStatus.AS_LOS;
 
 public class OurglassHdmiDisplay {
     private static final String TAG = "OurglassHdmiDisplay";
@@ -47,6 +54,7 @@ public class OurglassHdmiDisplay {
     private Context							mContext				= null;
     private ViewGroup						mRootView				= null;
     private View							mHdmiNoSignalView		= null;
+    private ParcelFileDescriptor[]          ffPipe                  = null;
     private AudioStreamer 					mAudioStreamer  		= null;
     private boolean			                isStreaming			    = false;
 
@@ -74,17 +82,41 @@ public class OurglassHdmiDisplay {
             }
         };
         initHdmiConnect();
+        initStreamer();
+    }
+    private void initStreamer() {
         mAudioStreamer = new AudioStreamer(mContext, new AudioStreamer.StreamDeadListener() {
             @Override
             public void streamDead(Context lContext) {
-                Log.v(TAG, "fucking dead");
+                Log.v(TAG, "streamDead");
 
                 ((Activity)lContext).runOnUiThread(new Runnable() {
                     @Override
                     public void run() {
+
+                        if ((ffPipe != null) && (ffPipe.length == 2)) {
+                            try {
+                                ffPipe[1].closeWithError("Die Milk Face");
+                                ffPipe[0].checkError();
+                                Log.v(TAG, "all good");
+                            } catch (IOException e) {
+                                Log.e(TAG, "Exception killing", e);;
+                            }
+                        }
+
                         if (isStreaming()) {
                             stopStreamer();
                         }
+
+                        OGLogMessage.newOGLog("streaming_failed")
+                                .addFieldToMessage("description", "not sure the reason" )
+                                .addFieldToMessage("exception", "pipe or process exited" )
+                                .addFieldToMessage("issue_code", 8675309)
+                                .post();
+
+                        //SystemStatusMessage.sendStatusMessageWithException(AS_LOS, result);
+                        SystemStatusMessage.sendStatusMessage(AS_LOS);
+
                     }
                 });
             }
@@ -113,36 +145,32 @@ public class OurglassHdmiDisplay {
 
     public static boolean isConnect(Context context) {
         IntentFilter intentFilter = new IntentFilter(HDMIRxStatus.ACTION_HDMIRX_PLUGGED);
-        Intent batteryStatus = context.registerReceiver(null, intentFilter);
-        boolean hdmiRxPlugged = batteryStatus.getBooleanExtra(HDMIRxStatus.EXTRA_HDMIRX_PLUGGED_STATE, false);
+        Intent pluggedStatus = context.registerReceiver(null, intentFilter);
+        boolean hdmiRxPlugged = pluggedStatus.getBooleanExtra(HDMIRxStatus.EXTRA_HDMIRX_PLUGGED_STATE, false);
         return hdmiRxPlugged;
     }
 
-    public boolean stop() {
+    public void stop() {
         Log.v(TAG, "stop");
         if (mPreview != null) {
             mPreview.setVisibility(View.INVISIBLE);
         }
 
-        boolean rlt = true;
         if (mHDMIRX != null) {
             mHDMIRX.stop();
             mHDMIRX.release();
             mHDMIRX = null;
-        } else {
-            rlt = false;
         }
         isDisplay = false;
         mFps = 0;
         mWidth = 0;
         mHeight = 0;
-        return rlt;
+        (new SystemStatusMessage(SystemStatusMessage.SystemStatus.HDMI_STOP)).post();
     }
 
-    public boolean play() {
-        Log.v(TAG, "play");
+    public void play() {
         if (mPreview == null) {
-            return false;
+            return;
         }
         mPreview.setVisibility(View.VISIBLE);
         mHandler.removeMessages(DISPLAY);
@@ -157,7 +185,7 @@ public class OurglassHdmiDisplay {
                     mHeight = 0;
                     mHDMIRX = null;
                     mHandler.sendEmptyMessageDelayed(DISPLAY, DISPLAYTIME);
-                    return false;
+                    return;
                 }
                 HDMIRxParameters hdmirxGetParam = mHDMIRX.getParameters();
                 Log.v(TAG, hdmirxGetParam.flatten());
@@ -167,7 +195,7 @@ public class OurglassHdmiDisplay {
 
             } else {
                 mHandler.sendEmptyMessageDelayed(DISPLAY, DISPLAYTIME);
-                return false;
+                return;
             }
             try {
                 mHDMIRX.setPreviewDisplay(mSurfaceHolder);
@@ -183,19 +211,17 @@ public class OurglassHdmiDisplay {
                 isDisplay = true;
                 mHDMIRX.setPlayback(true, true);
                 Log.v(TAG, "hdmi mIsPlaying successful");
+                (new SystemStatusMessage(SystemStatusMessage.SystemStatus.HDMI_PLAY)).post();
                 // animation
             } catch (Exception e) {
                 stop();
-                e.printStackTrace();
-                Log.e(TAG, "play erro = " + e.getMessage());
+                Log.e(TAG, "Exception play", e);;
+                SystemStatusMessage.sendStatusMessage(SystemStatusMessage.SystemStatus.HDMI_SEVERE_ERROR);
+
             }
         } else if (!mPreviewOn) {
             mHandler.sendEmptyMessageDelayed(DISPLAY, DISPLAYTIME);
-            return false;
-        } else {
-            return false;
         }
-        return true;
     }
 
     private int getSupportedPreviewFrameRate(HDMIRxParameters hdmirxGetParam) {
@@ -262,19 +288,17 @@ public class OurglassHdmiDisplay {
 
     class FloatingWindowSurfaceCallback implements SurfaceHolder.Callback {
         @Override
-        public void surfaceChanged(SurfaceHolder arg0, int arg1, int width, int height) {
-        }
+        public void surfaceChanged(SurfaceHolder arg0, int arg1, int width, int height) { }
 
         @Override
         public void surfaceCreated(SurfaceHolder arg0) {
             Log.v(TAG, "FloatingWindowSurfaceCallback = surfaceCreated");
             mPreviewOn = true;
-            // play();
         }
 
         @Override
         public void surfaceDestroyed(SurfaceHolder arg0) {
-            // stop();
+            Log.v(TAG, "FloatingWindowSurfaceCallback = surfaceDestroyed");
             mPreviewOn = false;
         }
     }
@@ -310,56 +334,69 @@ public class OurglassHdmiDisplay {
 
     public boolean isStreaming() { return isStreaming; }
 
-    public boolean stopStreamer() {
+    public void stopStreamer() {
         try {
-            if (isDisplay && isStreaming()) {
+            //if (isDisplay && isStreaming()) {
+            //    repeatDisplay();
+            //}
+            isStreaming = false;
+            if (mHDMIRX != null) {
+                mHDMIRX.setTranscode(false);
+            }
+            if (mAudioStreamer != null) {
+                mAudioStreamer.killStream();
+            }
+            if (isDisplay) {
                 repeatDisplay();
             }
-            try {
-                isStreaming = false;
-                if (mHDMIRX != null) {
-                    mHDMIRX.setTranscode(false);
-                }
-            } catch (Exception e) {
-                e.printStackTrace();
-            }
-            Toast.makeText(mContext, "Stop streamer successful ...", Toast.LENGTH_SHORT).show();
-            return true;
+
+            //Toast.makeText(mContext, "Stop streamer successful!", Toast.LENGTH_SHORT).show();
+            ABApplication.dbToast(mContext, "Stop streamer successful!");
+
         } catch (Exception e) {
-            e.printStackTrace();
+            Log.e(TAG, "Exception mHDMIRX.setTranscode2", e);;
         }
-        return false;
     }
 
-    public boolean startStreamer() {
+    public void startStreamer() {
+        int videoBitrate = OGConstants.BUCANERO_AV_V_BITRATE;
+        int channelCount = OGConstants.BUCANERO_AV_A_CHANNELS;
+        int sampleRate   = OGConstants.BUCANERO_AV_A_SAMPLERATE;
+        int audioBitrate = OGConstants.BUCANERO_AV_A_BITRATE;
+        int w = mWidth;
+        int h = mHeight;
+        if ((w * h) > OGConstants.BUCANERO_AV_V_MAXWIDTH * OGConstants.BUCANERO_AV_V_MAXHEIGHT) {
+            w = OGConstants.BUCANERO_AV_V_MAXWIDTH;
+            h = OGConstants.BUCANERO_AV_V_MAXHEIGHT;
+        }
+
         if (!isDisplay) {
-            return false;
+            return;
         }
 
         try {
-            int w = mWidth;
-            int h = mHeight;
-            int videoBitrate = 20000000;
-            int channelCount = 2;
-            int sampleRate = 48000;
-            int audioBitrate = 64000;
-            if ((w * h) > 1920 * 1080) {
-                w = 1920;
-                h = 1080;
+            ffPipe = ParcelFileDescriptor.createReliablePipe();
+            if(!mAudioStreamer.runStream(ffPipe[0])) {
+                return;
             }
+            /* For kicks I tried to make vConfig (1,1,10) but that breaks the screen/view */
             RtkHDMIRxManager.VideoConfig vConfig = new RtkHDMIRxManager.VideoConfig(w, h, videoBitrate);
-            //RtkHDMIRxManager.VideoConfig vConfig = new RtkHDMIRxManager.VideoConfig(1, 1, 10);
             RtkHDMIRxManager.AudioConfig aConfig = new RtkHDMIRxManager.AudioConfig(channelCount, sampleRate, audioBitrate);
+
             mHDMIRX.configureTargetFormat(vConfig, aConfig);
-            ParcelFileDescriptor pfd = mAudioStreamer.getStreamFd();
-            mHDMIRX.setTargetFd(pfd, RtkHDMIRxManager.HDMIRX_FILE_FORMAT_TS);
+            mHDMIRX.setTargetFd(ffPipe[1], RtkHDMIRxManager.HDMIRX_FILE_FORMAT_TS);
             mHDMIRX.setTranscode(true);
             isStreaming = true;
-            Toast.makeText(mContext, "Start streamer successful ...", Toast.LENGTH_SHORT).show();
-            return true;
-        } catch (Exception e) {
-            e.printStackTrace();
+            //Toast.makeText(mContext, "Start streamer successful ...", Toast.LENGTH_SHORT).show();
+            ABApplication.dbToast(mContext, "Start streamer successful!");
+        } catch (IOException e) {
+            Log.e(TAG, "Exception creating ffPipe", e);
+            return;
         }
-        return false;
+
+        try {
+        } catch (Exception e) {
+            Log.e(TAG, "Exception streaming", e);;
+        }
     }
 }

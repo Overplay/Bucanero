@@ -88,12 +88,63 @@ public class OGConstants {
     // When using git, use the one below
     //public static final String PATH_TO_ABWL = "/Android/data/me.sheimi.sgit/files/repo/AmstelBrightLimeWWW";
 
+    // nginx barfs with the port 80 explicit
+    //public static final String BELLINI_AUDIO_SERVER_ADDRESS = "https://cloud-listen.ourglass.tv/as/";
+    //public static final String BELLINI_AUDIO_SERVER_ADDRESS = "http://192.241.217.88:3000/as/";
+    public static final String BELLINI_AUDIO_SERVER_ADDRESS = "http://192.241.217.88:4000/as/";
+    public static final String BELLINI_AUDIO_SERVER_SECRET = "supersecret";
 
     // When manually pushing
     // Keep separate from DEMO release so we can run both on the same H/W
     public static final String PATH_TO_ABWL = "/wwwaqui";
 
+    /**
+     * Audio loop constants
+     */
+    public static final int BUCANERO_AUDIO_BUFFERFILLTIME_MS = 100;
+    public static final int BUCANERO_AUDIO_BUFFERSIZE_BYTES = 4096;
 
+    /**
+     * Audio rate constants
+     */
+    public static final int BUCANERO_AV_V_MAXWIDTH   = 1920;
+    public static final int BUCANERO_AV_V_MAXHEIGHT  = 1080;
+    public static final int BUCANERO_AV_V_BITRATE    = 20000000;
+    public static final int BUCANERO_AV_A_BITRATE    = 64000;
+    public static final int BUCANERO_AV_A_SAMPLERATE = 44100;
+    public static final int BUCANERO_AV_A_CHANNELS   = 2;
+
+    /**
+     * Audio ffMPEG command
+     *
+     * For testing...
+     *  ffmpeg
+     *   -hide_banner -loglevel quiet -nostats
+     *   -re -stream_loop -1
+     *   -i <fn>
+     *   -dn -sn -vn -bsf:v dump_extra
+     *   -codec:a mp2 -b:a 128k -ar 44100 -ac 2 -muxdelay 0.001 -f mpegts http://localhost:3000/supersecret/abc
+     */
+    public static final String BUCANERO_FFMPEG_CMD_OPTS_SILENCE = new String(" -hide_banner -loglevel quiet -nostats");
+    public static final String BUCANERO_FFMPEG_CMD_OPTS = new String(
+            " -i -" +
+                    " -dn -sn -vn" +
+                    //" -codec:v mpeg1video" +
+                    //" -b:v 1000k" +
+                    //" -s 320x240" +
+                    //
+                    " -bsf:v dump_extra" +
+                    " -codec:a mp2" +
+                    " -b:a 128k" +
+                    " -ar 44100" +
+                    " -ac 2" +
+                    //
+                    //" -bf 16" +
+                    //" -bsf:v dump_extra" +
+                    //" -muxdelay 0.001" +
+                    " -f mpegts" +
+                    " " +
+            "");
 
     public static enum BootState {
         ABS_START(0),
