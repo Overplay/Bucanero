@@ -1,8 +1,5 @@
 package io.ourglass.bucanero.tv.Views;
 
-import java.io.IOException;
-import java.util.List;
-
 import android.app.Activity;
 import android.content.BroadcastReceiver;
 import android.content.Context;
@@ -23,13 +20,15 @@ import com.realtek.hardware.RtkHDMIRxManager;
 import com.realtek.server.HDMIRxParameters;
 import com.realtek.server.HDMIRxStatus;
 
+import java.io.IOException;
+import java.util.List;
+
+import io.ourglass.bucanero.R;
 import io.ourglass.bucanero.core.ABApplication;
 import io.ourglass.bucanero.core.OGConstants;
 import io.ourglass.bucanero.messages.OGLogMessage;
 import io.ourglass.bucanero.messages.SystemStatusMessage;
-
 import io.ourglass.bucanero.services.FFmpeg.AudioStreamer;
-import io.ourglass.bucanero.R;
 
 import static io.ourglass.bucanero.messages.SystemStatusMessage.SystemStatus.AS_LOS;
 

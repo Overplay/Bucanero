@@ -17,9 +17,11 @@ import io.ourglass.bucanero.api.BelliniDMAPI;
 import io.ourglass.bucanero.core.ABApplication;
 import io.ourglass.bucanero.core.OGSystem;
 import io.ourglass.bucanero.messages.AppLaunchAckMessage;
+import io.ourglass.bucanero.messages.OGLogMessage;
 import io.ourglass.bucanero.messages.OnScreenNotificationMessage;
 import io.ourglass.bucanero.objects.TVShow;
 import io.ourglass.bucanero.services.Connectivity.ConnectivityCenter;
+import io.ourglass.bucanero.services.Connectivity.SIONetworkState;
 import io.ourglass.bucanero.services.SocketIO.SIOActions.ChannelChangeAction;
 import io.ourglass.bucanero.services.SocketIO.SIOActions.CloudUpdateAction;
 import io.ourglass.bucanero.services.SocketIO.SIOActions.IdentifyAction;
@@ -98,6 +100,7 @@ public class SocketIOManager {
         Log.d(TAG, "Resetting socket IO from the top.");
         mCookie = newCookie;
         initialize();
+        OGLogMessage.newSIOStatusLog(SIONetworkState.SIONetState.SIO_RESET).post();
 
     }
 
@@ -119,6 +122,7 @@ public class SocketIOManager {
             registerJoinListener();
             registerDeviceDMListener();
             attachToBellini();
+
         } catch (URISyntaxException e) {
             Log.e(TAG, e.getLocalizedMessage());
         }
@@ -150,6 +154,7 @@ public class SocketIOManager {
             @Override
             public void call(Object... args) {
                 Log.d(TAG, "Socket Connected!");
+                OGLogMessage.newSIOStatusLog(SIONetworkState.SIONetState.SIO_CONNECTED).post();
                 joinDeviceRoom();
                 keepAlive();
             }
@@ -162,6 +167,7 @@ public class SocketIOManager {
             @Override
             public void call(Object... args) {
                 Log.wtf(TAG, "Socket DISConnected!");
+                OGLogMessage.newSIOStatusLog(SIONetworkState.SIONetState.SIO_DISCONNECTED).post();
                 //mKeepAliveThread.interrupt();
                 //setupSocketIO();
             }
@@ -198,6 +204,8 @@ public class SocketIOManager {
 
                 if ( delta > WARN_RED ){
 
+                    OGLogMessage.newSIOStatusLog(SIONetworkState.SIONetState.SIO_LOS_RED).post();
+
                     Log.d(TAG, "~~~ LOS LEVEL: 2 ~~~~");
                     Log.d(TAG, "~~~ SHUTTING DOWN SOCKETS ~~~~");
                     shutDownSockets();
@@ -228,6 +236,8 @@ public class SocketIOManager {
                         Log.d(TAG, "~~~ LOS LEVEL: 1 ~~~~");
                         (new OnScreenNotificationMessage("We seem to have a slight network issue...")).post();
                         losLevel = 1;
+                        OGLogMessage.newSIOStatusLog(SIONetworkState.SIONetState.SIO_LOS_YELLOW).post();
+
                     }
 
                     mHandler.postDelayed(this, KEEP_ALIVE_DELAY);

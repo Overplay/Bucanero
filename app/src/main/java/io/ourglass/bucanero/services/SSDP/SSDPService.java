@@ -85,6 +85,7 @@ public class SSDPService extends Service implements SSDPHandlerThread.SSDPListen
         // optional flag to not do a discovery immediately
         processIntent(intent);
 
+        // TODO this should not be start sticky
         return Service.START_STICKY;
 
     }

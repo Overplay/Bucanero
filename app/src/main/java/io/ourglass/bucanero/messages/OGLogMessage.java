@@ -7,6 +7,7 @@ import org.json.JSONException;
 import org.json.JSONObject;
 
 import io.ourglass.bucanero.core.OGSystem;
+import io.ourglass.bucanero.services.Connectivity.SIONetworkState;
 
 /**
  * Created by mkahn on 5/10/17.
@@ -26,6 +27,15 @@ public class OGLogMessage extends OttobusMainThreadMessage {
     public static OGLogMessage newHeartbeatLog(){
         return new OGLogMessage("heartbeat", new JSONObject(), null);
     }
+
+    /**
+     * Factory for a heartbeat OGLogMessage
+     * @return OGLogMessage for a heartbeat
+     */
+    public static OGLogMessage newSIOStatusLog(SIONetworkState.SIONetState state){
+        return new OGLogMessage("siostate", new SIONetworkState(state).toJson(), null);
+    }
+
 
     /**
      * Factory for a bare OGLogMessage

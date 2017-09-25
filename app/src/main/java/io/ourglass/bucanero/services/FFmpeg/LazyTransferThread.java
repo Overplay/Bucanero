@@ -1,10 +1,10 @@
 package io.ourglass.bucanero.services.FFmpeg;
 
+import android.util.Log;
+
 import java.io.FileOutputStream;
 import java.io.IOException;
 import java.io.InputStream;
-
-import android.util.Log;
 
 /**
  * Class to lazily transfer from the read to write side of a pipe.  Most transfers exit when the

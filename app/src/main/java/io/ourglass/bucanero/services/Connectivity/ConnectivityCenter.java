@@ -209,7 +209,15 @@ public class ConnectivityCenter {
                 .fail(new FailCallback<Exception>() {
                     @Override
                     public void onFail(Exception result) {
-                        Log.e(TAG, "Cloud comms initialization FAIL");
+                        Log.e(TAG, "Cloud comms initialization FAIL. Retrying in 30 seconds!");
+                        //TODO: need a timed retry here
+                        mHandler.postDelayed(new Runnable() {
+                            @Override
+                            public void run() {
+                                Log.d(TAG, "Retrying failed Cloud comms initialization!");
+                                initializeCloudComms();
+                            }
+                        }, 30000);
                     }
                 });
 
