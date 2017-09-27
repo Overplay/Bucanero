@@ -1,10 +1,7 @@
 package io.ourglass.bucanero.services.STB;
 
-import android.app.Service;
-import android.content.Intent;
 import android.os.Handler;
 import android.os.HandlerThread;
-import android.os.IBinder;
 import android.util.Log;
 
 import org.json.JSONObject;
@@ -18,25 +15,21 @@ import io.ourglass.bucanero.services.Connectivity.ConnectivityCenter;
 import io.ourglass.bucanero.services.STB.DirecTV.DirecTVAPI;
 import io.ourglass.bucanero.services.STB.DirecTV.DirecTVSetTopBox;
 
+
 /**
- * Created by atorres on 4/19/16.
+ * STBPollingWorker
+ *
+ * This is a rewrite of STBPollingService that does not use the Android Service funtionality (because
+ * it is not needed and results in zombie services).
+ *
  */
 
-// TODO This service shouldn't event run when not paired. It should be started only after a pair
-// event occurs, or upon bootup if an existing pair is saved.
 
-@Deprecated
-public class STBPollingService extends Service {
+public class STBPollingWorker  {
 
-    static final String TAG = "STBPollingService";
-    static final boolean VERBOSE = true;
-    static STBPollingService sInstance;
+    static final String TAG = "STBPollingWorker";
 
     private MainThreadBus bus = ABApplication.ottobus;
-
-    public static STBPollingService getInstance() {
-        return sInstance;
-    }
 
     // TODO: Count failed polls and take a reconnect action if the number of failed polls exceeds a
     // threshold. Several things could cause a disconnect: IP address changed for box, WiFi is down,
@@ -47,11 +40,6 @@ public class STBPollingService extends Service {
     HandlerThread stbLooperThread = new HandlerThread("stbPollLooper");
     private Handler mPollThreadHandler;
 
-    private void logd(String message) {
-        if (VERBOSE) {
-            Log.d(TAG, message);
-        }
-    }
 
     public void checkHardSTBConnection() {
 
@@ -60,9 +48,9 @@ public class STBPollingService extends Service {
             public void run() {
                 Log.d(TAG, "Checking hard pair thread running");
                 JSONObject stbJson = DirecTVAPI.stbInfo(OGConstants.ETHERNET_HARD_PAIR_IP_ADDRESS);
+
                 if (stbJson != null || OGConstants.SIMULATE_HARD_PAIR) {
                     Log.d(TAG, "We are hard paired!");
-                    //OGSystem.setPairedSTBIpAddress("10.21.200.2");
                     DirecTVSetTopBox newSTB = new DirecTVSetTopBox(null,
                             OGConstants.ETHERNET_HARD_PAIR_IP_ADDRESS,
                             SetTopBox.STBConnectionType.IPGENERIC,
@@ -95,7 +83,6 @@ public class STBPollingService extends Service {
             public void run() {
 
                 checkHardSTBConnection(); // Always choose hard pair
-                logd("STB Update Loop");
                 SetTopBox stb = OGSystem.getPairedSTB();
                 if (stb == null) {
                     Log.d(TAG, "Not paired to STB, skipping update");
@@ -113,24 +100,16 @@ public class STBPollingService extends Service {
 
     }
 
-    private void stopPoll() {
+    public void stop() {
         Log.d(TAG, "Stopping TV polling.");
         mPollThreadHandler.removeCallbacksAndMessages(null);
+        stbLooperThread.quitSafely();
     }
 
 
-    @Override
-    public void onCreate() {
+    public void start() {
 
-        Log.d(TAG, "onCreate");
-        sInstance = this;
-
-    }
-
-    @Override
-    public int onStartCommand(Intent intent, int flags, int startId) {
-
-        ABApplication.dbToast("Starting STB Polling Service");
+        ABApplication.dbToast("Starting STB Polling");
 
         checkHardSTBConnection();
 
@@ -140,18 +119,7 @@ public class STBPollingService extends Service {
         }
 
         startPollLooper();
-        return Service.START_STICKY;
-    }
 
-    @Override
-    public void onDestroy() {
-        Log.d(TAG, "onDestroy");
-        stopPoll();
-    }
-
-    @Override
-    public IBinder onBind(Intent intent) {
-        return null;
     }
 
 

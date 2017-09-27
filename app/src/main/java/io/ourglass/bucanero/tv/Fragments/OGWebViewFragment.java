@@ -42,6 +42,7 @@ public class OGWebViewFragment extends WebViewFragment {
     private static final boolean ANIMATE_MOTION = true;
 
     private WebView webView;
+    private String mCurrentUrl = "";
     private Context mContext;
     private Frame mFrame;
     private String mUrl;
@@ -103,6 +104,9 @@ public class OGWebViewFragment extends WebViewFragment {
     @Override
     public void onResume() {
         super.onResume();
+        if (!mCurrentUrl.isEmpty()){
+            fadeIn();
+        }
         Log.d(TAG, "In onResume");
     }
 
@@ -213,6 +217,7 @@ public class OGWebViewFragment extends WebViewFragment {
         super.onPause();
     }
 
+
     @Override
     public void onDetach() {
         super.onDetach();
@@ -278,6 +283,7 @@ public class OGWebViewFragment extends WebViewFragment {
     }
 
     public void halfFade() {
+        //Not called as a part if the opacity bug
         OGAnimations.animateAlphaTo(getView(), 0.35f);
     }
 
@@ -298,6 +304,7 @@ public class OGWebViewFragment extends WebViewFragment {
     }
 
     public void loadUrl(String url) {
+        mCurrentUrl = url;
         getWebView().setAlpha(0f);
         Log.wtf(TAG, "loadUrl called");
         getWebView().loadUrl(url);
@@ -326,9 +333,15 @@ public class OGWebViewFragment extends WebViewFragment {
         Log.d(TAG, "Got a launch kill, yo!");
         String appToDie = killMsg.appId;
 
-        // TODO Animate and Eventually turn off JS/URL
         if (appToDie.equalsIgnoreCase(mAppId)) {
-            getWebView().setAlpha(0f);
+            fadeOut();
+            getWebView().postDelayed(new Runnable() {
+                @Override
+                public void run() {
+                    // Kill the view
+                    loadUrl("");
+                }
+            }, 1000);
             BelliniDMAPI.appKillAck(mAppId);
         }
     }

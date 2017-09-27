@@ -37,6 +37,8 @@ import io.ourglass.bucanero.messages.OGLogMessage;
 import io.ourglass.bucanero.messages.OnScreenNotificationMessage;
 import io.ourglass.bucanero.messages.SystemCommandMessage;
 import io.ourglass.bucanero.messages.SystemStatusMessage;
+import io.ourglass.bucanero.services.FFmpeg.FFmpegBinaryService;
+import io.ourglass.bucanero.services.STB.STBPollingWorker;
 import io.ourglass.bucanero.tv.Fragments.OGWebViewFragment;
 import io.ourglass.bucanero.tv.Fragments.OverlayFragmentListener;
 import io.ourglass.bucanero.tv.Fragments.SystemInfoFragment;
@@ -84,6 +86,11 @@ public class MainFrameActivity extends BaseFullscreenActivity implements Overlay
     public boolean mFirstTimeSetupSkipped = false;  // set this to temprarily disable the sequencing thru setup screens
 
     Handler mHandler = new Handler();
+
+    // Replacing Android Services;
+    STBPollingWorker stbPoller;
+
+
 
     @Override
     protected void onCreate(final Bundle savedInstanceState) {
@@ -307,6 +314,13 @@ public class MainFrameActivity extends BaseFullscreenActivity implements Overlay
 
         super.onResume();
 
+        // Moved here for better process control: MAK 9-2017
+        stbPoller = new STBPollingWorker();
+        stbPoller.start();
+
+        Intent ffmpegBinaryIntent = new Intent(this, FFmpegBinaryService.class);
+        startService(ffmpegBinaryIntent);
+
         mDebouncing = false;
         //showSystemToast("Starting up...");
         Log.d(TAG, "onResume done");
@@ -325,6 +339,7 @@ public class MainFrameActivity extends BaseFullscreenActivity implements Overlay
 
     @Override
     public void onPause() {
+        stbPoller.stop();
         mHDMIView.onPause();
         super.onPause();
     }

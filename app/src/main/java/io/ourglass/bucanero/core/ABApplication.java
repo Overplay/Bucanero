@@ -29,9 +29,7 @@ import io.ourglass.bucanero.messages.OnScreenNotificationMessage;
 import io.ourglass.bucanero.messages.SystemStatusMessage;
 import io.ourglass.bucanero.objects.NetworkException;
 import io.ourglass.bucanero.services.Connectivity.ConnectivityCenter;
-import io.ourglass.bucanero.services.FFmpeg.FFmpegBinaryService;
 import io.ourglass.bucanero.services.OGLog.OGLogService;
-import io.ourglass.bucanero.services.STB.STBPollingService;
 import io.realm.Realm;
 import io.realm.RealmConfiguration;
 import okhttp3.Cookie;
@@ -45,13 +43,14 @@ import static io.ourglass.bucanero.core.OGSystem.isExternalStorageWritable;
 /**
  * Created by mkahn on 5/18/16.
  */
-public class ABApplication extends Application {
+public class ABApplication extends Application  {
 
     public static Context sharedContext;
     public static final String TAG = "ABApplication";
 
     public static ABApplication thisApplication;
     public static ConnectivityCenter connectivityCenter;
+
 
     // Shared by all!
     public static final MainThreadBus ottobus = new MainThreadBus();
@@ -135,18 +134,13 @@ public class ABApplication extends Application {
         Intent logIntent = new Intent(this, OGLogService.class);
         startService(logIntent);
 
-        Intent stbIntent = new Intent(this, STBPollingService.class);
-        startService(stbIntent);
+        // Moved to worker
+//        Intent stbIntent = new Intent(this, STBPollingService.class);
+//        startService(stbIntent);
 
-        Intent ffmpegBinaryIntent = new Intent(this, FFmpegBinaryService.class);
-        startService(ffmpegBinaryIntent);
 
-        // Logcat messages go to a file...
-//        if (OGSystem.isExternalStorageWritable() && OGConstants.LOGCAT_TO_FILE) {
-//            Intent logCatServiceIntent = new Intent(this, LogCatRotationService.class);
-//            startService(logCatServiceIntent);
-//        }
     }
+
 
     private void sendBootMessage(String message) {
         if (OGSystem.getFastBootMode()) return; //skip messages in FB mode
@@ -267,6 +261,7 @@ public class ABApplication extends Application {
 
         }
     }
+
 
 
 }
