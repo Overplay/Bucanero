@@ -47,6 +47,7 @@ import io.ourglass.bucanero.messages.MainThreadBus;
  *
  */
 
+@Deprecated
 public class SSDPService extends Service implements SSDPHandlerThread.SSDPListener {
 
     public static final String TAG = "OGDiscoService";
@@ -80,7 +81,7 @@ public class SSDPService extends Service implements SSDPHandlerThread.SSDPListen
     @Override
     public int onStartCommand(Intent intent, int flags, int startId) {
 
-        ABApplication.dbToast(this, "Starting SSDP Enumerator");
+        ABApplication.dbToast("Starting SSDP Enumerator");
 
         // optional flag to not do a discovery immediately
         processIntent(intent);
@@ -99,6 +100,7 @@ public class SSDPService extends Service implements SSDPHandlerThread.SSDPListen
 
     // Triggers a discovery pass
     public void discover(){
+
 
         prepThread();
 
@@ -178,8 +180,8 @@ public class SSDPService extends Service implements SSDPHandlerThread.SSDPListen
 
 //        Intent intent = new Intent();
 //        intent.setAction("tv.ourglass.amstelbrightserver.ssdpresponse");
-//        intent.putExtra("devices", getFilteredDevices(mDeviceFilter));
-//        intent.putExtra("addresses", getFilteredAddresses(mDeviceFilter));
+//        intent.putExtra("devices", getFilteredDevices(deviceFilter));
+//        intent.putExtra("addresses", getFilteredAddresses(deviceFilter));
 //        ABApplication.sharedContext.sendBroadcast(intent);
 
     }

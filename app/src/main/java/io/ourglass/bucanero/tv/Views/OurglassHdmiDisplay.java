@@ -350,7 +350,7 @@ public class OurglassHdmiDisplay {
             }
 
             //Toast.makeText(mContext, "Stop streamer successful!", Toast.LENGTH_SHORT).show();
-            ABApplication.dbToast(mContext, "Stop streamer successful!");
+            ABApplication.dbToast("Stop streamer successful!");
 
         } catch (Exception e) {
             Log.e(TAG, "Exception mHDMIRX.setTranscode2", e);;
@@ -387,7 +387,7 @@ public class OurglassHdmiDisplay {
             mHDMIRX.setTranscode(true);
             isStreaming = true;
             //Toast.makeText(mContext, "Start streamer successful ...", Toast.LENGTH_SHORT).show();
-            ABApplication.dbToast(mContext, "Start streamer successful!");
+            ABApplication.dbToast("Start streamer successful!");
         } catch (IOException e) {
             Log.e(TAG, "Exception creating ffPipe", e);
             return;

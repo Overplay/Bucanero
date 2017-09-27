@@ -12,5 +12,8 @@ public class SSDPResult {
     public HashMap<String, String> devices;
     public HashSet<String> addresses;
     public Boolean filtered = true; // this isn't used right now
+    public Boolean errorThrown = false;
+    public String errorMessage;
+
 
 }

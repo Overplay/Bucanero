@@ -63,13 +63,13 @@ public class HDMIRxPlayer2 {
             if (rxStatus != null && rxStatus.status == HDMIRxStatus.STATUS_READY && mHDMIRX.open() == 0) {
                 Log.d(TAG, "PlayWhenHDMIReady: green light. Playing()");
                 if (configure()){
-                    ABApplication.dbToast(mContext, "HDMI Setup Complete");
+                    ABApplication.dbToast("HDMI Setup Complete");
                     (new SystemStatusMessage(SystemStatusMessage.SystemStatus.HDMI_CONFIGURED)).post();
                     sFruitlessAttempts = 0;
                     sDidEverFuckingAttachToFuckingHDMI = true;
                     play();
                 } else {
-                    ABApplication.dbToast(mContext, "Could not configure HDMI!!!");
+                    ABApplication.dbToast("Could not configure HDMI!!!");
                     SystemStatusMessage.sendStatusMessage(SystemStatusMessage.SystemStatus.HDMI_SEVERE_ERROR);
 
                 }
@@ -294,7 +294,7 @@ public class HDMIRxPlayer2 {
             str = "No Signal";
         }
 
-        ABApplication.dbToast(mContext, str);
+        ABApplication.dbToast(str);
     }
 
 

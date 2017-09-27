@@ -1,7 +1,6 @@
 package io.ourglass.bucanero.tv.STBPairing;
 
 
-import android.content.Intent;
 import android.os.Bundle;
 import android.support.v4.app.Fragment;
 import android.text.Html;
@@ -28,7 +27,7 @@ import io.ourglass.bucanero.core.OGUi;
 import io.ourglass.bucanero.messages.MainThreadBus;
 import io.ourglass.bucanero.objects.SetTopBox;
 import io.ourglass.bucanero.services.SSDP.SSDPResult;
-import io.ourglass.bucanero.services.SSDP.SSDPService;
+import io.ourglass.bucanero.services.SSDP.SSDPWorker;
 import io.ourglass.bucanero.services.STB.DirecTV.DirecTVSetTopBox;
 import io.ourglass.bucanero.tv.Fragments.OverlayFragment;
 
@@ -160,9 +159,11 @@ public class PairDirecTVFragment extends OverlayFragment {
 
         // Only kick off search if not hard-paired
         if (mMode==PairMode.SEARCH){
-            Intent ssdpi = new Intent(getContext(), SSDPService.class);
-            ssdpi.putExtra("deviceFilter", "DIRECTV");
-            getActivity().startService(ssdpi);
+//            Intent ssdpi = new Intent(getContext(), SSDPService.class);
+//            ssdpi.putExtra("deviceFilter", "DIRECTV");
+//            getActivity().startService(ssdpi);
+            SSDPWorker ssdp = new SSDPWorker();
+            ssdp.discover("DIRECTV");
         }
 
         updateUI();

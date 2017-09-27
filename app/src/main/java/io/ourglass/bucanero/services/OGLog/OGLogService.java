@@ -49,7 +49,7 @@ public class OGLogService extends Service {
     @Override
     public int onStartCommand(Intent intent, int flags, int startId) {
 
-        ABApplication.dbToast(this, "Log Process Starting");
+        ABApplication.dbToast("Log Process Starting");
 
         ABApplication.ottobus.register(this);
 

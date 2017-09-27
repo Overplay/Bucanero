@@ -113,9 +113,9 @@ public class ABApplication extends Application {
 
     }
 
-    public static void dbToast(Context context, String message) {
+    public static void dbToast(String message) {
         if (OGConstants.SHOW_DB_TOASTS) {
-            Toast.makeText(context, message, Toast.LENGTH_SHORT).show();
+            Toast.makeText(sharedContext, message, Toast.LENGTH_SHORT).show();
         }
     }
 

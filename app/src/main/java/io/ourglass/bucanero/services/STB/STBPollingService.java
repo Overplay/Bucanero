@@ -130,7 +130,7 @@ public class STBPollingService extends Service {
     @Override
     public int onStartCommand(Intent intent, int flags, int startId) {
 
-        ABApplication.dbToast(this, "Starting STB Polling");
+        ABApplication.dbToast("Starting STB Polling");
 
         checkHardSTBConnection();
 
