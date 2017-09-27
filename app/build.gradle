@@ -18,7 +18,7 @@ android {
         applicationId "io.ourglass.bucanero"
         minSdkVersion 19
         targetSdkVersion 19
-        versionCode 9
+        versionCode 10
         versionName "2.0"
         testInstrumentationRunner "android.support.test.runner.AndroidJUnitRunner"
         signingConfig signingConfigs.config
