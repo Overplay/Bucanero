@@ -72,9 +72,9 @@
             <!--android:exported="false" />-->
 
 
-        <service
-            android:name=".services.STB.STBPollingService"
-            android:exported="false" />
+        <!--<service-->
+            <!--android:name=".services.STB.STBPollingService"-->
+            <!--android:exported="false" />-->
 
 
         <service
