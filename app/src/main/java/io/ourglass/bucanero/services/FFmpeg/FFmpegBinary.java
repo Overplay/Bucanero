@@ -1,10 +1,6 @@
 package io.ourglass.bucanero.services.FFmpeg;
 
-import android.app.Service;
 import android.content.Context;
-import android.content.Intent;
-import android.os.IBinder;
-import android.support.annotation.Nullable;
 import android.util.Log;
 
 import com.github.hiteshsondhi88.libffmpeg.ExecuteBinaryResponseHandler;
@@ -15,54 +11,38 @@ import com.github.hiteshsondhi88.libffmpeg.exceptions.FFmpegNotSupportedExceptio
 
 import java.io.File;
 
-@Deprecated
-public class FFmpegBinaryService extends Service {
+import io.ourglass.bucanero.core.ABApplication;
 
-    public static final String TAG = "FFmpegBinaryService";
+/**
+ * Rewritten as a "Worker" and not a Service
+ */
+public class FFmpegBinary {
+
+    public static final String TAG = "FFmpegBinary";
     public static final String BINNAME = "ffmpeg";
 
-    public FFmpegBinaryService() {}
 
-    // Stock stuff that needs to be here for all services
-
-    @Nullable
-    @Override
-    public IBinder onBind(Intent intent) {
-        return null;
-    }
-
-    @Override
-    public void onCreate() {
+    public static void load() {
         Log.d(TAG, "onCreate");
-        super.onCreate();
         Log.d(TAG, "cmd: " + ffBinaryCmd());
-
         ffLoad();
     }
 
-    @Override
-    public int onStartCommand(Intent intent, int flags, int startId) {
-        return Service.START_STICKY;
+    public static String ffBinaryCmd() {
+        return ABApplication.sharedContext.getFilesDir().getAbsolutePath() + File.separator + BINNAME;
     }
 
-    public void onDestroy() {
-        Log.d(TAG, "onDestroy");
-        super.onDestroy();
-    }
-
-    public String ffBinaryCmd() {
-        return ((Context)this).getFilesDir().getAbsolutePath() + File.separator + BINNAME;
-    }
-
-    public boolean ffExists() {
+    public static boolean ffExists() {
         String ffCmd = ffBinaryCmd();
         File ffFile = new File( ffCmd );
         return ffFile.exists();
     }
 
-    private void ffLoad() {
-        Context context = this;
+    private static void ffLoad() {
+
+        Context context = ABApplication.sharedContext;
         FFmpeg ffmpeg = FFmpeg.getInstance(context);
+
         try {
             ffmpeg.loadBinary(new LoadBinaryResponseHandler() {
 
@@ -87,8 +67,8 @@ public class FFmpegBinaryService extends Service {
         }
     }
 
-    private void ffCheck() {
-        Context context = this;
+    private static void ffCheck() {
+        Context context = ABApplication.sharedContext;
         FFmpeg ffmpeg = FFmpeg.getInstance(context);
         try {
             // to execute "ffmpeg -version" command you just need to pass "-version"

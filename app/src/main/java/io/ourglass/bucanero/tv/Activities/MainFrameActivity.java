@@ -38,6 +38,7 @@ import io.ourglass.bucanero.messages.OnScreenNotificationMessage;
 import io.ourglass.bucanero.messages.SystemCommandMessage;
 import io.ourglass.bucanero.messages.SystemStatusMessage;
 import io.ourglass.bucanero.services.FFmpeg.FFmpegBinaryService;
+import io.ourglass.bucanero.services.FFmpeg.FFmpegBinary;
 import io.ourglass.bucanero.services.STB.STBPollingWorker;
 import io.ourglass.bucanero.tv.Fragments.OGWebViewFragment;
 import io.ourglass.bucanero.tv.Fragments.OverlayFragmentListener;
@@ -318,8 +319,15 @@ public class MainFrameActivity extends BaseFullscreenActivity implements Overlay
         stbPoller = new STBPollingWorker();
         stbPoller.start();
 
-        Intent ffmpegBinaryIntent = new Intent(this, FFmpegBinaryService.class);
-        startService(ffmpegBinaryIntent);
+        if (OGConstants.FFMPEG_START_AS_SERVICE){
+            Log.d(TAG, "Loading FFmpegBinary as service.");
+            Intent ffmpegBinaryIntent = new Intent(this, FFmpegBinaryService.class);
+            startService(ffmpegBinaryIntent);
+        } else {
+            Log.d(TAG, "Loading FFmpegBinary by static methods.");
+            FFmpegBinary.load();
+        }
+
 
         mDebouncing = false;
         //showSystemToast("Starting up...");

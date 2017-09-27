@@ -74,29 +74,19 @@ public class OGConstants {
     ST: ssdp:all
      */
 
+    /**
+     * AUDIO STREAMER STUFF
+     */
 
-    public static final String BELLINI_ADDRESS = "http://138.68.230.239:2001";
-
-    public static final String BELLINI_API_PREFIX = "/api/v1/";
-    public static final String ASAHI_ACCEPTED_AD_ENDPOINT = "/ad/getAccepted";
-    public static final String ASAHI_VENUE_AD_ENDPOINT = "/ad/forVenue/";
-    public static final String BELLINI_MEDIA_ENDPOINT = "/media/download/";
-
-//    public static final String INTERNAL_PATH_TO_MEDIA = "/data/data/io.ourglass.amstelbright2/media/";
-//    public static final String EXTERNAL_PATH_TO_MEDIA = "/api/admedia/";
-
-    // When using git, use the one below
-    //public static final String PATH_TO_ABWL = "/Android/data/me.sheimi.sgit/files/repo/AmstelBrightLimeWWW";
+    // FFMPEG can be started as a service or as a simple obj.
+    // Set to true to go back to deprecated service.
+    public static final boolean FFMPEG_START_AS_SERVICE = false;
 
     // nginx barfs with the port 80 explicit
     //public static final String BELLINI_AUDIO_SERVER_ADDRESS = "https://cloud-listen.ourglass.tv/as/";
     //public static final String BELLINI_AUDIO_SERVER_ADDRESS = "http://192.241.217.88:3000/as/";
     public static final String BELLINI_AUDIO_SERVER_ADDRESS = "http://192.241.217.88:4000/as/";
     public static final String BELLINI_AUDIO_SERVER_SECRET = "supersecret";
-
-    // When manually pushing
-    // Keep separate from DEMO release so we can run both on the same H/W
-    public static final String PATH_TO_ABWL = "/wwwaqui";
 
     /**
      * Audio loop constants
