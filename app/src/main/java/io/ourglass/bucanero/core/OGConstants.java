@@ -82,6 +82,9 @@ public class OGConstants {
     // Set to true to go back to deprecated service.
     public static final boolean FFMPEG_START_AS_SERVICE = false;
 
+    // Automatically start the streamer
+    public static final boolean AUTO_START_AUDIO_STREAMER = true;
+
     // nginx barfs with the port 80 explicit
     //public static final String BELLINI_AUDIO_SERVER_ADDRESS = "https://cloud-listen.ourglass.tv/as/";
     //public static final String BELLINI_AUDIO_SERVER_ADDRESS = "http://192.241.217.88:3000/as/";

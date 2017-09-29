@@ -2,7 +2,6 @@ package io.ourglass.bucanero.core;
 
 import android.app.Application;
 import android.content.Context;
-import android.content.Intent;
 import android.content.pm.PackageInfo;
 import android.content.pm.PackageManager;
 import android.os.Environment;
@@ -29,7 +28,7 @@ import io.ourglass.bucanero.messages.OnScreenNotificationMessage;
 import io.ourglass.bucanero.messages.SystemStatusMessage;
 import io.ourglass.bucanero.objects.NetworkException;
 import io.ourglass.bucanero.services.Connectivity.ConnectivityCenter;
-import io.ourglass.bucanero.services.OGLog.OGLogService;
+import io.ourglass.bucanero.services.OGLog.OGLogWorker;
 import io.realm.Realm;
 import io.realm.RealmConfiguration;
 import okhttp3.Cookie;
@@ -51,6 +50,7 @@ public class ABApplication extends Application  {
     public static ABApplication thisApplication;
     public static ConnectivityCenter connectivityCenter;
 
+    public static OGLogWorker ogLogWorker;
 
     // Shared by all!
     public static final MainThreadBus ottobus = new MainThreadBus();
@@ -131,8 +131,12 @@ public class ABApplication extends Application  {
 
     private void startServices() {
 
-        Intent logIntent = new Intent(this, OGLogService.class);
-        startService(logIntent);
+
+        // Fire up the loggerman
+        ogLogWorker = new OGLogWorker();
+
+//        Intent logIntent = new Intent(this, OGLogService.class);
+//        startService(logIntent);
 
         // Moved to worker
 //        Intent stbIntent = new Intent(this, STBPollingService.class);
@@ -150,6 +154,7 @@ public class ABApplication extends Application  {
 
     private void bootWithDelay(final int delay) {
 
+        startServices();
 
         new Thread(new Runnable() {
             @Override
@@ -157,7 +162,6 @@ public class ABApplication extends Application  {
                 try {
 
                     sendBootMessage("Starting Services");
-                    startServices();
 
                     Thread.sleep(delay);
 

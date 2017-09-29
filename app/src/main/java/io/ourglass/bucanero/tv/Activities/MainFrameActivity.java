@@ -31,14 +31,13 @@ import io.ourglass.bucanero.core.ABApplication;
 import io.ourglass.bucanero.core.OGConstants;
 import io.ourglass.bucanero.core.OGHardware;
 import io.ourglass.bucanero.core.OGSystem;
-import io.ourglass.bucanero.core.OGSystemExceptionHander;
 import io.ourglass.bucanero.messages.LaunchAppMessage;
 import io.ourglass.bucanero.messages.OGLogMessage;
 import io.ourglass.bucanero.messages.OnScreenNotificationMessage;
 import io.ourglass.bucanero.messages.SystemCommandMessage;
 import io.ourglass.bucanero.messages.SystemStatusMessage;
-import io.ourglass.bucanero.services.FFmpeg.FFmpegBinaryService;
 import io.ourglass.bucanero.services.FFmpeg.FFmpegBinary;
+import io.ourglass.bucanero.services.FFmpeg.FFmpegBinaryService;
 import io.ourglass.bucanero.services.STB.STBPollingWorker;
 import io.ourglass.bucanero.tv.Fragments.OGWebViewFragment;
 import io.ourglass.bucanero.tv.Fragments.OverlayFragmentListener;
@@ -129,11 +128,6 @@ public class MainFrameActivity extends BaseFullscreenActivity implements Overlay
         //SJMmTVSurface = (SurfaceView) findViewById(R.id.surfaceView);
         //SJMenableHDMISurface();
 
-        if (OGConstants.ENABLE_RESTART_ON_UNCAUGHT_EXCEPTIONS) {
-            Thread.setDefaultUncaughtExceptionHandler(new OGSystemExceptionHander(this,
-                    MainFrameActivity.class));
-        }
-
         // Register to receive messages
         ABApplication.ottobus.register(this);
 
@@ -192,6 +186,13 @@ public class MainFrameActivity extends BaseFullscreenActivity implements Overlay
 
         mBootBugImageView = (ImageView) findViewById(R.id.bootBugIV);
         mHDMIView = (HDMIView)findViewById(R.id.home_hdmi_parent);
+
+        // WAG at releasing HDMI when shit really gets fucked
+        if (OGConstants.ENABLE_RESTART_ON_UNCAUGHT_EXCEPTIONS) {
+            Log.d(TAG, "Should be catching all exceptions, commented out");
+            //Thread.setDefaultUncaughtExceptionHandler(new OGHygenicExceptionHander(mHDMIView));
+        }
+
         Log.d(TAG, "onCreate done");
 
     }
@@ -343,6 +344,19 @@ public class MainFrameActivity extends BaseFullscreenActivity implements Overlay
         }
 
         mHDMIView.onResume();
+
+        if (OGConstants.AUTO_START_AUDIO_STREAMER){
+
+            mHandler.postDelayed(new Runnable() {
+                @Override
+                public void run() {
+                    ABApplication.dbToast("Starting Audio Stream");
+                    mHDMIView.streamAudio();
+                }
+            }, 5000);
+
+        }
+
     }
 
     @Override
@@ -438,7 +452,7 @@ public class MainFrameActivity extends BaseFullscreenActivity implements Overlay
             return true;
         }
 
-        if ( keyCode == KeyEvent.KEYCODE_MEDIA_PLAY_PAUSE ) {
+        if ( keyCode == KeyEvent.KEYCODE_MEDIA_PLAY_PAUSE && !OGConstants.AUTO_START_AUDIO_STREAMER) {
             Log.d(TAG, "Pressed play-pause button.");
             mHDMIView.streamAudio();
         }

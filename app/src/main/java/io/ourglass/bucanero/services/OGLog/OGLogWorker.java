@@ -1,10 +1,6 @@
 package io.ourglass.bucanero.services.OGLog;
 
-import android.app.Service;
-import android.content.Intent;
 import android.os.Handler;
-import android.os.HandlerThread;
-import android.os.IBinder;
 import android.util.Log;
 
 import com.squareup.otto.Subscribe;
@@ -29,49 +25,44 @@ import okhttp3.Request;
 import okhttp3.RequestBody;
 import okhttp3.Response;
 
-@Deprecated
-public class OGLogService extends Service {
-    static final String TAG = "OGLogService";
+public class OGLogWorker {
+    static final String TAG = "OGLogHandler";
 
-    HandlerThread mWorkerThread = new HandlerThread("cleanAndPush");
-    private Handler mWorkerThreadHandler;
+    //HandlerThread mWorkerThread = new HandlerThread("cleanAndPush");
+    //private Handler mWorkerThreadHandler;
+
+    private Handler mWorkerThreadHandler = new Handler();
 
     final OkHttpClient client = ABApplication.okclient;  // share it
 
-    public OGLogService() {
+    public OGLogWorker() {
+        init();
     }
 
-    @Override
-    public IBinder onBind(Intent intent) {
-        // TODO: Return the communication channel to the service.
-        throw new UnsupportedOperationException("Not yet implemented");
-    }
 
-    @Override
-    public int onStartCommand(Intent intent, int flags, int startId) {
+    private void init() {
 
-        ABApplication.dbToast("Log Process Starting");
+        ABApplication.dbToast("Logging Starting");
 
         ABApplication.ottobus.register(this);
 
-        if (!mWorkerThread.isAlive()){
-            mWorkerThread.start();
-            mWorkerThreadHandler = new Handler(mWorkerThread.getLooper());
-        }
+//        if (!mWorkerThread.isAlive()) {
+//            mWorkerThread.start();
+//            mWorkerThreadHandler = new Handler(mWorkerThread.getLooper());
+//        }
 
         startLoop();
 
-        return Service.START_STICKY;
     }
 
-    private void startLoop(){
-        Log.d(TAG, "starting OGLogService");
+    private void startLoop() {
+        Log.d(TAG, "starting OGLogWorker");
 
-        Runnable runLogClean = new Runnable(){
+        Runnable runLogClean = new Runnable() {
             @Override
-            public void run(){
+            public void run() {
 
-                Log.d(TAG, "In OGLogService runnable");
+                Log.d(TAG, "In OGLogWorker runnable");
 
                 Realm realm = Realm.getDefaultInstance();
 
@@ -79,13 +70,11 @@ public class OGLogService extends Service {
                 RealmResults<OGLog> logs = realm.where(OGLog.class)
                         .equalTo("uploadedAt", 0).findAll();
 
-                if(logs.size() != 0){
+                if (logs.size() != 0) {
                     uploadLogs(realm, logs);
-                }
-                else {
+                } else {
                     Log.v(TAG, "There are no logs to upload");
                 }
-
 
                 realm.executeTransaction(new Realm.Transaction() {
                     @Override
@@ -93,7 +82,7 @@ public class OGLogService extends Service {
                         long weekAgo = System.currentTimeMillis() - (1000 * 60 * 60 * 24 * 7);
                         RealmResults<OGLog> oldLogs = realm.where(OGLog.class)
                                 .lessThan("uploadedAt", weekAgo).findAll();
-                        Log.d(TAG, "Deleting "+oldLogs.size()+" old logs from Realm");
+                        Log.d(TAG, "Deleting " + oldLogs.size() + " old logs from Realm");
                         oldLogs.deleteAllFromRealm();
                     }
                 });
@@ -109,7 +98,7 @@ public class OGLogService extends Service {
         Runnable runLogcat = new Runnable() {
             @Override
             public void run() {
-                if (OGSettings.getLogcatUploadMode()==true){
+                if (OGSettings.getLogcatUploadMode() == true) {
                     Log.d(TAG, "Uploading logcat snapshot.");
                     LogCat.takeLogcatSnapshotAndPost();
                 } else {
@@ -137,20 +126,18 @@ public class OGLogService extends Service {
     }
 
 
-
-
-    public void uploadLogs(Realm realm, RealmResults<OGLog> logs){
+    public void uploadLogs(Realm realm, RealmResults<OGLog> logs) {
 
         int numUploaded = 0;
 
-        for(final OGLog log : logs){
+        for (final OGLog log : logs) {
 
             Log.d(TAG, "Moving log from Realm to Cloud. Type: " + log.logType);
 
             try {
                 Response r = (log.logType.equalsIgnoreCase("logcat")) ? postOGLogJSONWithFile(log.toJson()) :
                         postLog(log.toJson().toString());
-                if(!r.isSuccessful())
+                if (!r.isSuccessful())
                     throw new IOException("Unexpected code " + r);
 
                 Log.v(TAG, "successfully uploaded log to Bellini, will now mark the upload time");
@@ -175,16 +162,14 @@ public class OGLogService extends Service {
     }
 
 
-    @Override
-    public void onDestroy() {
-        Log.d(TAG, "onDestroy");
+    public void kill() {
+        Log.d(TAG, "Kill called");
         mWorkerThreadHandler.removeCallbacksAndMessages(null);
         ABApplication.ottobus.unregister(this);
-        super.onDestroy();
     }
 
-    public void shoveInRealm(OGLogMessage message){
-        Log.d(TAG, "Putting log into Realm. Type: "+message.logType);
+    public void shoveInRealm(OGLogMessage message) {
+        Log.d(TAG, "Putting log into Realm. Type: " + message.logType);
         Realm realm = Realm.getDefaultInstance();
         realm.beginTransaction();
         OGLog log = realm.createObject(OGLog.class);
@@ -197,26 +182,33 @@ public class OGLogService extends Service {
 
     /**
      * Handles the case of simple text OGLogs without file attachment
+     *
      * @param message
      */
-    private void postSimpleOGLog(OGLogMessage message){
+    private void postSimpleOGLog(final OGLogMessage message) {
 
-        String jsonBody = message.toJsonString();
-        try {
-            Log.d(TAG, "Attempting to POST up a log of type: "+message.logType);
-            Response r = postLog(jsonBody);
-            if(!r.isSuccessful()) {
-                Log.d(TAG, "Couldn't upload OGLog, saving in Realm");
-                shoveInRealm(message);
-            } else {
-                Log.d(TAG, "OGLog uploaded.");
+        (new Thread(new Runnable() {
+            @Override
+            public void run() {
+                String jsonBody = message.toJsonString();
+                try {
+                    Log.d(TAG, "Attempting to POST up a log of type: " + message.logType);
+                    Response r = postLog(jsonBody);
+                    if (!r.isSuccessful()) {
+                        Log.d(TAG, "Couldn't upload OGLog, saving in Realm");
+                        shoveInRealm(message);
+                    } else {
+                        Log.d(TAG, "OGLog uploaded.");
+                    }
+
+                } catch (IOException e) {
+                    e.printStackTrace();
+                    Log.wtf(TAG, "IOException trying to post log");
+                    shoveInRealm(message);
+                }
             }
+        })).start();
 
-        } catch (IOException e) {
-            e.printStackTrace();
-            Log.wtf(TAG, "IOException trying to post log");
-            shoveInRealm(message);
-        }
     }
 
     // Careful! This runs synchronously so should be on BG thread.
@@ -236,23 +228,29 @@ public class OGLogService extends Service {
 
     }
 
-    private void postOGLogWithFile(OGLogMessage message) {
+    private void postOGLogWithFile(final OGLogMessage message) {
 
-        JSONObject jsonBody = message.toJson();
+        (new Thread(new Runnable() {
+            @Override
+            public void run() {
+                JSONObject jsonBody = message.toJson();
 
-        try {
-            Log.d(TAG, "Attempting to POST up a log with file of type: "+message.logType);
+                try {
+                    Log.d(TAG, "Attempting to POST up a log with file of type: " + message.logType);
 
-            Response r = postOGLogJSONWithFile(jsonBody);
-            if(!r.isSuccessful()) {
-                Log.d(TAG, "Could upload OGLog with File, saving in Realm");
-                shoveInRealm(message);
-            } else {
-                Log.d(TAG, "OGLog uploaded.");
+                    Response r = postOGLogJSONWithFile(jsonBody);
+                    if (!r.isSuccessful()) {
+                        Log.d(TAG, "Could upload OGLog with File, saving in Realm");
+                        shoveInRealm(message);
+                    } else {
+                        Log.d(TAG, "OGLog uploaded.");
+                    }
+                } catch (IOException e) {
+                    e.printStackTrace();
+                }
+
             }
-        } catch (IOException e) {
-            e.printStackTrace();
-        }
+        })).start();
 
     }
 
@@ -280,13 +278,13 @@ public class OGLogService extends Service {
 
 
     @Subscribe
-    public void inboundLogMessage(final OGLogMessage message){
+    public void inboundLogMessage(final OGLogMessage message) {
         // This comes in on the main thread!
         Log.d(TAG, "Received inbound log message, going to try to post it.");
         mWorkerThreadHandler.post(new Runnable() {
             @Override
             public void run() {
-                if (message.logType.equalsIgnoreCase("logcat")){
+                if (message.logType.equalsIgnoreCase("logcat")) {
                     postOGLogWithFile(message);
                 } else {
                     postSimpleOGLog(message);
