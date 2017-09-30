@@ -1,8 +1,11 @@
 package io.ourglass.bucanero.services.OGLog;
 
 import android.os.Handler;
+import android.os.HandlerThread;
+import android.os.Looper;
 import android.util.Log;
 
+import com.snatik.storage.Storage;
 import com.squareup.otto.Subscribe;
 
 import org.json.JSONObject;
@@ -26,12 +29,13 @@ import okhttp3.RequestBody;
 import okhttp3.Response;
 
 public class OGLogWorker {
-    static final String TAG = "OGLogHandler";
+
+    static final String TAG = "OGLogWorker";
 
     //HandlerThread mWorkerThread = new HandlerThread("cleanAndPush");
     //private Handler mWorkerThreadHandler;
 
-    private Handler mWorkerThreadHandler = new Handler();
+    private Handler mOGLogHandler;
 
     final OkHttpClient client = ABApplication.okclient;  // share it
 
@@ -42,16 +46,26 @@ public class OGLogWorker {
 
     private void init() {
 
-        ABApplication.dbToast("Logging Starting");
+        if (true){
 
-        ABApplication.ottobus.register(this);
+            ABApplication.dbToast("Logging Starting");
+
+            ABApplication.ottobus.register(this);
+
+            HandlerThread handlerThread = new HandlerThread("OGLogHandlerThread");
+            handlerThread.start();
+            Looper looper = handlerThread.getLooper();
+            mOGLogHandler = new Handler(looper);
 
 //        if (!mWorkerThread.isAlive()) {
 //            mWorkerThread.start();
 //            mWorkerThreadHandler = new Handler(mWorkerThread.getLooper());
 //        }
 
-        startLoop();
+            startLoop();
+
+        }
+
 
     }
 
@@ -89,7 +103,7 @@ public class OGLogWorker {
 
                 realm.close();
 
-                mWorkerThreadHandler.postDelayed(this, OGConstants.LOG_UPLOAD_INTERVAL);
+                mOGLogHandler.postDelayed(this, OGConstants.LOG_UPLOAD_INTERVAL);
 
             }
 
@@ -104,7 +118,7 @@ public class OGLogWorker {
                 } else {
                     Log.d(TAG, "Logcat uploads are off, doing nada.");
                 }
-                mWorkerThreadHandler.postDelayed(this, 5 * 1000 * 60);
+                mOGLogHandler.postDelayed(this, 5 * 1000 * 60);
             }
         };
 
@@ -113,14 +127,14 @@ public class OGLogWorker {
             public void run() {
                 Log.d(TAG, "Uploading heartbeat.");
                 OGLogMessage.newHeartbeatLog().post();
-                mWorkerThreadHandler.postDelayed(this, 1 * 1000 * 60);
+                mOGLogHandler.postDelayed(this, 1 * 1000 * 60);
             }
         };
 
         // Put runnables on loop
-        mWorkerThreadHandler.post(runLogClean);
-        mWorkerThreadHandler.post(runLogcat);
-        mWorkerThreadHandler.post(heartbeat);
+        mOGLogHandler.post(runLogClean);
+        mOGLogHandler.post(runLogcat);
+        mOGLogHandler.post(heartbeat);
 
 
     }
@@ -164,8 +178,8 @@ public class OGLogWorker {
 
     public void kill() {
         Log.d(TAG, "Kill called");
-        mWorkerThreadHandler.removeCallbacksAndMessages(null);
         ABApplication.ottobus.unregister(this);
+        mOGLogHandler.removeCallbacksAndMessages(null);
     }
 
     public void shoveInRealm(OGLogMessage message) {
@@ -244,6 +258,8 @@ public class OGLogWorker {
                         shoveInRealm(message);
                     } else {
                         Log.d(TAG, "OGLog uploaded.");
+                        Storage storage = new Storage(ABApplication.sharedContext);
+                        storage.deleteFile(message.logFile);
                     }
                 } catch (IOException e) {
                     e.printStackTrace();
@@ -261,7 +277,7 @@ public class OGLogWorker {
                 .addFormDataPart("logType", "logcat")
                 .addFormDataPart("deviceUDID", OGSystem.getUDID())
                 .addFormDataPart("message", logObj.optString("message"))
-                .addFormDataPart("loggedAt", "" + logObj.optLong("loggedAt"))
+                .addFormDataPart("loggedAt", "" + logObj.optString("loggedAt"))
                 .addFormDataPart("file", logObj.optString("logFile"),
                         RequestBody.create(MediaType.parse("text/plain"),
                                 new File(logObj.optString("logFile"))))
@@ -281,7 +297,7 @@ public class OGLogWorker {
     public void inboundLogMessage(final OGLogMessage message) {
         // This comes in on the main thread!
         Log.d(TAG, "Received inbound log message, going to try to post it.");
-        mWorkerThreadHandler.post(new Runnable() {
+        mOGLogHandler.post(new Runnable() {
             @Override
             public void run() {
                 if (message.logType.equalsIgnoreCase("logcat")) {

@@ -179,6 +179,8 @@ public class MainFrameActivity extends BaseFullscreenActivity implements Overlay
 
                     getSavedStateFromCloud();
 
+                    endBoot();
+
                 }
 
             }
@@ -188,10 +190,10 @@ public class MainFrameActivity extends BaseFullscreenActivity implements Overlay
         mHDMIView = (HDMIView)findViewById(R.id.home_hdmi_parent);
 
         // WAG at releasing HDMI when shit really gets fucked
-        if (OGConstants.ENABLE_RESTART_ON_UNCAUGHT_EXCEPTIONS) {
-            Log.d(TAG, "Should be catching all exceptions, commented out");
-            //Thread.setDefaultUncaughtExceptionHandler(new OGHygenicExceptionHander(mHDMIView));
-        }
+//        if (OGConstants.ENABLE_RESTART_ON_UNCAUGHT_EXCEPTIONS) {
+//            Log.d(TAG, "Should be catching all exceptions, commented out");
+//            //Thread.setDefaultUncaughtExceptionHandler(new OGHygenicExceptionHander(mHDMIView));
+//        }
 
         Log.d(TAG, "onCreate done");
 
@@ -394,8 +396,6 @@ public class MainFrameActivity extends BaseFullscreenActivity implements Overlay
                 .setStartDelay(3000)
                 .start();
 
-        // TODO this seems like there's a race condition with the below
-        //getSavedStateFromCloud();
 
     }
 
@@ -658,6 +658,7 @@ public class MainFrameActivity extends BaseFullscreenActivity implements Overlay
     public void inboundSystemStatusMsg(SystemStatusMessage status) {
 
         switch ( status.status ){
+            // Not used any more
             case BOOT_COMPLETE:
                 if (mBooting == true )
                     endBoot();

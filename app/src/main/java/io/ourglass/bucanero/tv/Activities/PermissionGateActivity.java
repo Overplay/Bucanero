@@ -10,7 +10,6 @@ import android.util.Log;
 import android.widget.TextView;
 
 import io.ourglass.bucanero.R;
-import io.ourglass.bucanero.core.ABApplication;
 
 
 public class PermissionGateActivity extends BaseFullscreenActivity {
@@ -94,7 +93,6 @@ public class PermissionGateActivity extends BaseFullscreenActivity {
 
     public void goMain() {
 
-        ((ABApplication)getApplication()).boot();
         startActivity(new Intent(this, MainFrameActivity.class));
         //psfinish();
     }
