@@ -44,15 +44,13 @@ public class OurglassHdmiDisplay {
     private boolean							mPreviewOn				= false;
     private final static int				DISPLAY					= 0;
     private final static int				DISPLAYTIME				= 200;
-    private BroadcastReceiver				mHdmiRxHotPlugReceiver	= null;
     private int								mFps					= 0;
     private int								mWidth					= 0;
     private int								mHeight					= 0;
-    private boolean							isConnect				= false;
+    private boolean							hdmiConnectedState		= false;
     private boolean							isDisplay				= false;
     private Context							mContext				= null;
     private ViewGroup						mRootView				= null;
-    private View							mHdmiNoSignalView		= null;
     private ParcelFileDescriptor[]          ffPipe                  = null;
     private AudioStreamer 					mAudioStreamer  		= null;
     private boolean			                isStreaming			    = false;
@@ -68,21 +66,32 @@ public class OurglassHdmiDisplay {
         mHandler = new Handler() {
             @Override
             public void handleMessage(Message msg) {
+                Log.v(TAG, "mHandler called");
                 switch (msg.what) {
-                    case DISPLAY: {
-                        if (isConnect) {
-                            play();
-                        }
-                    }
-                    break;
+                    case DISPLAY:
+                        play();
+                        break;
                     default:
                         break;
                 }
             }
         };
-        initHdmiConnect();
         initStreamer();
     }
+
+    private void initView() {
+        // setup view type
+        RelativeLayout rootView = (RelativeLayout) mRootView.findViewById(R.id.home_ac_hdmi_textureView);
+        mSurfaceView = new SurfaceView(mContext);
+        mSurfaceHolder = mSurfaceView.getHolder();
+        mCallback = new FloatingWindowSurfaceCallback();
+        mSurfaceHolder.addCallback(mCallback);
+        mPreview = mSurfaceView;
+        LayoutParams param = new LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT, ViewGroup.LayoutParams.MATCH_PARENT);
+        mPreview.setLayoutParams(param);
+        rootView.addView(mPreview);
+    }
+
     private void initStreamer() {
         mAudioStreamer = new AudioStreamer(mContext, new AudioStreamer.StreamDeadListener() {
             @Override
@@ -122,33 +131,6 @@ public class OurglassHdmiDisplay {
         });
     }
 
-    private void initHdmiConnect() {
-        mHdmiRxHotPlugReceiver = new BroadcastReceiver() {
-            @Override
-            public void onReceive(Context context, Intent intent) {
-                boolean hdmiRxPlugged = intent.getBooleanExtra(HDMIRxStatus.EXTRA_HDMIRX_PLUGGED_STATE, false);
-                isConnect = hdmiRxPlugged;
-                mHdmiNoSignalView.setVisibility(isConnect ? View.GONE : View.VISIBLE);
-                if (isConnect) {
-                    play();
-                } else {
-                    stop();
-                }
-            }
-        };
-
-        isConnect = isConnect(mContext);
-        IntentFilter hdmiRxFilter = new IntentFilter(HDMIRxStatus.ACTION_HDMIRX_PLUGGED);
-        mContext.registerReceiver(mHdmiRxHotPlugReceiver, hdmiRxFilter);
-    }
-
-    public static boolean isConnect(Context context) {
-        IntentFilter intentFilter = new IntentFilter(HDMIRxStatus.ACTION_HDMIRX_PLUGGED);
-        Intent pluggedStatus = context.registerReceiver(null, intentFilter);
-        boolean hdmiRxPlugged = pluggedStatus.getBooleanExtra(HDMIRxStatus.EXTRA_HDMIRX_PLUGGED_STATE, false);
-        return hdmiRxPlugged;
-    }
-
     public void stop() {
         Log.v(TAG, "stop");
         if (mPreview != null) {
@@ -168,6 +150,9 @@ public class OurglassHdmiDisplay {
     }
 
     public void play() {
+        //if (!hdmiConnectedState) {
+        //    return;
+        //}
         if (mPreview == null) {
             return;
         }
@@ -257,20 +242,6 @@ public class OurglassHdmiDisplay {
         mHeight = retHeight;
     }
 
-    private void initView() {
-        // setup view type
-        RelativeLayout rootView = (RelativeLayout) mRootView.findViewById(R.id.home_ac_hdmi_textureView);
-        mHdmiNoSignalView = mRootView.findViewById(R.id.home_ac_hdmi_nosignal);
-        mSurfaceView = new SurfaceView(mContext);
-        mSurfaceHolder = mSurfaceView.getHolder();
-        mCallback = new FloatingWindowSurfaceCallback();
-        mSurfaceHolder.addCallback(mCallback);
-        mPreview = mSurfaceView;
-        LayoutParams param = new LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT, ViewGroup.LayoutParams.MATCH_PARENT);
-        mPreview.setLayoutParams(param);
-        rootView.addView(mPreview);
-    }
-
     public void setSize(boolean isFull) {
         if (isFull) {
             LayoutParams param = (LayoutParams) mRootView.getLayoutParams();
@@ -309,20 +280,12 @@ public class OurglassHdmiDisplay {
 
     public void stopDisplay() {
         Log.v(TAG, "stopDisplay");
-        if (isStreaming()) {
-            stopStreamer();
-        }
         stop();
 
         // SJM: This is probably broken because the callback needs to be registered.
         //if (mSurfaceView != null && mSurfaceHolder != null && mCallback != null) {
         //    mSurfaceHolder.removeCallback(mCallback);
         //}
-
-        if (mHdmiRxHotPlugReceiver != null) {
-            mContext.unregisterReceiver(mHdmiRxHotPlugReceiver);
-            mHdmiRxHotPlugReceiver = null;
-        }
     }
 
     private void repeatDisplay() {
@@ -335,18 +298,12 @@ public class OurglassHdmiDisplay {
 
     public void stopStreamer() {
         try {
-            //if (isDisplay && isStreaming()) {
-            //    repeatDisplay();
-            //}
             isStreaming = false;
             if (mHDMIRX != null) {
                 mHDMIRX.setTranscode(false);
             }
             if (mAudioStreamer != null) {
                 mAudioStreamer.killStream();
-            }
-            if (isDisplay) {
-                repeatDisplay();
             }
 
             //Toast.makeText(mContext, "Stop streamer successful!", Toast.LENGTH_SHORT).show();
