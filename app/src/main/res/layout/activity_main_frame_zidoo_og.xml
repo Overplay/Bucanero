@@ -1,0 +1,83 @@
+<?xml version="1.0" encoding="utf-8"?>
+<RelativeLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    android:layout_width="match_parent"
+    android:layout_height="match_parent"
+    android:id="@+id/mainframeLayout">
+
+
+
+    <TextView
+        android:id="@+id/home_ac_video_hdmi_nosigle"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:layout_centerInParent="true"
+        android:layout_marginLeft="2dip"
+        android:text="No HDMI IN Signal"
+        android:textColor="#ffffff"
+        android:textSize="32sp"
+        android:visibility="gone" />
+
+    <RelativeLayout
+        android:id="@+id/home_ac_video_hdmi_textureView"
+        android:layout_width="match_parent"
+        android:layout_height="match_parent" />
+
+    <io.ourglass.bucanero.tv.Views.HDMIView2
+        android:id="@+id/home_hdmi_parent"
+        android:layout_width="match_parent"
+        android:layout_height="match_parent"
+        android:background="#f00" />
+
+    <TextView
+        android:layout_width="400dip"
+        android:layout_height="wrap_content"
+        android:textAppearance="?android:attr/textAppearanceLarge"
+        android:text="MESSAGES"
+        android:id="@+id/textViewMsg"
+        android:textSize="20sp"
+        android:gravity="center"
+        android:layout_alignParentBottom="true"
+        android:layout_centerHorizontal="true"
+        android:layout_marginBottom="100dip"
+        android:background="@drawable/popup_bkg"
+        android:focusable="false"
+        android:padding="15dip"
+        android:textColor="#ffffff" />
+
+    <ImageView
+        android:layout_width="500dip"
+        android:layout_height="wrap_content"
+        android:id="@+id/bootBugIV"
+        android:src="@drawable/logobig"
+        android:layout_centerHorizontal="true"
+        android:layout_centerVertical="true"
+        />
+
+    <RelativeLayout
+        android:id="@+id/overlayFragmentHolder"
+        android:layout_width="match_parent"
+        android:layout_height="match_parent"
+        android:layout_margin="80px">
+    </RelativeLayout>
+
+    <!-- This weird view is here for the Zidoo to properly size the window at startup -->
+    <ImageView
+        android:layout_width="match_parent"
+        android:layout_height="match_parent"
+        android:id="@+id/gapMaker"
+        android:src="@drawable/xparent5px"
+        android:layout_alignParentTop="true" />
+
+    <TextView
+        android:id="@+id/textViewWarning"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:text="TextView"
+        android:layout_alignParentTop="true"
+        android:layout_centerHorizontal="true"
+        android:layout_marginTop="64sp"
+        android:textSize="32sp"
+        android:visibility="invisible"
+        android:textColor="@color/OGOLDFASH_ORANGE"/>
+
+</RelativeLayout>
