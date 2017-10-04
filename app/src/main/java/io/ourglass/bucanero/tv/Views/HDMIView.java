@@ -48,6 +48,7 @@ public class HDMIView extends RelativeLayout {
 
     public void init(Context context)
     {
+        Log.v(TAG, "init called");
         mContext = context;
         mInflater = LayoutInflater.from(context);
         View v = mInflater.inflate(R.layout.hdmi_view, this, true);

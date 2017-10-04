@@ -47,8 +47,6 @@ public class OurglassHdmiDisplay {
     private int								mFps					= 0;
     private int								mWidth					= 0;
     private int								mHeight					= 0;
-    private boolean							hdmiConnectedState		= false;
-    private boolean							isDisplay				= false;
     private Context							mContext				= null;
     private ViewGroup						mRootView				= null;
     private ParcelFileDescriptor[]          ffPipe                  = null;
@@ -62,6 +60,7 @@ public class OurglassHdmiDisplay {
     }
 
     private void init() {
+        Log.v(TAG, "init called");
         initView();
         mHandler = new Handler() {
             @Override
@@ -90,6 +89,11 @@ public class OurglassHdmiDisplay {
         LayoutParams param = new LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT, ViewGroup.LayoutParams.MATCH_PARENT);
         mPreview.setLayoutParams(param);
         rootView.addView(mPreview);
+
+        // SJM: This is probably broken because the callback needs to be de-registered someplace.
+        //if (mSurfaceView != null && mSurfaceHolder != null && mCallback != null) {
+        //    mSurfaceHolder.removeCallback(mCallback);
+        //}
     }
 
     private void initStreamer() {
@@ -133,16 +137,18 @@ public class OurglassHdmiDisplay {
 
     public void stop() {
         Log.v(TAG, "stop");
+        if (mHDMIRX != null) {
+            int ss = mHDMIRX.stop();
+            Log.v(TAG, "mHDMIRX.stop was " + ss);
+
+            mHDMIRX.release();
+            mHDMIRX = null;
+        }
+
         if (mPreview != null) {
             mPreview.setVisibility(View.INVISIBLE);
         }
 
-        if (mHDMIRX != null) {
-            mHDMIRX.stop();
-            mHDMIRX.release();
-            mHDMIRX = null;
-        }
-        isDisplay = false;
         mFps = 0;
         mWidth = 0;
         mHeight = 0;
@@ -150,16 +156,16 @@ public class OurglassHdmiDisplay {
     }
 
     public void play() {
-        //if (!hdmiConnectedState) {
-        //    return;
-        //}
-        if (mPreview == null) {
+        Log.v(TAG, "play------ mHDMIRX = " + mHDMIRX + " mPreview = " + mPreview + " mPreviewOn = " + mPreviewOn);
+        mHandler.removeMessages(DISPLAY);
+        if (mPreview != null) {
+            mPreview.setVisibility(View.VISIBLE);
+        }
+        if (!mPreviewOn) {
+            mHandler.sendEmptyMessageDelayed(DISPLAY, DISPLAYTIME * 5);
             return;
         }
-        mPreview.setVisibility(View.VISIBLE);
-        mHandler.removeMessages(DISPLAY);
-        Log.v(TAG, "play------------- mIsPlaying = " + isDisplay + " mPreviewOn = " + mPreviewOn);
-        if (!isDisplay && mPreviewOn) {
+        if (mHDMIRX == null) {
             mHDMIRX = new RtkHDMIRxManager();
             HDMIRxStatus rxStatus = mHDMIRX.getHDMIRxStatus();
             if (rxStatus != null && rxStatus.status == HDMIRxStatus.STATUS_READY) {
@@ -168,17 +174,20 @@ public class OurglassHdmiDisplay {
                     mWidth = 0;
                     mHeight = 0;
                     mHDMIRX = null;
-                    mHandler.sendEmptyMessageDelayed(DISPLAY, DISPLAYTIME);
+                    mHandler.sendEmptyMessageDelayed(DISPLAY, DISPLAYTIME * 5);
                     return;
                 }
                 HDMIRxParameters hdmirxGetParam = mHDMIRX.getParameters();
-                Log.v(TAG, hdmirxGetParam.flatten());
+                //Log.v(TAG, hdmirxGetParam.flatten());
                 getSupportedPreviewSize(hdmirxGetParam, rxStatus.width, rxStatus.height);
                 mFps = getSupportedPreviewFrameRate(hdmirxGetParam);
                 // mScanMode = rxStatus.scanMode;
 
             } else {
-                mHandler.sendEmptyMessageDelayed(DISPLAY, DISPLAYTIME);
+                mWidth = 0;
+                mHeight = 0;
+                mHDMIRX = null;
+                mHandler.sendEmptyMessageDelayed(DISPLAY, DISPLAYTIME * 5);
                 return;
             }
             try {
@@ -191,8 +200,10 @@ public class OurglassHdmiDisplay {
                 // set sorce format
                 mHDMIRX.setParameters(hdmirxParam);
                 // configureTargetFormat end
-                mHDMIRX.play();
-                isDisplay = true;
+
+                int pp = mHDMIRX.play();
+                Log.v(TAG, "mHDMIRX.play was " + pp);
+
                 mHDMIRX.setPlayback(true, true);
                 Log.v(TAG, "hdmi mIsPlaying successful");
                 (new SystemStatusMessage(SystemStatusMessage.SystemStatus.HDMI_PLAY)).post();
@@ -201,10 +212,8 @@ public class OurglassHdmiDisplay {
                 stop();
                 Log.e(TAG, "Exception play", e);;
                 SystemStatusMessage.sendStatusMessage(SystemStatusMessage.SystemStatus.HDMI_SEVERE_ERROR);
-
+                // There should be a restart someplace!
             }
-        } else if (!mPreviewOn) {
-            mHandler.sendEmptyMessageDelayed(DISPLAY, DISPLAYTIME);
         }
     }
 
@@ -243,17 +252,15 @@ public class OurglassHdmiDisplay {
     }
 
     public void setSize(boolean isFull) {
+        LayoutParams param = (LayoutParams) mRootView.getLayoutParams();
         if (isFull) {
-            LayoutParams param = (LayoutParams) mRootView.getLayoutParams();
             param.width = ViewGroup.LayoutParams.MATCH_PARENT;
             param.height = ViewGroup.LayoutParams.MATCH_PARENT;
-            mRootView.setLayoutParams(param);
         } else {
-            LayoutParams param = (LayoutParams) mRootView.getLayoutParams();
             param.width = (int) (640 * 1.5f);
             param.height = (int) (420 * 1.5f);
-            mRootView.setLayoutParams(param);
         }
+        mRootView.setLayoutParams(param);
     }
 
     class FloatingWindowSurfaceCallback implements SurfaceHolder.Callback {
@@ -281,17 +288,6 @@ public class OurglassHdmiDisplay {
     public void stopDisplay() {
         Log.v(TAG, "stopDisplay");
         stop();
-
-        // SJM: This is probably broken because the callback needs to be registered.
-        //if (mSurfaceView != null && mSurfaceHolder != null && mCallback != null) {
-        //    mSurfaceHolder.removeCallback(mCallback);
-        //}
-    }
-
-    private void repeatDisplay() {
-        Log.v(TAG, "repeatDisplay");
-        stop();
-        mHandler.sendEmptyMessageDelayed(DISPLAY, DISPLAYTIME + 2 * 1000);
     }
 
     public boolean isStreaming() { return isStreaming; }
@@ -326,7 +322,7 @@ public class OurglassHdmiDisplay {
             h = OGConstants.BUCANERO_AV_V_MAXHEIGHT;
         }
 
-        if (!isDisplay) {
+        if (mHDMIRX == null) {
             return;
         }
 
