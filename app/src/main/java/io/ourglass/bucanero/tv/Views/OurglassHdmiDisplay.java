@@ -1,12 +1,8 @@
 package io.ourglass.bucanero.tv.Views;
 
 import android.app.Activity;
-import android.content.BroadcastReceiver;
 import android.content.Context;
-import android.content.Intent;
-import android.content.IntentFilter;
 import android.os.Handler;
-import android.os.Message;
 import android.os.ParcelFileDescriptor;
 import android.util.Log;
 import android.view.SurfaceHolder;
@@ -35,20 +31,26 @@ import static io.ourglass.bucanero.messages.SystemStatusMessage.SystemStatus.AS_
 public class OurglassHdmiDisplay {
     private static final String TAG = "OurglassHdmiDisplay";
 
-    public View								mPreview				= null;
-    public FloatingWindowSurfaceCallback	mCallback				= null;
+    //public View								mPreview				= null;
+
     private SurfaceView						mSurfaceView			= null;
     private SurfaceHolder					mSurfaceHolder			= null;
     private RtkHDMIRxManager				mHDMIRX					= null;
-    private Handler							mHandler				= null;
-    private boolean							mPreviewOn				= false;
+
+    private Handler							mHandler				= new Handler();
+
+
+    private boolean                         mHDMISurfaceReady = false;
     private final static int				DISPLAY					= 0;
     private final static int				DISPLAYTIME				= 200;
     private int								mFps					= 0;
     private int								mWidth					= 0;
     private int								mHeight					= 0;
     private boolean							hdmiConnectedState		= false;
-    private boolean							isDisplay				= false;
+
+    // This variable is actually disconnected from reality. It is what the code *thinks* is happening
+    // with no feedback from H/W
+    private boolean                         iThinkHDMIisPlaying = false;
     private Context							mContext				= null;
     private ViewGroup						mRootView				= null;
     private ParcelFileDescriptor[]          ffPipe                  = null;
@@ -58,25 +60,22 @@ public class OurglassHdmiDisplay {
     public OurglassHdmiDisplay(Context mContext, ViewGroup rootView) {
         this.mContext = mContext;
         this.mRootView = rootView;
-        init();
+        //init();
+        initView();
+        initStreamer();
     }
 
-    private void init() {
-        initView();
-        mHandler = new Handler() {
+    private void delayPlayHDMI(int delayMs){
+
+        Log.v(TAG, "delayPlayHDMI called. Waiting: "+delayMs);
+        mHandler.postDelayed(new Runnable() {
             @Override
-            public void handleMessage(Message msg) {
-                Log.v(TAG, "mHandler called");
-                switch (msg.what) {
-                    case DISPLAY:
-                        play();
-                        break;
-                    default:
-                        break;
-                }
+            public void run() {
+                Log.v(TAG, "delayPlayHDMI executing");
+                play();
             }
-        };
-        initStreamer();
+        }, delayMs);
+
     }
 
     private void initView() {
@@ -84,12 +83,30 @@ public class OurglassHdmiDisplay {
         RelativeLayout rootView = (RelativeLayout) mRootView.findViewById(R.id.home_ac_hdmi_textureView);
         mSurfaceView = new SurfaceView(mContext);
         mSurfaceHolder = mSurfaceView.getHolder();
-        mCallback = new FloatingWindowSurfaceCallback();
-        mSurfaceHolder.addCallback(mCallback);
-        mPreview = mSurfaceView;
+        mSurfaceHolder.addCallback(new SurfaceHolder.Callback() {
+
+                @Override
+                public void surfaceChanged(SurfaceHolder arg0, int arg1, int width, int height) { }
+
+                @Override
+                public void surfaceCreated(SurfaceHolder arg0) {
+                    Log.v(TAG, "SurfaceCreated");
+                    mHDMISurfaceReady = true;
+                }
+
+                @Override
+                public void surfaceDestroyed(SurfaceHolder arg0) {
+                    Log.v(TAG, "SurfaceDestroyed");
+                    mHDMISurfaceReady = false;
+                }
+
+            });
+
+        // Why is this done?
+        //mPreview = mSurfaceView;
         LayoutParams param = new LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT, ViewGroup.LayoutParams.MATCH_PARENT);
-        mPreview.setLayoutParams(param);
-        rootView.addView(mPreview);
+        mSurfaceView.setLayoutParams(param);
+        rootView.addView(mSurfaceView);
     }
 
     private void initStreamer() {
@@ -132,17 +149,24 @@ public class OurglassHdmiDisplay {
     }
 
     public void stop() {
-        Log.v(TAG, "stop");
-        if (mPreview != null) {
-            mPreview.setVisibility(View.INVISIBLE);
+
+        Log.v(TAG, "stop() called.");
+        if (mSurfaceView != null) {
+            Log.v(TAG, "stop() hiding Surface View");
+            mSurfaceView.setVisibility(View.INVISIBLE);
         }
 
         if (mHDMIRX != null) {
-            mHDMIRX.stop();
+            Log.v(TAG, "stop() calling stop() on driver..");
+            int stopResult = mHDMIRX.stop();
+            Log.v(TAG, "stop() result of driver stop was (0=good) "+ stopResult);
+            Log.v(TAG, "stop() releasing native driver, he's probably shitty at it anyway.");
             mHDMIRX.release();
             mHDMIRX = null;
         }
-        isDisplay = false;
+
+
+        iThinkHDMIisPlaying = false;
         mFps = 0;
         mWidth = 0;
         mHeight = 0;
@@ -150,61 +174,98 @@ public class OurglassHdmiDisplay {
     }
 
     public void play() {
-        //if (!hdmiConnectedState) {
-        //    return;
-        //}
-        if (mPreview == null) {
+
+        Log.v(TAG, "play() called.");
+
+        mHandler.removeCallbacksAndMessages(null);
+        // OK, so this was probably here to prevent multiple play calls
+        //mHandler.removeMessages(DISPLAY);
+
+        if (mSurfaceView == null) {
+            // TODO this should throw
+            Log.v(TAG, "play() called on a null surface view, bailing");
             return;
         }
-        mPreview.setVisibility(View.VISIBLE);
-        mHandler.removeMessages(DISPLAY);
-        Log.v(TAG, "play------------- mIsPlaying = " + isDisplay + " mPreviewOn = " + mPreviewOn);
-        if (!isDisplay && mPreviewOn) {
+
+        if (!mHDMISurfaceReady){
+            Log.v(TAG, "play() called and HDMI SurfaceView isn't ready yet, gonna chill a bit (1 sec) and retry.");
+            delayPlayHDMI(1000);
+            return;
+        }
+
+        if (mHDMIRX == null) {
+            Log.v(TAG, "play() called and there is no HDMIRxManager (null), creating");
             mHDMIRX = new RtkHDMIRxManager();
+        }
+
+        mSurfaceView.setVisibility(View.VISIBLE);
+
+        Log.v(TAG, "play------------- What I *think* HDMI is playing = " + iThinkHDMIisPlaying + " HDMI surface ready = " + mHDMISurfaceReady);
+
+        if (!iThinkHDMIisPlaying) {
+
             HDMIRxStatus rxStatus = mHDMIRX.getHDMIRxStatus();
-            if (rxStatus != null && rxStatus.status == HDMIRxStatus.STATUS_READY) {
-                int i = mHDMIRX.open();
+
+            if ( rxStatus == null ){
+                Log.wtf(TAG, "rxStatus from chipset is NULL. This is a hard fucking fail!");
+            }
+            else if ( rxStatus.status == HDMIRxStatus.STATUS_READY ) {
+
+                Log.v(TAG, "play(): HDMI status is STATUS_READY, opening driver.");
+                int i = mHDMIRX.open();  // This registers package name with underlying shitty C code
+
                 if (i != 0) {
+                    // Could not open the driver, so we are probably really fucked
+                    Log.wtf(TAG, "Could not open driver. Probably we are fucked. Trying again in 1 second.");
                     mWidth = 0;
                     mHeight = 0;
                     mHDMIRX = null;
-                    mHandler.sendEmptyMessageDelayed(DISPLAY, DISPLAYTIME);
+                    delayPlayHDMI(1000);
                     return;
                 }
+
+                Log.v( TAG, "play() successfully opened the driver. So we got that going for us.");
                 HDMIRxParameters hdmirxGetParam = mHDMIRX.getParameters();
-                Log.v(TAG, hdmirxGetParam.flatten());
+                Log.v(TAG, "Params from driver: " + hdmirxGetParam.flatten());
                 getSupportedPreviewSize(hdmirxGetParam, rxStatus.width, rxStatus.height);
                 mFps = getSupportedPreviewFrameRate(hdmirxGetParam);
                 // mScanMode = rxStatus.scanMode;
 
+                try {
+                    mHDMIRX.setPreviewDisplay(mSurfaceHolder);
+                    // configureTargetFormat
+                    HDMIRxParameters hdmirxParam = new HDMIRxParameters();
+                    Log.v(TAG, "hdmi setPreviewSize  mWidth = " + mWidth + "  mHeight = " + mHeight + "  mFps = " + mFps);
+                    hdmirxParam.setPreviewSize(mWidth, mHeight);
+                    hdmirxParam.setPreviewFrameRate(mFps);
+                    // set sorce format
+                    mHDMIRX.setParameters(hdmirxParam);
+                    // configureTargetFormat end
+                    // MAK: not really sure what play() and setPlayback do differently
+                    mHDMIRX.play();
+                    iThinkHDMIisPlaying = true;
+                    mHDMIRX.setPlayback(true, true);
+                    Log.v(TAG, "hdmi mIsPlaying successfully, I hope");
+                    (new SystemStatusMessage(SystemStatusMessage.SystemStatus.HDMI_PLAY)).post();
+                    // animation
+                } catch (Exception e) {
+                    stop();
+                    Log.e(TAG, "Exception deep in play()", e);;
+                    SystemStatusMessage.sendStatusMessage(SystemStatusMessage.SystemStatus.HDMI_SEVERE_ERROR);
+                    delayPlayHDMI(1000);
+                }
+
+
             } else {
-                mHandler.sendEmptyMessageDelayed(DISPLAY, DISPLAYTIME);
+                Log.d(TAG, "play() got an non-ready status from the driver. Fuck.");
+                Log.d(TAG, "Status ( 0 = not ready ): " + rxStatus.status);
+                Log.d(TAG, "play() is gonna try again in a second, maybe the status will be ready?");
+                delayPlayHDMI(1000);
                 return;
             }
-            try {
-                mHDMIRX.setPreviewDisplay(mSurfaceHolder);
-                // configureTargetFormat
-                HDMIRxParameters hdmirxParam = new HDMIRxParameters();
-                Log.v(TAG, "hdmi setPreviewSize  mWidth = " + mWidth + "  mHeight = " + mHeight + "  mFps = " + mFps);
-                hdmirxParam.setPreviewSize(mWidth, mHeight);
-                hdmirxParam.setPreviewFrameRate(mFps);
-                // set sorce format
-                mHDMIRX.setParameters(hdmirxParam);
-                // configureTargetFormat end
-                mHDMIRX.play();
-                isDisplay = true;
-                mHDMIRX.setPlayback(true, true);
-                Log.v(TAG, "hdmi mIsPlaying successful");
-                (new SystemStatusMessage(SystemStatusMessage.SystemStatus.HDMI_PLAY)).post();
-                // animation
-            } catch (Exception e) {
-                stop();
-                Log.e(TAG, "Exception play", e);;
-                SystemStatusMessage.sendStatusMessage(SystemStatusMessage.SystemStatus.HDMI_SEVERE_ERROR);
 
-            }
-        } else if (!mPreviewOn) {
-            mHandler.sendEmptyMessageDelayed(DISPLAY, DISPLAYTIME);
+
+
         }
     }
 
@@ -256,22 +317,6 @@ public class OurglassHdmiDisplay {
         }
     }
 
-    class FloatingWindowSurfaceCallback implements SurfaceHolder.Callback {
-        @Override
-        public void surfaceChanged(SurfaceHolder arg0, int arg1, int width, int height) { }
-
-        @Override
-        public void surfaceCreated(SurfaceHolder arg0) {
-            Log.v(TAG, "FloatingWindowSurfaceCallback = surfaceCreated");
-            mPreviewOn = true;
-        }
-
-        @Override
-        public void surfaceDestroyed(SurfaceHolder arg0) {
-            Log.v(TAG, "FloatingWindowSurfaceCallback = surfaceDestroyed");
-            mPreviewOn = false;
-        }
-    }
 
     public void startDisplay() {
         Log.v(TAG, "startDisplay");
@@ -326,7 +371,7 @@ public class OurglassHdmiDisplay {
             h = OGConstants.BUCANERO_AV_V_MAXHEIGHT;
         }
 
-        if (!isDisplay) {
+        if (!iThinkHDMIisPlaying) {
             return;
         }
 

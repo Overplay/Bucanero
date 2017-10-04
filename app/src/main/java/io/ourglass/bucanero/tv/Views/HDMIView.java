@@ -7,9 +7,8 @@ import android.content.Intent;
 import android.content.IntentFilter;
 import android.util.AttributeSet;
 import android.util.Log;
-import android.view.View;
 import android.view.LayoutInflater;
-import android.view.ViewGroup;
+import android.view.View;
 import android.widget.RelativeLayout;
 
 import com.realtek.server.HDMIRxStatus;
@@ -60,6 +59,7 @@ public class HDMIView extends RelativeLayout {
     }
 
     private void initHdmiConnect() {
+
         mHdmiRxHotPlugReceiver = new BroadcastReceiver() {
             @Override
             public void onReceive(Context context, Intent intent) {
@@ -88,6 +88,7 @@ public class HDMIView extends RelativeLayout {
     }
 
     public void onResume() {
+
         initHdmiConnect();
 
         if (mRealtekeHdmi != null) {
