@@ -28,8 +28,9 @@ import io.ourglass.bucanero.messages.SystemStatusMessage;
 import io.ourglass.bucanero.services.FFmpeg.AudioStreamer;
 
 import static io.ourglass.bucanero.messages.SystemStatusMessage.SystemStatus.AS_LOS;
-import static io.ourglass.bucanero.tv.Views.OurglassHdmiDisplay2.OGHdmiState.HDMI_CONNECTED;
-import static io.ourglass.bucanero.tv.Views.OurglassHdmiDisplay2.OGHdmiState.HDMI_NOT_CONNECTED;
+import static io.ourglass.bucanero.tv.Views.OurglassHdmiDisplay2.OGHdmiState.HDMI_DRIVER_READY;
+import static io.ourglass.bucanero.tv.Views.OurglassHdmiDisplay2.OGHdmiState.HDMI_PHY_CONNECTED;
+import static io.ourglass.bucanero.tv.Views.OurglassHdmiDisplay2.OGHdmiState.HDMI_PHY_NOT_CONNECTED;
 import static io.ourglass.bucanero.tv.Views.OurglassHdmiDisplay2.OGHdmiState.HDMI_PAUSED;
 import static io.ourglass.bucanero.tv.Views.OurglassHdmiDisplay2.OGHdmiState.HDMI_PLAY;
 import static io.ourglass.bucanero.tv.Views.OurglassHdmiDisplay2.OGHdmiState.HDMI_STOP_AND_RELEASE;
@@ -42,8 +43,9 @@ public class OurglassHdmiDisplay2 {
     private static final String TAG = "OGHdmiDisplay2";
 
     public enum OGHdmiState {
-        HDMI_CONNECTED,
-        HDMI_NOT_CONNECTED,
+        HDMI_PHY_CONNECTED,
+        HDMI_PHY_NOT_CONNECTED,
+        HDMI_DRIVER_READY,
         HDMI_UNAVAILABLE,
         HDMI_PLAY,
         HDMI_STOP_AND_RELEASE,
@@ -235,7 +237,7 @@ public class OurglassHdmiDisplay2 {
 
                 hdmiConnectedState = intent.getBooleanExtra(HDMIRxStatus.EXTRA_HDMIRX_PLUGGED_STATE, false);
                 Log.v(TAG, "HDMI Connected state received is " + hdmiConnectedState);
-                OGHdmiState cstate = hdmiConnectedState ? HDMI_CONNECTED : HDMI_NOT_CONNECTED;
+                OGHdmiState cstate = hdmiConnectedState ? HDMI_PHY_CONNECTED : HDMI_PHY_NOT_CONNECTED;
                 stateCallback(cstate);
 
             }
@@ -349,6 +351,7 @@ public class OurglassHdmiDisplay2 {
                         hdmirxParam.setPreviewFrameRate(mFps);
                         mHDMIRX.setParameters(hdmirxParam);
                         driverReady = true;
+                        stateCallback(HDMI_DRIVER_READY);
 
                     } catch (IOException e) {
                         Log.e(TAG, "initHDMIDriver: Exception setting preview display", e);
@@ -457,10 +460,16 @@ public class OurglassHdmiDisplay2 {
 
         if (driverReady) {
 
-            mHDMIRX.play();
-            iThinkHDMIisPlaying = true;
-            mHDMIRX.setPlayback(true, true);
-            Log.d(TAG, "hdmi mIsPlaying successfully, I hope");
+            mHandler.post(new Runnable() {
+                @Override
+                public void run() {
+                    mHDMIRX.play();
+                    iThinkHDMIisPlaying = true;
+                    mHDMIRX.setPlayback(true, true);
+                    Log.d(TAG, "hdmi mIsPlaying successfully, I hope");
+                }
+            });
+
             stateCallback(HDMI_PLAY);
             (new SystemStatusMessage(SystemStatusMessage.SystemStatus.HDMI_PLAY)).post();
 

@@ -23,6 +23,10 @@ public class HDMIView2 extends RelativeLayout {
     TextView mHdmiErrorTextView;
     HDMIViewListener mListener;
 
+    public boolean hdmiSurfaceReady = false;
+    public boolean hdmiDriverReady = false;
+    public boolean hdmiPHYConnected = false;
+
     public interface HDMIViewListener {
         public void ready();
         public void error(OurglassHdmiDisplay2.OGHdmiError error);
@@ -64,6 +68,16 @@ public class HDMIView2 extends RelativeLayout {
 
     }
 
+    public void startIfReady(){
+
+        Log.d(TAG, "Checking if everything is good to go before starting.");
+        if (hdmiDriverReady && hdmiSurfaceReady && hdmiPHYConnected){
+            Log.d(TAG, "Everyone is ready, let's start.");
+            resume();
+        }
+
+    }
+
     public void start(HDMIViewListener listener){
 
         mListener = listener;
@@ -94,11 +108,29 @@ public class HDMIView2 extends RelativeLayout {
             public void hdmiStateChange(OurglassHdmiDisplay2.OGHdmiState state) {
 
                 Log.d(TAG, "HDMI state change: " + state.name());
+                switch (state){
+
+                    case HDMI_DRIVER_READY:
+                        hdmiDriverReady = true;
+                        startIfReady();
+                        break;
+
+                    case SURFACE_READY:
+                        hdmiSurfaceReady = true;
+                        mOGHdmiDisp.initHDMIDriver();
+                        break;
+
+                    case HDMI_PHY_CONNECTED:
+                        hdmiPHYConnected = true;
+                        startIfReady();
+
+                    default:
+                        Log.d(TAG, "State ignored");
+                }
 
             }
         });
 
-        mOGHdmiDisp.initHDMIDriver();
 
     }
 
