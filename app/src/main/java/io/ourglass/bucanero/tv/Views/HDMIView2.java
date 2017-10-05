@@ -27,6 +27,8 @@ public class HDMIView2 extends RelativeLayout {
     public boolean hdmiDriverReady = false;
     public boolean hdmiPHYConnected = false;
 
+    public boolean hasIssuedPlayToDriver = false; // issuing 2 causes lockup right now!
+
     public interface HDMIViewListener {
         public void ready();
         public void error(OurglassHdmiDisplay2.OGHdmiError error);
@@ -138,7 +140,8 @@ public class HDMIView2 extends RelativeLayout {
 
     public void resume() {
 
-        if (mOGHdmiDisp != null) {
+        if (mOGHdmiDisp != null && !hasIssuedPlayToDriver) {
+            hasIssuedPlayToDriver = true;
             mOGHdmiDisp.play();
             //mOGHdmiDisp.setSize(true);
         }

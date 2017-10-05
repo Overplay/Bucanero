@@ -515,37 +515,37 @@ public class MainFrameActivity extends BaseFullscreenActivity implements Overlay
             //int zed = 1 / 0;
         }
 
-        if (keyCode == KeyEvent.KEYCODE_5) {
-            ABApplication.dbToast("Starting HDMI PLayback");
-            mHDMIView.resume();
-        }
-
-        if (keyCode == KeyEvent.KEYCODE_8) {
-            ABApplication.dbToast("Pausing HDMI PLayback");
-            mHDMIView.pause();
-        }
-
-        if (keyCode == KeyEvent.KEYCODE_6) {
-            ABApplication.dbToast("Restarting HDMI Playback");
-            mHDMIView.start(new HDMIView2.HDMIViewListener() {
-                @Override
-                public void ready() {
-                    Log.d(TAG, "HDMIView reports ready, starting it.");
-                    mHDMIView.resume();
-                }
-
-                @Override
-                public void error(OurglassHdmiDisplay2.OGHdmiError error) {
-                    Log.e(TAG, "Error initting HDMIView");
-                }
-
-            });
-        }
-
-        if (keyCode == KeyEvent.KEYCODE_8) {
-            ABApplication.dbToast("Killing HDMI Playback");
-            mHDMIView.destroy();
-        }
+//        if (keyCode == KeyEvent.KEYCODE_5) {
+//            ABApplication.dbToast("Starting HDMI PLayback");
+//            mHDMIView.resume();
+//        }
+//
+//        if (keyCode == KeyEvent.KEYCODE_8) {
+//            ABApplication.dbToast("Pausing HDMI PLayback");
+//            mHDMIView.pause();
+//        }
+//
+//        if (keyCode == KeyEvent.KEYCODE_6) {
+//            ABApplication.dbToast("Restarting HDMI Playback");
+//            mHDMIView.start(new HDMIView2.HDMIViewListener() {
+//                @Override
+//                public void ready() {
+//                    Log.d(TAG, "HDMIView reports ready, starting it.");
+//                    mHDMIView.resume();
+//                }
+//
+//                @Override
+//                public void error(OurglassHdmiDisplay2.OGHdmiError error) {
+//                    Log.e(TAG, "Error initting HDMIView");
+//                }
+//
+//            });
+//        }
+//
+//        if (keyCode == KeyEvent.KEYCODE_9) {
+//            ABApplication.dbToast("Killing HDMI Playback");
+//            mHDMIView.destroy();
+//        }
 
         return false;
     }

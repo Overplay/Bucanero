@@ -6,6 +6,7 @@ import android.content.Context;
 import android.content.Intent;
 import android.content.IntentFilter;
 import android.os.Handler;
+import android.os.HandlerThread;
 import android.os.ParcelFileDescriptor;
 import android.util.Log;
 import android.view.SurfaceHolder;
@@ -29,9 +30,9 @@ import io.ourglass.bucanero.services.FFmpeg.AudioStreamer;
 
 import static io.ourglass.bucanero.messages.SystemStatusMessage.SystemStatus.AS_LOS;
 import static io.ourglass.bucanero.tv.Views.OurglassHdmiDisplay2.OGHdmiState.HDMI_DRIVER_READY;
+import static io.ourglass.bucanero.tv.Views.OurglassHdmiDisplay2.OGHdmiState.HDMI_PAUSED;
 import static io.ourglass.bucanero.tv.Views.OurglassHdmiDisplay2.OGHdmiState.HDMI_PHY_CONNECTED;
 import static io.ourglass.bucanero.tv.Views.OurglassHdmiDisplay2.OGHdmiState.HDMI_PHY_NOT_CONNECTED;
-import static io.ourglass.bucanero.tv.Views.OurglassHdmiDisplay2.OGHdmiState.HDMI_PAUSED;
 import static io.ourglass.bucanero.tv.Views.OurglassHdmiDisplay2.OGHdmiState.HDMI_PLAY;
 import static io.ourglass.bucanero.tv.Views.OurglassHdmiDisplay2.OGHdmiState.HDMI_STOP_AND_RELEASE;
 import static io.ourglass.bucanero.tv.Views.OurglassHdmiDisplay2.OGHdmiState.SURFACE_CHANGED;
@@ -86,6 +87,8 @@ public class OurglassHdmiDisplay2 {
     private RtkHDMIRxManager mHDMIRX;
 
     private Handler mHandler = new Handler();
+    private Handler mHandler2;
+    private HandlerThread mHandlerThread2;
 
     public boolean autoRetryOnHDMIInitFailure = true;
     public boolean driverReady = false;
@@ -460,7 +463,17 @@ public class OurglassHdmiDisplay2 {
 
         if (driverReady) {
 
-            mHandler.post(new Runnable() {
+//            mHandler.post(new Runnable() {
+//                @Override
+//                public void run() {
+//                    mHDMIRX.play();
+//                    iThinkHDMIisPlaying = true;
+//                    mHDMIRX.setPlayback(true, true);
+//                    Log.d(TAG, "hdmi mIsPlaying successfully, I hope");
+//                }
+//            });
+
+            (new Thread(new Runnable() {
                 @Override
                 public void run() {
                     mHDMIRX.play();
@@ -468,7 +481,7 @@ public class OurglassHdmiDisplay2 {
                     mHDMIRX.setPlayback(true, true);
                     Log.d(TAG, "hdmi mIsPlaying successfully, I hope");
                 }
-            });
+            })).start();
 
             stateCallback(HDMI_PLAY);
             (new SystemStatusMessage(SystemStatusMessage.SystemStatus.HDMI_PLAY)).post();
