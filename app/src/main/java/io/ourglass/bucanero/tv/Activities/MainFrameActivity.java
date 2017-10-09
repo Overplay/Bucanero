@@ -25,7 +25,10 @@ import org.json.JSONArray;
 import org.json.JSONException;
 import org.json.JSONObject;
 
+import java.util.ArrayList;
+
 import io.ourglass.bucanero.R;
+import io.ourglass.bucanero.Support.OGShellE;
 import io.ourglass.bucanero.api.BelliniDMAPI;
 import io.ourglass.bucanero.core.ABApplication;
 import io.ourglass.bucanero.core.OGConstants;
@@ -42,6 +45,9 @@ import io.ourglass.bucanero.services.STB.STBPollingWorker;
 import io.ourglass.bucanero.tv.Fragments.OGWebViewFragment;
 import io.ourglass.bucanero.tv.Fragments.OverlayFragmentListener;
 import io.ourglass.bucanero.tv.Fragments.SystemInfoFragment;
+import io.ourglass.bucanero.tv.HDMI.HDMIStateException;
+import io.ourglass.bucanero.tv.HDMI.HDMIView;
+import io.ourglass.bucanero.tv.HDMI.RtkHdmiWrapper;
 import io.ourglass.bucanero.tv.STBPairing.PairDirecTVFragment;
 import io.ourglass.bucanero.tv.SettingsAndSetup.DeveloperSettingsFragment;
 import io.ourglass.bucanero.tv.SettingsAndSetup.SettingsFragment;
@@ -51,7 +57,6 @@ import io.ourglass.bucanero.tv.Support.OGAnimations;
 import io.ourglass.bucanero.tv.Support.OGApp;
 import io.ourglass.bucanero.tv.Support.Size;
 import io.ourglass.bucanero.tv.VenuePairing.PairVenueFragment;
-import io.ourglass.bucanero.tv.Views.HDMIView;
 import io.ourglass.bucanero.tv.WiFi.WiFiPickerFragment;
 import io.socket.client.Socket;
 
@@ -107,26 +112,72 @@ public class MainFrameActivity extends BaseFullscreenActivity implements Overlay
             setContentView(R.layout.activity_main_frame_tronsmart);
         } else if (OGSystem.isEmulator() || OGSystem.isNexus()) {
             setContentView(R.layout.activity_main_frame_emulator);
-//            ((ImageView)findViewById(R.id.bkgImage)).setOnClickListener(new View.OnClickListener() {
-//                @Override
-//                public void onClick(View v) {
-//                    Log.d(TAG, "Background image tapped.");
-//                    launchSTBPairFragment();
-//                }
-//            });
+
         } else if (OGSystem.isRealOG()) {
 
-            setContentView(R.layout.activity_main_frame_zidoo);
+            setContentView(R.layout.activity_main_frame_zidoo_og);
+            mHDMIView = (HDMIView)findViewById(R.id.home_hdmi_parent);
+
+
+            try {
+                mHDMIView.prepareAuto(new HDMIView.HDMIViewListener() {
+                    @Override
+                    public void surfaceReady() {
+                        Log.d(TAG, "HDMI Surface ready");
+                    }
+
+                    @Override
+                    public void ready() {
+                        Log.d(TAG, "HDMI Driver ready");
+                    }
+
+                    @Override
+                    public void error(RtkHdmiWrapper.OGHdmiError error) {
+                        Log.e(TAG, "HDMI Driver error: " + error.name());
+                        if (error== RtkHdmiWrapper.OGHdmiError.HDMI_CANT_OPEN_DRIVER){
+                            Log.wtf(TAG, "We're fucked, need to reboot. HDMI driver is locked.");
+                            OGShellE.execRoot("reboot", new OGShellE.OGShellEListener() {
+                                @Override
+                                public void stdout(ArrayList<String> results) {
+                                    Log.d(TAG, "Reboot responded with stdout: " + results);
+                                }
+
+                                @Override
+                                public void stderr(ArrayList<String> errors) {
+                                    Log.d(TAG, "Reboot responded with stderr: " + errors);
+
+                                }
+
+                                @Override
+                                public void fail(Exception e) {
+                                    Log.wtf(TAG, "Could not reboot");
+                                }
+                            });
+                        }
+
+                    }
+
+                    @Override
+                    public void hdmiLOS() {
+                        Log.d(TAG, "We've lost the HDMI input for more than one second.");
+                    }
+
+                    @Override
+                    public void hdmiActive() {
+                        Log.d(TAG, "HDMI has a signal.");
+                    }
+
+                });
+            } catch (HDMIStateException e) {
+                // TODO Handle this somehow
+                e.printStackTrace();
+                Log.wtf(TAG, "Unrecoverable error prepping HDMIView! Error: " + e.getMessage());
+            }
 
         } else {
             Log.wtf(TAG, "Hmmm, this is not any recognized hardware. Exiting");
             finish();
         }
-
-
-
-        //SJMmTVSurface = (SurfaceView) findViewById(R.id.surfaceView);
-        //SJMenableHDMISurface();
 
         // Register to receive messages
         ABApplication.ottobus.register(this);
@@ -187,7 +238,8 @@ public class MainFrameActivity extends BaseFullscreenActivity implements Overlay
         });
 
         mBootBugImageView = (ImageView) findViewById(R.id.bootBugIV);
-        mHDMIView = (HDMIView)findViewById(R.id.home_hdmi_parent);
+
+
 
         // WAG at releasing HDMI when shit really gets fucked
 //        if (OGConstants.ENABLE_RESTART_ON_UNCAUGHT_EXCEPTIONS) {
@@ -345,7 +397,6 @@ public class MainFrameActivity extends BaseFullscreenActivity implements Overlay
             tv.setText("USING LOCAL BELLINI-DM @ "+OGConstants.BELLINI_DM_LAN_LOCAL_ADDRESS);
         }
 
-        mHDMIView.onResume();
 
         if (OGConstants.AUTO_START_AUDIO_STREAMER){
 
@@ -359,14 +410,22 @@ public class MainFrameActivity extends BaseFullscreenActivity implements Overlay
 
         }
 
+        mHDMIView.activityResume();
+
     }
 
     @Override
     public void onPause() {
         stbPoller.stop();
-        mHDMIView.onPause();
+        mHDMIView.activityPause();
         super.onPause();
     }
+
+    @Override
+    public void onDestroy() {
+        super.onDestroy();
+    }
+
 
     //This needs to be here to prevent the dreaded illegal state exception
     @Override
@@ -493,6 +552,38 @@ public class MainFrameActivity extends BaseFullscreenActivity implements Overlay
         if ((keyCode == 16) && OGConstants.CRASH_TEST_DUMMY) {
             //int zed = 1 / 0;
         }
+
+//        if (keyCode == KeyEvent.KEYCODE_5) {
+//            ABApplication.dbToast("Starting HDMI PLayback");
+//            mHDMIView.resume();
+//        }
+//
+//        if (keyCode == KeyEvent.KEYCODE_8) {
+//            ABApplication.dbToast("Pausing HDMI PLayback");
+//            mHDMIView.pause();
+//        }
+//
+//        if (keyCode == KeyEvent.KEYCODE_6) {
+//            ABApplication.dbToast("Restarting HDMI Playback");
+//            mHDMIView.start(new HDMIView2.HDMIViewListener() {
+//                @Override
+//                public void ready() {
+//                    Log.d(TAG, "HDMIView reports ready, starting it.");
+//                    mHDMIView.resume();
+//                }
+//
+//                @Override
+//                public void error(OurglassHdmiDisplay2.OGHdmiError error) {
+//                    Log.e(TAG, "Error initting HDMIView");
+//                }
+//
+//            });
+//        }
+//
+//        if (keyCode == KeyEvent.KEYCODE_9) {
+//            ABApplication.dbToast("Killing HDMI Playback");
+//            mHDMIView.destroy();
+//        }
 
         return false;
     }
@@ -628,10 +719,17 @@ public class MainFrameActivity extends BaseFullscreenActivity implements Overlay
 
     }
 
-    private void showSystemToast(String message) {
+    private void showSystemToast(final String message) {
         // submessage not used right now
-        mPopupSystemMessageTV.setText(message);
-        OGAnimations.animateAlphaTo(mPopupSystemMessageTV, 1.0f);
+        runOnUiThread(new Runnable() {
+            @Override
+            public void run() {
+                mPopupSystemMessageTV.setVisibility(View.VISIBLE);
+                mPopupSystemMessageTV.setText(message);
+                OGAnimations.animateAlphaTo(mPopupSystemMessageTV, 1.0f);
+            }
+        });
+
         mPopupSystemMessageTV.postDelayed(new Runnable() {
             @Override
             public void run() {
@@ -709,6 +807,16 @@ public class MainFrameActivity extends BaseFullscreenActivity implements Overlay
                         pm.reboot(null);
                     }
                 }, 5000);
+                break;
+
+            case SHOW_HDMI_DEBUG_LAYER:
+                Log.d(TAG, "Received message to turn on HDMI debug layer.");
+                mHDMIView.setmDebugMode(true);
+                break;
+
+            case HIDE_HDMI_DEBUG_LAYER:
+                Log.d(TAG, "Received message to turn off HDMI debug layer.");
+                mHDMIView.setmDebugMode(false);
                 break;
         }
 

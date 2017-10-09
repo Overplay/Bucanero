@@ -6,7 +6,7 @@ package io.ourglass.bucanero.messages;
 
 public class SystemCommandMessage extends OttobusMainThreadMessage {
 
-    public enum SystemCommand { DISMISS_OVERLAY, VENUE_PAIR_DONE, REBOOT }
+    public enum SystemCommand { DISMISS_OVERLAY, VENUE_PAIR_DONE, REBOOT, SHOW_HDMI_DEBUG_LAYER, HIDE_HDMI_DEBUG_LAYER }
 
     public SystemCommand status;
 

@@ -89,6 +89,17 @@
             android:layout_marginTop="20sp"
             android:textSize="@dimen/overlay_subtitle_font_size"/>
 
+        <Switch
+            android:id="@+id/switchHdmiOverlayMode"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:track="@drawable/switch_track"
+            android:showText="false"
+            android:thumb="@drawable/switch_knob"
+            android:text="Show HDMI Debug Overlay"
+            android:layout_marginTop="20sp"
+            android:textSize="@dimen/overlay_subtitle_font_size"/>
+
     </LinearLayout>
 
 
