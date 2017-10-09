@@ -185,12 +185,14 @@ public class RtkHdmiWrapper {
         mHDMIRX.play();
         iThinkHDMIisPlaying = true;
         //mHDMIRX.setPlayback(true, true);
+        startStreamer();
         Log.d(TAG, "hdmi mIsPlaying successfully, I hope");
     }
 
     // should only be called from sep thread, via Handler
     private void stopAction() {
         //mHDMIRX.setPlayback(false, false);
+        stopStreamer();
         int stopResult = mHDMIRX.stop();
         iThinkHDMIisPlaying = false;
         Log.d(TAG, "pause() result of driver stop was (0=good) " + stopResult);
@@ -406,7 +408,6 @@ public class RtkHdmiWrapper {
 
             if (driverReady) {
                 mHandler.sendEmptyMessage(STOP_MSG);
-                stopStreamer();
             }
 
             stateCallback(HDMI_PAUSED);
@@ -427,8 +428,8 @@ public class RtkHdmiWrapper {
         fyiCallback("releaseHDMI() called");
         if (mHDMIRX != null) {
 
-            mHDMIRX.stop();
             stopStreamer();
+            mHDMIRX.stop();
 
             try {
                 mHDMIRX.setPreviewDisplay(null);
@@ -460,6 +461,7 @@ public class RtkHdmiWrapper {
 
         if (mHDMIRX != null) {
             Log.d(TAG, "orderlyShutdownDriver calling stop() on driver..");
+            stopStreamer();
             int stopResult = mHDMIRX.stop();
             Log.d(TAG, "orderlyShutdownDriver result of driver stop was (0=good) " + stopResult);
             releaseHDMI();
@@ -481,7 +483,6 @@ public class RtkHdmiWrapper {
         if (driverReady) {
             mHandler.sendEmptyMessage(PLAY_MSG);
             stateCallback(HDMI_PLAY);
-            startStreamer();
         } else {
             Log.d(TAG, "playHDMI() called and driver not ready, piss off.");
             fyiCallback("Play called on a non-ready driver. Ignored.");
@@ -578,6 +579,7 @@ public class RtkHdmiWrapper {
     }
 
     public void stopStreamer() {
+        Log.v(TAG, "stopStreamer() called.");
 
         if (isStreaming) {
             try {
@@ -600,6 +602,7 @@ public class RtkHdmiWrapper {
     }
 
     public void startStreamer() {
+        Log.v(TAG, "startStreamer() called.");
 
         if (isStreaming) {
             fyiCallback("Start streaming called, but already streaming.");
