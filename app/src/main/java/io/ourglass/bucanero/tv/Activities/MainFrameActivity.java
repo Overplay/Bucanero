@@ -25,7 +25,10 @@ import org.json.JSONArray;
 import org.json.JSONException;
 import org.json.JSONObject;
 
+import java.util.ArrayList;
+
 import io.ourglass.bucanero.R;
+import io.ourglass.bucanero.Support.OGShellE;
 import io.ourglass.bucanero.api.BelliniDMAPI;
 import io.ourglass.bucanero.core.ABApplication;
 import io.ourglass.bucanero.core.OGConstants;
@@ -137,6 +140,26 @@ public class MainFrameActivity extends BaseFullscreenActivity implements Overlay
                     @Override
                     public void error(RtkHdmiWrapper.OGHdmiError error) {
                         Log.e(TAG, "HDMI Driver error: " + error.name());
+                        if (error== RtkHdmiWrapper.OGHdmiError.HDMI_CANT_OPEN_DRIVER){
+                            Log.wtf(TAG, "We're fucked, need to reboot. HDMI driver is locked.");
+                            OGShellE.execRoot("reboot", new OGShellE.OGShellEListener() {
+                                @Override
+                                public void stdout(ArrayList<String> results) {
+                                    Log.d(TAG, "Reboot responded with stdout: " + results);
+                                }
+
+                                @Override
+                                public void stderr(ArrayList<String> errors) {
+                                    Log.d(TAG, "Reboot responded with stderr: " + errors);
+
+                                }
+
+                                @Override
+                                public void fail(Exception e) {
+                                    Log.wtf(TAG, "Could not reboot");
+                                }
+                            });
+                        }
 
                     }
                 });
