@@ -2,7 +2,8 @@ package io.ourglass.bucanero.core;
 
 import android.util.Log;
 
-import io.ourglass.bucanero.tv.Views.HDMIView;
+import io.ourglass.bucanero.tv.HDMI.HDMIView;
+
 
 /**
  * Created by mkahn on 11/27/16.

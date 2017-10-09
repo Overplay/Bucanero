@@ -72,6 +72,17 @@ public class OGSettings {
         putBoolToPrefs("logcatUpload", upload);
     }
 
+    /*
+    * HDMI Debug Mode
+    */
+    public static boolean getHDMIDebugOverlayMode() {
+        return getBoolFromPrefs( "hdmiDebugOverlay", false );
+    }
+
+    public static void setHDMIDebugOverlayMode(boolean showOverlay) {
+        putBoolToPrefs("hdmiDebugOverlay", showOverlay);
+    }
+
     ;
 
     /*

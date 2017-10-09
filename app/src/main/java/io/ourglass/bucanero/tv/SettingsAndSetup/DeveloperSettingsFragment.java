@@ -14,6 +14,7 @@ import android.widget.TextView;
 import io.ourglass.bucanero.R;
 import io.ourglass.bucanero.core.OGSettings;
 import io.ourglass.bucanero.core.OGUi;
+import io.ourglass.bucanero.messages.SystemCommandMessage;
 import io.ourglass.bucanero.services.Connectivity.ConnectivityCenter;
 import io.ourglass.bucanero.tv.Fragments.OverlayFragment;
 
@@ -33,6 +34,7 @@ public class DeveloperSettingsFragment extends OverlayFragment {
     Switch switchDevBellini;
     Switch switchVerbose;
     Switch switchLogcat;
+    Switch switchHdmiDebug;
 
     ViewGroup mButtonHolder;
 
@@ -105,6 +107,18 @@ public class DeveloperSettingsFragment extends OverlayFragment {
         });
 
         switchLogcat.setChecked(OGSettings.getLogcatUploadMode());
+
+        switchHdmiDebug = (Switch)getView().findViewById(R.id.switchHdmiOverlayMode);
+        switchHdmiDebug.setOnCheckedChangeListener(new CompoundButton.OnCheckedChangeListener() {
+            @Override
+            public void onCheckedChanged(CompoundButton buttonView, boolean isChecked) {
+                OGSettings.setHDMIDebugOverlayMode( isChecked );
+                (new SystemCommandMessage( isChecked ? SystemCommandMessage.SystemCommand.SHOW_HDMI_DEBUG_LAYER :
+                        SystemCommandMessage.SystemCommand.HIDE_HDMI_DEBUG_LAYER)).post();
+            }
+        });
+
+        switchHdmiDebug.setChecked(OGSettings.getHDMIDebugOverlayMode());
 
         // TODO this should actually be self-resetting based on activity in the fragment
         //dismissMeAfter(5*60*1000);

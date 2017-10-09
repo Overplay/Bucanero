@@ -42,6 +42,9 @@ import io.ourglass.bucanero.services.STB.STBPollingWorker;
 import io.ourglass.bucanero.tv.Fragments.OGWebViewFragment;
 import io.ourglass.bucanero.tv.Fragments.OverlayFragmentListener;
 import io.ourglass.bucanero.tv.Fragments.SystemInfoFragment;
+import io.ourglass.bucanero.tv.HDMI.HDMIStateException;
+import io.ourglass.bucanero.tv.HDMI.HDMIView;
+import io.ourglass.bucanero.tv.HDMI.RtkHdmiWrapper;
 import io.ourglass.bucanero.tv.STBPairing.PairDirecTVFragment;
 import io.ourglass.bucanero.tv.SettingsAndSetup.DeveloperSettingsFragment;
 import io.ourglass.bucanero.tv.SettingsAndSetup.SettingsFragment;
@@ -51,8 +54,6 @@ import io.ourglass.bucanero.tv.Support.OGAnimations;
 import io.ourglass.bucanero.tv.Support.OGApp;
 import io.ourglass.bucanero.tv.Support.Size;
 import io.ourglass.bucanero.tv.VenuePairing.PairVenueFragment;
-import io.ourglass.bucanero.tv.Views.HDMIView2;
-import io.ourglass.bucanero.tv.Views.OurglassHdmiDisplay2;
 import io.ourglass.bucanero.tv.WiFi.WiFiPickerFragment;
 import io.socket.client.Socket;
 
@@ -76,7 +77,7 @@ public class MainFrameActivity extends BaseFullscreenActivity implements Overlay
     RelativeLayout mOverlayFragmentHolder;
     SurfaceView mTVSurface;
 
-    private HDMIView2 mHDMIView;
+    private HDMIView mHDMIView;
 
     private enum OverlayMode {NONE, SYSINFO, STBPAIR, WIFI, SETUP, OTHER, VENUEPAIR, SETTINGS, WELCOME, DEVSETTINGS}
 
@@ -118,6 +119,32 @@ public class MainFrameActivity extends BaseFullscreenActivity implements Overlay
         } else if (OGSystem.isRealOG()) {
 
             setContentView(R.layout.activity_main_frame_zidoo_og);
+            mHDMIView = (HDMIView)findViewById(R.id.home_hdmi_parent);
+
+
+            try {
+                mHDMIView.prepareAuto(new HDMIView.HDMIViewListener() {
+                    @Override
+                    public void surfaceReady() {
+                        Log.d(TAG, "HDMI Surface ready");
+                    }
+
+                    @Override
+                    public void ready() {
+                        Log.d(TAG, "HDMI Driver ready");
+                    }
+
+                    @Override
+                    public void error(RtkHdmiWrapper.OGHdmiError error) {
+                        Log.e(TAG, "HDMI Driver error: " + error.name());
+
+                    }
+                });
+            } catch (HDMIStateException e) {
+                // TODO Handle this somehow
+                e.printStackTrace();
+                Log.wtf(TAG, "Unrecoverable error prepping HDMIView! Error: " + e.getMessage());
+            }
 
         } else {
             Log.wtf(TAG, "Hmmm, this is not any recognized hardware. Exiting");
@@ -188,21 +215,8 @@ public class MainFrameActivity extends BaseFullscreenActivity implements Overlay
         });
 
         mBootBugImageView = (ImageView) findViewById(R.id.bootBugIV);
-        mHDMIView = (HDMIView2)findViewById(R.id.home_hdmi_parent);
 
-        mHDMIView.start(new HDMIView2.HDMIViewListener() {
-            @Override
-            public void ready() {
-                Log.d(TAG, "HDMIView reports ready, starting it.");
-                mHDMIView.resume();
-            }
 
-            @Override
-            public void error(OurglassHdmiDisplay2.OGHdmiError error) {
-                Log.e(TAG, "Error initting HDMIView");
-            }
-
-        });
 
         // WAG at releasing HDMI when shit really gets fucked
 //        if (OGConstants.ENABLE_RESTART_ON_UNCAUGHT_EXCEPTIONS) {
@@ -373,18 +387,19 @@ public class MainFrameActivity extends BaseFullscreenActivity implements Overlay
 
         }
 
+        mHDMIView.activityResume();
+
     }
 
     @Override
     public void onPause() {
         stbPoller.stop();
-        mHDMIView.pause();
+        mHDMIView.activityPause();
         super.onPause();
     }
 
     @Override
     public void onDestroy() {
-        mHDMIView.destroy();
         super.onDestroy();
     }
 
@@ -762,6 +777,16 @@ public class MainFrameActivity extends BaseFullscreenActivity implements Overlay
                         pm.reboot(null);
                     }
                 }, 5000);
+                break;
+
+            case SHOW_HDMI_DEBUG_LAYER:
+                Log.d(TAG, "Received message to turn on HDMI debug layer.");
+                mHDMIView.setmDebugMode(true);
+                break;
+
+            case HIDE_HDMI_DEBUG_LAYER:
+                Log.d(TAG, "Received message to turn off HDMI debug layer.");
+                mHDMIView.setmDebugMode(false);
                 break;
         }
 
