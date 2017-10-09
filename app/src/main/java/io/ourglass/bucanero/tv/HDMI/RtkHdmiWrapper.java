@@ -1,5 +1,6 @@
 package io.ourglass.bucanero.tv.HDMI;
 
+import android.app.Activity;
 import android.content.BroadcastReceiver;
 import android.content.Context;
 import android.content.Intent;
@@ -20,6 +21,13 @@ import com.realtek.server.HDMIRxStatus;
 import java.io.IOException;
 import java.util.List;
 
+import io.ourglass.bucanero.core.ABApplication;
+import io.ourglass.bucanero.core.OGConstants;
+import io.ourglass.bucanero.messages.OGLogMessage;
+import io.ourglass.bucanero.messages.SystemStatusMessage;
+import io.ourglass.bucanero.services.FFmpeg.AudioStreamer;
+
+import static io.ourglass.bucanero.messages.SystemStatusMessage.SystemStatus.AS_LOS;
 import static io.ourglass.bucanero.tv.HDMI.RtkHdmiWrapper.OGHdmiError.FYI;
 import static io.ourglass.bucanero.tv.HDMI.RtkHdmiWrapper.OGHdmiError.HDMI_DRIVER_ALREADY_OPEN;
 import static io.ourglass.bucanero.tv.HDMI.RtkHdmiWrapper.OGHdmiState.HDMI_DRIVER_READY;
@@ -48,9 +56,6 @@ public class RtkHdmiWrapper {
         HDMI_PLAY,
         HDMI_STOP_AND_RELEASE,
         HDMI_PAUSED,
-        SURFACE_READY,
-        SURFACE_DESTROYED,
-        SURFACE_CHANGED
     }
 
     public enum OGHdmiError {
@@ -65,7 +70,9 @@ public class RtkHdmiWrapper {
 
     public interface RtkWrapperListener {
         void error(OGHdmiError error, String msg);
+
         void hdmiStateChange(OGHdmiState state);
+
         void fyi(String msg);
     }
 
@@ -128,7 +135,7 @@ public class RtkHdmiWrapper {
      * @param listener
      * @param debugMode
      */
-    public RtkHdmiWrapper(Context context, SurfaceHolder surfaceHolder, RtkWrapperListener listener, boolean debugMode){
+    public RtkHdmiWrapper(Context context, SurfaceHolder surfaceHolder, RtkWrapperListener listener, boolean debugMode) {
 
         this.mContext = context;
         this.mSurfaceHolder = surfaceHolder;
@@ -139,7 +146,7 @@ public class RtkHdmiWrapper {
         // a handler on the same thread (this part makes no sense). So this handler is for that.
         mHandlerThread = new HandlerThread("PlaybackControlThread");
         mHandlerThread.start();
-        mHandler = new Handler(mHandlerThread.getLooper()){
+        mHandler = new Handler(mHandlerThread.getLooper()) {
             @Override
             public void handleMessage(Message msg) {
                 switch (msg.what) {
@@ -163,18 +170,18 @@ public class RtkHdmiWrapper {
     }
 
     // This won't do dick-all for force-kills, I think.
-    private void setupCrashHandler(){
+    private void setupCrashHandler() {
         Thread.setDefaultUncaughtExceptionHandler(new Thread.UncaughtExceptionHandler() {
             @Override
             public void uncaughtException(Thread paramThread, Throwable paramThrowable) {
-                Log.e(TAG,"Uncaught excpetion, releasing HDMI.");
+                Log.e(TAG, "Uncaught excpetion, releasing HDMI.");
                 orderlyShutdownDriver();
             }
         });
     }
 
     // should only be called from sep thread, via Handler
-    private void playAction(){
+    private void playAction() {
         mHDMIRX.play();
         iThinkHDMIisPlaying = true;
         //mHDMIRX.setPlayback(true, true);
@@ -182,14 +189,14 @@ public class RtkHdmiWrapper {
     }
 
     // should only be called from sep thread, via Handler
-    private void stopAction(){
+    private void stopAction() {
         //mHDMIRX.setPlayback(false, false);
         int stopResult = mHDMIRX.stop();
         iThinkHDMIisPlaying = false;
         Log.d(TAG, "pause() result of driver stop was (0=good) " + stopResult);
     }
 
-    private void shutdownAction(){
+    private void shutdownAction() {
 
         stopAction();
 
@@ -198,7 +205,7 @@ public class RtkHdmiWrapper {
 
     public void registerBroadcastRx() {
 
-        if (mHdmiRxHotPlugReceiver!=null){
+        if (mHdmiRxHotPlugReceiver != null) {
             Log.d(TAG, "Broadcast receiver is already registered, skipping.");
             return;
         }
@@ -226,16 +233,16 @@ public class RtkHdmiWrapper {
 
     }
 
-    public void unregisterBroadcastRx(){
+    public void unregisterBroadcastRx() {
         if (mHdmiRxHotPlugReceiver != null) {
             mContext.unregisterReceiver(mHdmiRxHotPlugReceiver);
             mHdmiRxHotPlugReceiver = null;
         }
     }
 
-    public boolean areHdmiPHYAndDriverConnected(){
+    public boolean areHdmiPHYAndDriverConnected() {
 
-        if (mHDMIRX!=null){
+        if (mHDMIRX != null) {
             return mHDMIRX.isHDMIRxPlugged();
         } else {
             return false;
@@ -245,6 +252,7 @@ public class RtkHdmiWrapper {
 
     /**
      * Calls back state change to listener if one is registered.
+     *
      * @param state
      */
     private void stateCallback(OGHdmiState state) {
@@ -256,6 +264,7 @@ public class RtkHdmiWrapper {
 
     /**
      * Calls backerror to listener if one is registered.
+     *
      * @param error
      * @param msg
      */
@@ -267,31 +276,31 @@ public class RtkHdmiWrapper {
 
     /**
      * Calls back fyi to listener if one is registered.
+     *
      * @param msg
      */
-    private void fyiCallback( String msg ) {
+    private void fyiCallback(String msg) {
         if (mListener != null) {
             mListener.fyi(msg);
         }
     }
 
     // Probably only ever use this during dev
-    private void sendFYIStatus(HDMIRxStatus rxStatus){
-        if (debugMode && verboseDebug){
+    private void sendFYIStatus(HDMIRxStatus rxStatus) {
+        if (debugMode && verboseDebug) {
             StringBuilder sb = new StringBuilder("RxManager Status:\n");
-            sb.append("type = "+rxStatus.type + "\n");
-            sb.append("status = "+rxStatus.status + "\n");
-            sb.append("width = "+rxStatus.width + "\n");
-            sb.append("height = "+rxStatus.height + "\n");
-            sb.append("scanMode = "+rxStatus.scanMode + "\n");
-            sb.append("color = "+rxStatus.color + "\n");
-            sb.append("freq = "+rxStatus.freq + "\n");
-            sb.append("spdif = "+rxStatus.spdif + "\n");
-            sb.append("audioStatus = "+rxStatus.audioStatus + "\n");
+            sb.append("type = " + rxStatus.type + "\n");
+            sb.append("status = " + rxStatus.status + "\n");
+            sb.append("width = " + rxStatus.width + "\n");
+            sb.append("height = " + rxStatus.height + "\n");
+            sb.append("scanMode = " + rxStatus.scanMode + "\n");
+            sb.append("color = " + rxStatus.color + "\n");
+            sb.append("freq = " + rxStatus.freq + "\n");
+            sb.append("spdif = " + rxStatus.spdif + "\n");
+            sb.append("audioStatus = " + rxStatus.audioStatus + "\n");
             fyiCallback(sb.toString());
         }
     }
-
 
 
     public void initHDMIDriver() {
@@ -375,7 +384,6 @@ public class RtkHdmiWrapper {
                 Log.d(TAG, "initHDMIDriver:  got an non-ready status from the driver. Fuck.");
                 Log.d(TAG, "initHDMIDriver:  Status ( 0 = not ready ): " + rxStatus.status);
                 errorCallback(OGHdmiError.HDMI_UNAVAILABLE, "Got non-ready status from driver. Unplugged?");
-                //cleanUpBadManager();
                 orderlyShutdownDriver();
             }
 
@@ -408,7 +416,6 @@ public class RtkHdmiWrapper {
     }
 
     /**
-     *
      * SHUTDOWN ORDER:
      * 1. Remove the preview display
      * 2. .release() the manager
@@ -418,14 +425,15 @@ public class RtkHdmiWrapper {
     public void releaseHDMI() {
         Log.d(TAG, "releaseHDMI() called.");
         fyiCallback("releaseHDMI() called");
-        if (mHDMIRX != null ) {
+        if (mHDMIRX != null) {
 
             mHDMIRX.stop();
+            stopStreamer();
 
             try {
                 mHDMIRX.setPreviewDisplay(null);
             } catch (IOException e) {
-                Log.wtf(TAG,"Exception thrown releasing preview display.");
+                Log.wtf(TAG, "Exception thrown releasing preview display.");
             }
 
             mHDMIRX.release();
@@ -450,7 +458,7 @@ public class RtkHdmiWrapper {
             return;
         }
 
-        if (mHDMIRX != null ) {
+        if (mHDMIRX != null) {
             Log.d(TAG, "orderlyShutdownDriver calling stop() on driver..");
             int stopResult = mHDMIRX.stop();
             Log.d(TAG, "orderlyShutdownDriver result of driver stop was (0=good) " + stopResult);
@@ -473,6 +481,7 @@ public class RtkHdmiWrapper {
         if (driverReady) {
             mHandler.sendEmptyMessage(PLAY_MSG);
             stateCallback(HDMI_PLAY);
+            startStreamer();
         } else {
             Log.d(TAG, "playHDMI() called and driver not ready, piss off.");
             fyiCallback("Play called on a non-ready driver. Ignored.");
@@ -522,7 +531,7 @@ public class RtkHdmiWrapper {
     // Scott's audio Stuff, Commented Out for Now
 
     private ParcelFileDescriptor[] ffPipe = null;
-    //private AudioStreamer mAudioStreamer = null;
+    private AudioStreamer mAudioStreamer;
     private boolean isStreaming = false;
 
     public boolean isStreaming() {
@@ -530,63 +539,60 @@ public class RtkHdmiWrapper {
     }
 
     private void initStreamer() {
-//        mAudioStreamer = new AudioStreamer(mContext, new AudioStreamer.StreamDeadListener() {
-//            @Override
-//            public void streamDead(Context lContext) {
-//                Log.v(TAG, "streamDead");
-//
-//                ((Activity) lContext).runOnUiThread(new Runnable() {
-//                    @Override
-//                    public void run() {
-//
-//                        if ((ffPipe != null) && (ffPipe.length == 2)) {
-//                            try {
-//                                ffPipe[1].closeWithError("Die Milk Face");
-//                                ffPipe[0].checkError();
-//                                Log.v(TAG, "all good");
-//                            } catch (IOException e) {
-//                                Log.e(TAG, "Exception killing", e);
-//                                ;
-//                            }
-//                        }
-//
-//                        if (isStreaming()) {
-//                            stopStreamer();
-//                        }
-//
-//                        OGLogMessage.newOGLog("streaming_failed")
-//                                .addFieldToMessage("description", "not sure the reason")
-//                                .addFieldToMessage("exception", "pipe or process exited")
-//                                .addFieldToMessage("issue_code", 8675309)
-//                                .post();
-//
-//                        //SystemStatusMessage.sendStatusMessageWithException(AS_LOS, result);
-//                        SystemStatusMessage.sendStatusMessage(AS_LOS);
-//
-//                    }
-//                });
-//            }
-//        });
+        mAudioStreamer = new AudioStreamer(mContext, new AudioStreamer.StreamDeadListener() {
+            @Override
+            public void streamDead(Context lContext) {
+                Log.v(TAG, "streamDead");
+
+                ((Activity) lContext).runOnUiThread(new Runnable() {
+                    @Override
+                    public void run() {
+
+                        if ((ffPipe != null) && (ffPipe.length == 2)) {
+                            try {
+                                ffPipe[1].closeWithError("Die Milk Face");
+                                ffPipe[0].checkError();
+                                Log.v(TAG, "all good");
+                            } catch (IOException e) {
+                                Log.e(TAG, "Exception killing", e);
+                            }
+                        }
+
+                        if (isStreaming()) {
+                            stopStreamer();
+                        }
+
+                        OGLogMessage.newOGLog("streaming_failed")
+                                .addFieldToMessage("description", "not sure the reason")
+                                .addFieldToMessage("exception", "pipe or process exited")
+                                .addFieldToMessage("issue_code", 8675309)
+                                .post();
+
+                        //SystemStatusMessage.sendStatusMessageWithException(AS_LOS, result);
+                        SystemStatusMessage.sendStatusMessage(AS_LOS);
+
+                    }
+                });
+            }
+        });
     }
 
     public void stopStreamer() {
 
-        if (isStreaming){
+        if (isStreaming) {
             try {
                 isStreaming = false;
                 if (mHDMIRX != null) {
                     mHDMIRX.setTranscode(false);
                 }
-//            if (mAudioStreamer != null) {
-//                mAudioStreamer.killStream();
-//            }
+                if (mAudioStreamer != null) {
+                    mAudioStreamer.killStream();
+                }
 
-                //Toast.makeText(mContext, "Stop streamer successful!", Toast.LENGTH_SHORT).show();
-                //ABApplication.dbToast("Stop streamer successful!");
+                ABApplication.dbToast("Stop streamer successful!");
 
             } catch (Exception e) {
                 Log.e(TAG, "Exception mHDMIRX.setTranscode2", e);
-                ;
             }
 
         }
@@ -600,46 +606,45 @@ public class RtkHdmiWrapper {
             return;
         }
 
-//        int videoBitrate = OGConstants.BUCANERO_AV_V_BITRATE;
-//        int channelCount = OGConstants.BUCANERO_AV_A_CHANNELS;
-//        int sampleRate = OGConstants.BUCANERO_AV_A_SAMPLERATE;
-//        int audioBitrate = OGConstants.BUCANERO_AV_A_BITRATE;
-//        int w = mWidth;
-//        int h = mHeight;
-//        if ((w * h) > OGConstants.BUCANERO_AV_V_MAXWIDTH * OGConstants.BUCANERO_AV_V_MAXHEIGHT) {
-//            w = OGConstants.BUCANERO_AV_V_MAXWIDTH;
-//            h = OGConstants.BUCANERO_AV_V_MAXHEIGHT;
-//        }
-//
-//        if (!iThinkHDMIisPlaying) {
-//            return;
-//        }
-//
-//        try {
-//            ffPipe = ParcelFileDescriptor.createReliablePipe();
-//            if (!mAudioStreamer.runStream(ffPipe[0])) {
-//                return;
-//            }
-//            /* For kicks I tried to make vConfig (1,1,10) but that breaks the screen/view */
-//            RtkHDMIRxManager.VideoConfig vConfig = new RtkHDMIRxManager.VideoConfig(w, h, videoBitrate);
-//            RtkHDMIRxManager.AudioConfig aConfig = new RtkHDMIRxManager.AudioConfig(channelCount, sampleRate, audioBitrate);
-//
-//            mHDMIRX.configureTargetFormat(vConfig, aConfig);
-//            mHDMIRX.setTargetFd(ffPipe[1], RtkHDMIRxManager.HDMIRX_FILE_FORMAT_TS);
-//            mHDMIRX.setTranscode(true);
-//            isStreaming = true;
-//            //Toast.makeText(mContext, "Start streamer successful ...", Toast.LENGTH_SHORT).show();
-//            ABApplication.dbToast("Start streamer successful!");
-//        } catch (IOException e) {
-//            Log.e(TAG, "Exception creating ffPipe", e);
-//            return;
-//        }
-//
-//        try {
-//        } catch (Exception e) {
-//            Log.e(TAG, "Exception streaming", e);
-//            ;
-//        }
+        int videoBitrate = OGConstants.BUCANERO_AV_V_BITRATE;
+        int channelCount = OGConstants.BUCANERO_AV_A_CHANNELS;
+        int sampleRate = OGConstants.BUCANERO_AV_A_SAMPLERATE;
+        int audioBitrate = OGConstants.BUCANERO_AV_A_BITRATE;
+        int w = mWidth;
+        int h = mHeight;
+        if ((w * h) > OGConstants.BUCANERO_AV_V_MAXWIDTH * OGConstants.BUCANERO_AV_V_MAXHEIGHT) {
+            w = OGConstants.BUCANERO_AV_V_MAXWIDTH;
+            h = OGConstants.BUCANERO_AV_V_MAXHEIGHT;
+        }
+
+        if (!iThinkHDMIisPlaying) {
+            return;
+        }
+
+        try {
+            ffPipe = ParcelFileDescriptor.createReliablePipe();
+            if (!mAudioStreamer.runStream(ffPipe[0])) {
+                return;
+            }
+            /* For kicks I tried to make vConfig (1,1,10) but that breaks the screen/view */
+            RtkHDMIRxManager.VideoConfig vConfig = new RtkHDMIRxManager.VideoConfig(w, h, videoBitrate);
+            RtkHDMIRxManager.AudioConfig aConfig = new RtkHDMIRxManager.AudioConfig(channelCount, sampleRate, audioBitrate);
+
+            mHDMIRX.configureTargetFormat(vConfig, aConfig);
+            mHDMIRX.setTargetFd(ffPipe[1], RtkHDMIRxManager.HDMIRX_FILE_FORMAT_TS);
+            mHDMIRX.setTranscode(true);
+            isStreaming = true;
+            //Toast.makeText(mContext, "Start streamer successful ...", Toast.LENGTH_SHORT).show();
+            ABApplication.dbToast("Start streamer successful!");
+        } catch (IOException e) {
+            Log.e(TAG, "Exception creating ffPipe", e);
+            return;
+        }
+
+        try {
+        } catch (Exception e) {
+            Log.e(TAG, "Exception streaming", e);
+        }
     }
 
 
@@ -660,8 +665,6 @@ public class RtkHdmiWrapper {
             mRootView.setLayoutParams(param);
         }
     }
-
-
 
 
 }

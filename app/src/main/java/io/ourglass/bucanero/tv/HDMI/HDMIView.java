@@ -17,6 +17,7 @@ import android.widget.Toast;
 import java.util.ArrayList;
 
 import io.ourglass.bucanero.R;
+import io.ourglass.bucanero.tv.Support.OGAnimations;
 
 
 public class HDMIView extends RelativeLayout {
@@ -62,6 +63,8 @@ public class HDMIView extends RelativeLayout {
         public void surfaceReady();
         public void ready();
         public void error(RtkHdmiWrapper.OGHdmiError error);
+        void hdmiLOS();
+        void hdmiActive();
     }
 
     private RtkHdmiWrapper.RtkWrapperListener mRtkWrapperListener = new RtkHdmiWrapper.RtkWrapperListener() {
@@ -115,6 +118,8 @@ public class HDMIView extends RelativeLayout {
 
                 case HDMI_PHY_CONNECTED:
                     hdmiPHYConnected = true;
+                    mListener.hdmiActive();
+                    animateHdmiSurfaceAlpha(1.0f);
                     if (enableAutoManageMode){
                         rtkHdmiWrapper.initHDMIDriver();
                     }
@@ -371,11 +376,32 @@ public class HDMIView extends RelativeLayout {
             @Override
             public void run() {
                 addDebugMessage("Auto Teardown");
+                mListener.hdmiLOS();
                 release();
+                animateHdmiSurfaceAlpha(0.25f);
+                setErrorScreenText("HDMI Input Signal Lost");
             }
         }, ms);
     }
 
+    private void animateHdmiSurfaceAlpha(final float endingAlpha){
+        mHdmiHolder.post(new Runnable() {
+            @Override
+            public void run() {
+                OGAnimations.animateAlphaTo(mHdmiHolder, endingAlpha);
+            }
+        });
+    }
+
+    private void setErrorScreenText(final String msg){
+        mHdmiHolder.post(new Runnable() {
+            @Override
+            public void run() {
+                mHdmiErrorTextView.setText(msg);
+            }
+        });
+
+    }
 
     // LOW LEVEL METHODS. MEANT for DEBUG PURPOSES
 

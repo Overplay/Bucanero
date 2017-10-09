@@ -112,13 +112,7 @@ public class MainFrameActivity extends BaseFullscreenActivity implements Overlay
             setContentView(R.layout.activity_main_frame_tronsmart);
         } else if (OGSystem.isEmulator() || OGSystem.isNexus()) {
             setContentView(R.layout.activity_main_frame_emulator);
-//            ((ImageView)findViewById(R.id.bkgImage)).setOnClickListener(new View.OnClickListener() {
-//                @Override
-//                public void onClick(View v) {
-//                    Log.d(TAG, "Background image tapped.");
-//                    launchSTBPairFragment();
-//                }
-//            });
+
         } else if (OGSystem.isRealOG()) {
 
             setContentView(R.layout.activity_main_frame_zidoo_og);
@@ -162,6 +156,17 @@ public class MainFrameActivity extends BaseFullscreenActivity implements Overlay
                         }
 
                     }
+
+                    @Override
+                    public void hdmiLOS() {
+                        Log.d(TAG, "We've lost the HDMI input for more than one second.");
+                    }
+
+                    @Override
+                    public void hdmiActive() {
+                        Log.d(TAG, "HDMI has a signal.");
+                    }
+
                 });
             } catch (HDMIStateException e) {
                 // TODO Handle this somehow
@@ -173,11 +178,6 @@ public class MainFrameActivity extends BaseFullscreenActivity implements Overlay
             Log.wtf(TAG, "Hmmm, this is not any recognized hardware. Exiting");
             finish();
         }
-
-
-
-        //SJMmTVSurface = (SurfaceView) findViewById(R.id.surfaceView);
-        //SJMenableHDMISurface();
 
         // Register to receive messages
         ABApplication.ottobus.register(this);
@@ -719,10 +719,17 @@ public class MainFrameActivity extends BaseFullscreenActivity implements Overlay
 
     }
 
-    private void showSystemToast(String message) {
+    private void showSystemToast(final String message) {
         // submessage not used right now
-        mPopupSystemMessageTV.setText(message);
-        OGAnimations.animateAlphaTo(mPopupSystemMessageTV, 1.0f);
+        runOnUiThread(new Runnable() {
+            @Override
+            public void run() {
+                mPopupSystemMessageTV.setVisibility(View.VISIBLE);
+                mPopupSystemMessageTV.setText(message);
+                OGAnimations.animateAlphaTo(mPopupSystemMessageTV, 1.0f);
+            }
+        });
+
         mPopupSystemMessageTV.postDelayed(new Runnable() {
             @Override
             public void run() {
