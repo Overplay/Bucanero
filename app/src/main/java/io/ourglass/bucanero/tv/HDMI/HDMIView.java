@@ -455,7 +455,11 @@ public class HDMIView extends RelativeLayout {
     }
 
     public void streamAudio() {
-        rtkHdmiWrapper.startStreamer();
+        if (rtkHdmiWrapper.isStreaming()) {
+            rtkHdmiWrapper.stopStreamer();
+        } else {
+            rtkHdmiWrapper.startStreamer();
+        }
     }
 
 }
