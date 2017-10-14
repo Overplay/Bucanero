@@ -46,6 +46,7 @@ public class HDMIView extends RelativeLayout {
     public boolean hdmiSurfaceReady = false;
     public boolean hdmiDriverReady = false;
     public boolean hdmiPHYConnected = false;
+    private Runnable mTeadownRunnable;
 
     public boolean enableAutoManageMode = true;
     public boolean mDebugMode = false;
@@ -97,6 +98,17 @@ public class HDMIView extends RelativeLayout {
             mHdmiErrorTextView.setVisibility(View.VISIBLE);
         }
 
+        private void startHDMI(){
+            addDebugMessage("startHDMI() called");
+            hdmiPHYConnected = true;
+            mListener.hdmiActive();
+            animateHdmiSurfaceAlpha(1.0f);
+            if (enableAutoManageMode){
+                addDebugMessage("Autostarting HDMI Wrapper");
+                rtkHdmiWrapper.initHDMIDriver();
+            }
+        }
+
         @Override
         public void hdmiStateChange(RtkHdmiWrapper.OGHdmiState state) {
 
@@ -116,18 +128,20 @@ public class HDMIView extends RelativeLayout {
 
 
                 case HDMI_PHY_CONNECTED:
-                    hdmiPHYConnected = true;
-                    mListener.hdmiActive();
-                    animateHdmiSurfaceAlpha(1.0f);
-                    if (enableAutoManageMode){
-                        rtkHdmiWrapper.initHDMIDriver();
+                    // In case we've reconnected while a teardown is pending
+                    if (mTeadownRunnable!=null){
+                        addDebugMessage("Reconnected while teardown pending. Clearing teardown.");
+                        mHandler.removeCallbacks(mTeadownRunnable);
+                        mTeadownRunnable = null;
                     }
+
+                    startHDMI();
                     break;
 
                 case HDMI_PHY_NOT_CONNECTED:
                     hdmiPHYConnected = false;
                     if (enableAutoManageMode){
-                        startTeardownTimer(1000);
+                        startTeardownTimer(1500);
                     }
                     break;
 
@@ -371,20 +385,35 @@ public class HDMIView extends RelativeLayout {
     // Automanage Methods
     private void startTeardownTimer(int ms){
         addDebugMessage("Starting Teardown Timer");
-        mHandler.postDelayed(new Runnable() {
+        mTeadownRunnable = new Runnable() {
             @Override
             public void run() {
-                addDebugMessage("Auto Teardown");
-                mListener.hdmiLOS();
-                release();
-                //TODO the animation does not work...
-                animateHdmiSurfaceAlpha(0.25f);
-                setErrorScreenText("HDMI Input Signal Lost");
+                addDebugMessage("Auto Teardown Process Starting");
+                if (hdmiPHYConnected){
+                    addDebugErrorMessage("Looks like HDMI PHY is back up, aborting teardown.");
+                } else {
+                    addDebugMessage("HDMI PHY is still down after 1.5s. Initiating teardown.");
+                    mListener.hdmiLOS();
+                    release();
+                    //TODO the animation does not work...
+                    animateHdmiSurfaceAlpha(0.25f);
+                    setErrorScreenText("HDMI Input Signal Lost");
+                    //startHdmiPHYChecker();
+                }
+
             }
-        }, ms);
+        };
+        mHandler.postDelayed(mTeadownRunnable, ms);
     }
 
-    private void startPHYChecker(){
+    // It seems like we can have a race where we can get teardown and not come back up,
+    // so let's periodically check the HDMI for up state after a teardown.
+
+    // OK, leving this unimplemented for now. I think the bug was the teardown occurred ignorant of the
+    // PHY coming back up. So the up code now kills the teardown Runnable and as a backup, the runnable
+    // checks the PHY state before proceeding. If this doesn't work, then will add the third layer of
+    // protection.
+    private void startHdmiPHYChecker(){
 
 
     }
