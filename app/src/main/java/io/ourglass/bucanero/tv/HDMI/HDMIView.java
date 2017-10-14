@@ -29,7 +29,6 @@ public class HDMIView extends RelativeLayout {
     private LayoutInflater mInflater;
 
     public RtkHdmiWrapper rtkHdmiWrapper;
-    private boolean hdmiConnectedState = false;
 
     RelativeLayout mHdmiHolder, mDebugHolder;
     TextView mHdmiErrorTextView, mDebugStateTV, mDebugErrorTV, mDebugMsgTV;
@@ -378,10 +377,16 @@ public class HDMIView extends RelativeLayout {
                 addDebugMessage("Auto Teardown");
                 mListener.hdmiLOS();
                 release();
+                //TODO the animation does not work...
                 animateHdmiSurfaceAlpha(0.25f);
                 setErrorScreenText("HDMI Input Signal Lost");
             }
         }, ms);
+    }
+
+    private void startPHYChecker(){
+
+
     }
 
     private void animateHdmiSurfaceAlpha(final float endingAlpha){

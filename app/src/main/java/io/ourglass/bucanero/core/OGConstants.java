@@ -88,7 +88,13 @@ public class OGConstants {
     // nginx barfs with the port 80 explicit
     //public static final String BELLINI_AUDIO_SERVER_ADDRESS = "https://cloud-listen.ourglass.tv/as/";
     //public static final String BELLINI_AUDIO_SERVER_ADDRESS = "http://192.241.217.88:3000/as/";
+
+    // Local development
+    //public static final String BELLINI_AUDIO_SERVER_ADDRESS = "http://192.168.1.172:4000/as/";
+
+    // Non-wss server
     public static final String BELLINI_AUDIO_SERVER_ADDRESS = "http://192.241.217.88:4000/as/";
+
     public static final String BELLINI_AUDIO_SERVER_SECRET = "supersecret";
 
     /**
