@@ -52,6 +52,8 @@ public class OGSystem {
     private static SetTopBox mPairedSTB;
     private static TVShow mCurrentTVShow;
 
+    public static boolean hdmiPHYConnected;
+
     public static HashMap<String, AppMapEntry> screenMap = new HashMap<>();
 
     public static JSONObject cloudDeviceState;
@@ -265,7 +267,7 @@ public class OGSystem {
         JSONObject deviceJSON = new JSONObject();
         try {
             deviceJSON.put("name", getSystemName());
-            deviceJSON.put("randomFactoid", "Bunnies are cute");
+            deviceJSON.put("randomFactoid", "Bunnies are cute. Four bunnies are cuter.");
             deviceJSON.put("codeRevName", OGConstants.CODE_REV_NAME);
             deviceJSON.put("wifiMacAddress", getWiFiMACAddress());
             String pairIp = getPairedSTBIpAddress();
@@ -303,6 +305,7 @@ public class OGSystem {
 //            }
 
             deviceJSON.put("outputRes", getTVResolution().toJson());
+            deviceJSON.put("hdmiPHYConnected", hdmiPHYConnected);
 
             deviceJSON.put("abVersionName", getABVersionName());
             deviceJSON.put("abVersionCode", getABVersionCode());
@@ -343,7 +346,7 @@ public class OGSystem {
         }
         sb.append("-----------\n");
         sb.append("Code Name Rev: " + OGConstants.CODE_REV_NAME+"\n");
-        sb.append("Version: " + getABVersionName() + "\n");
+        sb.append("Version: " + getABVersionName() + " ( build: "+getABVersionCode()+" )\n");
         sb.append("OS Version: " + getOsVersion()  + "\n");
         sb.append("-----------\n");
         sb.append("WiFi IP Address: " + NetworkingUtils.getWiFiIPAddressString()+"\n");

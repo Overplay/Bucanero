@@ -17,7 +17,7 @@
         android:textAppearance="?android:attr/textAppearanceLarge"
         android:text="SYSTEM MESSAGES"
         android:alpha="0"
-        android:id="@+id/textViewMsg"
+        android:id="@+id/textViewSystemMsg"
         android:textSize="20sp"
         android:gravity="center"
         android:layout_alignParentBottom="true"

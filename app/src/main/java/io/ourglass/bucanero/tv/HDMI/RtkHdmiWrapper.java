@@ -98,7 +98,7 @@ public class RtkHdmiWrapper {
     public boolean driverReady = false;
 
     private BroadcastReceiver mHdmiRxHotPlugReceiver;
-    private boolean hdmiConnectedState = false;
+    public boolean hdmiConnectedState = false;
 
     private boolean mHDMISurfaceReady = false;
 
@@ -525,6 +525,15 @@ public class RtkHdmiWrapper {
         mHeight = retHeight;
     }
 
+    // TEST
+
+    public HDMIRxStatus getStatusDirect(){
+
+        RtkHDMIRxManager mgr = new RtkHDMIRxManager();
+        HDMIRxStatus rxStatus = mgr.getHDMIRxStatus();
+        return rxStatus;
+
+    }
 
     // "SAFE" METHODS. Nothing in here needs reverse engineering
 

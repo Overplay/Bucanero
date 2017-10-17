@@ -26,7 +26,7 @@
         android:layout_height="wrap_content"
         android:textAppearance="?android:attr/textAppearanceLarge"
         android:text="MESSAGES"
-        android:id="@+id/textViewMsg"
+        android:id="@+id/textViewHDMIMsg"
         android:textSize="20sp"
         android:gravity="center"
         android:layout_alignParentBottom="true"
@@ -42,7 +42,7 @@
         android:layout_height="wrap_content"
         android:id="@+id/bootBugIV"
         android:src="@drawable/bug600x500"
-        android:layout_above="@+id/textViewMsg"
+        android:layout_above="@+id/textViewHDMIMsg"
         android:layout_centerHorizontal="true"
         />
 

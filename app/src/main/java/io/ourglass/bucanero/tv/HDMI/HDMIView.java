@@ -10,14 +10,17 @@ import android.view.SurfaceHolder;
 import android.view.SurfaceView;
 import android.view.View;
 import android.view.ViewGroup;
+import android.widget.ImageView;
 import android.widget.RelativeLayout;
 import android.widget.TextView;
 import android.widget.Toast;
 
+import com.realtek.server.HDMIRxStatus;
+
 import java.util.ArrayList;
 
 import io.ourglass.bucanero.R;
-import io.ourglass.bucanero.tv.Support.OGAnimations;
+import io.ourglass.bucanero.messages.OGLogMessage;
 
 
 public class HDMIView extends RelativeLayout {
@@ -32,6 +35,7 @@ public class HDMIView extends RelativeLayout {
 
     RelativeLayout mHdmiHolder, mDebugHolder;
     TextView mHdmiErrorTextView, mDebugStateTV, mDebugErrorTV, mDebugMsgTV;
+    ImageView mPhyStatusIV;
 
     // Surface View stuff
     private ViewGroup mSurfaceHolderView;
@@ -102,7 +106,7 @@ public class HDMIView extends RelativeLayout {
             addDebugMessage("startHDMI() called");
             hdmiPHYConnected = true;
             mListener.hdmiActive();
-            animateHdmiSurfaceAlpha(1.0f);
+            //animateHdmiSurfaceAlpha(1.0f);
             if (enableAutoManageMode){
                 addDebugMessage("Autostarting HDMI Wrapper");
                 rtkHdmiWrapper.initHDMIDriver();
@@ -113,6 +117,8 @@ public class HDMIView extends RelativeLayout {
         public void hdmiStateChange(RtkHdmiWrapper.OGHdmiState state) {
 
             Log.d(TAG, "HDMI state change: " + state.name());
+            OGLogMessage.newOGLog("HDMI_STATE/"+state.name()).post();
+
             if (mDebugMode) {
                 addDebugStateMessage(state.name());
             }
@@ -213,6 +219,10 @@ public class HDMIView extends RelativeLayout {
                 int vstate = mDebugMode ? View.VISIBLE : View.GONE;
                 mDebugHolder.setVisibility(vstate);
 
+                mDebugMsgTV.setAlpha(1.0f);
+                mDebugErrorTV.setAlpha(1.0f);
+                mDebugStateTV.setAlpha(1.0f);
+
                 if (mDebugMode) {
 
                     String sep = "\n-------\n";
@@ -277,12 +287,15 @@ public class HDMIView extends RelativeLayout {
         mHdmiHolder = (RelativeLayout) v.findViewById(R.id.home_ac_hdmi_textureView);
         mHdmiErrorTextView = (TextView) v.findViewById(R.id.home_ac_hdmi_nosignal_text_view);
 
-        mDebugErrorTV = (TextView) v.findViewById(R.id.textViewErr);
+        mDebugErrorTV = (TextView) v.findViewById(R.id.textViewHDMIErr);
         mDebugErrorTV.setText("");
-        mDebugStateTV = (TextView) v.findViewById(R.id.textViewState);
+        mDebugStateTV = (TextView) v.findViewById(R.id.textViewHDMIState);
         mDebugStateTV.setText("");
-        mDebugMsgTV = (TextView) v.findViewById(R.id.textViewMsg);
-        mDebugMsgTV.setText("");
+        mDebugMsgTV = (TextView) v.findViewById(R.id.textViewHDMIMsg);
+        mDebugMsgTV.setText("Eat a bag of dookie.");
+
+        mPhyStatusIV = (ImageView) v.findViewById(R.id.phyStatusIV);
+        mPhyStatusIV.setVisibility(View.INVISIBLE);
 
         mDebugHolder = (RelativeLayout) v.findViewById(R.id.debugViewHolder);
         updateDebugViews();
@@ -356,6 +369,25 @@ public class HDMIView extends RelativeLayout {
     // fires up the PHY Broadcast rx. Later it will init audio.
     public void createDriverWrapper() {
         rtkHdmiWrapper = new RtkHdmiWrapper(mContext, mSurfaceHolder, mRtkWrapperListener, mDebugMode);
+
+        mHandler.postDelayed(new Runnable() {
+            @Override
+            public void run() {
+                Log.d(TAG, "Checking PHY Status directly...");
+                if (rtkHdmiWrapper!=null){
+                    HDMIRxStatus rxs = rtkHdmiWrapper.getStatusDirect();
+                    boolean statusOK = rxs.status == HDMIRxStatus.STATUS_READY;
+                    Log.d(TAG, "Direct PHY Status: " + statusOK);
+                    mPhyStatusIV.setVisibility(View.VISIBLE);
+                    if (statusOK){
+                        mPhyStatusIV.setImageResource(R.drawable.hdmion);
+                    } else {
+                        mPhyStatusIV.setImageResource(R.drawable.hdmioff);
+                    }
+                    mHandler.postDelayed(this, 2000);
+                }
+            }
+        }, 2000);
     }
 
 
@@ -396,7 +428,7 @@ public class HDMIView extends RelativeLayout {
                     mListener.hdmiLOS();
                     release();
                     //TODO the animation does not work...
-                    animateHdmiSurfaceAlpha(0.25f);
+                    //animateHdmiSurfaceAlpha(0.25f);
                     setErrorScreenText("HDMI Input Signal Lost");
                     //startHdmiPHYChecker();
                 }
@@ -418,14 +450,14 @@ public class HDMIView extends RelativeLayout {
 
     }
 
-    private void animateHdmiSurfaceAlpha(final float endingAlpha){
-        mHdmiHolder.post(new Runnable() {
-            @Override
-            public void run() {
-                OGAnimations.animateAlphaTo(mHdmiHolder, endingAlpha);
-            }
-        });
-    }
+//    private void animateHdmiSurfaceAlpha(final float endingAlpha){
+//        mHdmiHolder.post(new Runnable() {
+//            @Override
+//            public void run() {
+//                OGAnimations.animateAlphaTo(mHdmiHolder, endingAlpha);
+//            }
+//        });
+//    }
 
     private void setErrorScreenText(final String msg){
         mHdmiHolder.post(new Runnable() {

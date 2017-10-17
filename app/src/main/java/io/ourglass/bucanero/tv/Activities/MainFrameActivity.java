@@ -33,6 +33,7 @@ import io.ourglass.bucanero.api.BelliniDMAPI;
 import io.ourglass.bucanero.core.ABApplication;
 import io.ourglass.bucanero.core.OGConstants;
 import io.ourglass.bucanero.core.OGHardware;
+import io.ourglass.bucanero.core.OGSettings;
 import io.ourglass.bucanero.core.OGSystem;
 import io.ourglass.bucanero.messages.LaunchAppMessage;
 import io.ourglass.bucanero.messages.OGLogMessage;
@@ -118,6 +119,7 @@ public class MainFrameActivity extends BaseFullscreenActivity implements Overlay
             setContentView(R.layout.activity_main_frame_zidoo_og);
             mHDMIView = (HDMIView)findViewById(R.id.home_hdmi_parent);
 
+            mHDMIView.setmDebugMode(OGSettings.getHDMIDebugOverlayMode());
 
             try {
                 mHDMIView.prepareAuto(new HDMIView.HDMIViewListener() {
@@ -182,7 +184,7 @@ public class MainFrameActivity extends BaseFullscreenActivity implements Overlay
         // Register to receive messages
         ABApplication.ottobus.register(this);
 
-        mPopupSystemMessageTV = (TextView) findViewById(R.id.textViewMsg);
+        mPopupSystemMessageTV = (TextView) findViewById(R.id.textViewSystemMsg);
         mPopupSystemMessageTV.setText("");
         mPopupSystemMessageTV.setAlpha(0);
 

@@ -38,7 +38,7 @@
         android:layout_height="wrap_content"
         android:textAppearance="?android:attr/textAppearanceLarge"
         android:text="MESSAGES"
-        android:id="@+id/textViewMsg"
+        android:id="@+id/textViewHDMIMsg"
         android:textSize="20sp"
         android:gravity="center"
         android:layout_alignParentBottom="true"
