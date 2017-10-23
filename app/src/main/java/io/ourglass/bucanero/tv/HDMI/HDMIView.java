@@ -38,10 +38,8 @@ public class HDMIView extends RelativeLayout {
     ImageView mPhyStatusIV;
 
     // Surface View stuff
-    private ViewGroup mSurfaceHolderView;
     private SurfaceView mSurfaceView;
     private SurfaceHolder mSurfaceHolder;
-    private boolean mHDMISurfaceReady = false;
 
     ArrayList<String> errorMessages, stateMessages, fyiMessages;
 
@@ -141,6 +139,7 @@ public class HDMIView extends RelativeLayout {
                         mTeadownRunnable = null;
                     }
 
+                    mHdmiHolder.setVisibility(View.VISIBLE);
                     startHDMI();
                     break;
 
@@ -340,7 +339,7 @@ public class HDMIView extends RelativeLayout {
             @Override
             public void surfaceCreated(SurfaceHolder arg0) {
                 Log.v(TAG, "SurfaceCreated");
-                mHDMISurfaceReady = true;
+                hdmiSurfaceReady = true;
                 mRtkWrapperListener.fyi("Surface Created");
                 // We *want* to crash if no listener passed, so no null check
                 mListener.surfaceReady();
@@ -353,7 +352,7 @@ public class HDMIView extends RelativeLayout {
             @Override
             public void surfaceDestroyed(SurfaceHolder arg0) {
                 Log.v(TAG, "SurfaceDestroyed");
-                mHDMISurfaceReady = false;
+                hdmiSurfaceReady = false;
                 mRtkWrapperListener.fyi("Surface Destroyed");
             }
 
@@ -429,6 +428,7 @@ public class HDMIView extends RelativeLayout {
                     release();
                     //TODO the animation does not work...
                     //animateHdmiSurfaceAlpha(0.25f);
+                    mHdmiHolder.setVisibility(View.INVISIBLE);
                     setErrorScreenText("HDMI Input Signal Lost");
                     //startHdmiPHYChecker();
                 }
