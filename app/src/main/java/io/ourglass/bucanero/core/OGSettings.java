@@ -65,7 +65,7 @@ public class OGSettings {
     * Logcat Upload Mode
     */
     public static boolean getLogcatUploadMode() {
-        return getBoolFromPrefs( "logcatUpload", true );
+        return getBoolFromPrefs( "logcatUpload", false );
     };
 
     public static void setLogcatUploadMode(boolean upload) {

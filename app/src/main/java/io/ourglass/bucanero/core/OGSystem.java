@@ -1,6 +1,7 @@
 package io.ourglass.bucanero.core;
 
 
+import android.app.ActivityManager;
 import android.os.Build;
 import android.os.Environment;
 import android.util.Log;
@@ -28,6 +29,7 @@ import io.ourglass.bucanero.services.STB.DirecTV.DirecTVAPI;
 import io.ourglass.bucanero.services.STB.DirecTV.DirecTVSetTopBox;
 import io.ourglass.bucanero.tv.Support.Size;
 
+import static android.content.Context.ACTIVITY_SERVICE;
 import static io.ourglass.bucanero.core.OGSettings.getBoolFromPrefs;
 import static io.ourglass.bucanero.core.OGSettings.getIntFromPrefs;
 import static io.ourglass.bucanero.core.OGSettings.getStringFromPrefs;
@@ -92,7 +94,6 @@ public class OGSystem {
     }
 
     /**
-     *
      * @return boolean if we're running in emulator
      */
     public static boolean isEmulator() {
@@ -101,7 +102,6 @@ public class OGSystem {
 
 
     /**
-     *
      * @return boolean if we're running on Nexus 10
      */
     public static boolean isNexus() {
@@ -178,7 +178,7 @@ public class OGSystem {
         BelliniDMAPI.registerSTBPairing(stb);
     }
 
-    public static void unpairSTB(){
+    public static void unpairSTB() {
 
         setPairedSTBIpAddress(null);
         setPairedSTBType(null);
@@ -202,7 +202,7 @@ public class OGSystem {
 
         // need to dearchive
         String json = mPrefs.getString("pairedSTB", "");
-        if (json.equalsIgnoreCase("")){
+        if (json.equalsIgnoreCase("")) {
             Log.wtf(TAG, "In a weird pairing state where mPairedSTB is null but isPaired is true and in SharedPrefs");
             mPairedSTB = null;
             return null;
@@ -213,7 +213,7 @@ public class OGSystem {
         // Can't dearchive to a abstract class, so any concrete will do for now
         DirecTVSetTopBox dtvstb = gson.fromJson(json, DirecTVSetTopBox.class);
 
-        switch (dtvstb.carrier){
+        switch (dtvstb.carrier) {
             case DIRECTV:
                 Log.d(TAG, "Dearchived DirecTV STB from prefs");
                 mPairedSTB = dtvstb;
@@ -247,11 +247,11 @@ public class OGSystem {
 
     // Fast boot mode just fires everything off at once and does not signal any messages
     // Slow boot is more dramatic and looks like "work is being done" :)
-    public static boolean getFastBootMode(){
+    public static boolean getFastBootMode() {
         return getBoolFromPrefs("fastBootMode", false);
     }
 
-    public static void setFastBootMode(boolean isFast){
+    public static void setFastBootMode(boolean isFast) {
         putBoolToPrefs("fastBootMode", true);
     }
 
@@ -277,22 +277,22 @@ public class OGSystem {
             AppMapEntry we = screenMap.get("widget");
 
             JSONObject wejson = new JSONObject();
-            if ( we != null ){
+            if (we != null) {
                 wejson = we.toJson();
             }
-            deviceJSON.put("widget", wejson );
+            deviceJSON.put("widget", wejson);
 
             AppMapEntry ce = screenMap.get("crawler");
             JSONObject cejson = new JSONObject();
-            if ( ce != null ){
+            if (ce != null) {
                 cejson = ce.toJson();
             }
-            deviceJSON.put("widget", wejson );
-            deviceJSON.put("crawler", cejson );
+            deviceJSON.put("widget", wejson);
+            deviceJSON.put("crawler", cejson);
 
 
-            if (isPairedToSTB()){
-                if (mCurrentTVShow!=null){
+            if (isPairedToSTB()) {
+                if (mCurrentTVShow != null) {
                     deviceJSON.put("nowShowing", new JSONObject(getCurrentTVShow().toJsonString()));
                 } else {
                     deviceJSON.put("nowShowing", new JSONObject()); // usually a poll hasn't happened yet
@@ -333,37 +333,37 @@ public class OGSystem {
         return deviceJSON;
     }
 
-    public static String getSystemInfoString(){
+    public static String getSystemInfoString() {
         StringBuilder sb = new StringBuilder();
 
         sb.append("System Name: " + getSystemName() + "\n");
         sb.append("System UUID: " + getUDID() + "\n");
-        if (getVenueUUID().equalsIgnoreCase("")){
-            sb.append("Venue: Not assigned to a venue"+"\n");
+        if (getVenueUUID().equalsIgnoreCase("")) {
+            sb.append("Venue: Not assigned to a venue" + "\n");
         } else {
             sb.append("Venue: " + getVenueName() + "\n");
-            sb.append("Venue UUID: "+ getVenueUUID()+ "\n");
+            sb.append("Venue UUID: " + getVenueUUID() + "\n");
         }
         sb.append("-----------\n");
-        sb.append("Code Name Rev: " + OGConstants.CODE_REV_NAME+"\n");
-        sb.append("Version: " + getABVersionName() + " ( build: "+getABVersionCode()+" )\n");
-        sb.append("OS Version: " + getOsVersion()  + "\n");
+        sb.append("Code Name Rev: " + OGConstants.CODE_REV_NAME + "\n");
+        sb.append("Version: " + getABVersionName() + " ( build: " + getABVersionCode() + " )\n");
+        sb.append("OS Version: " + getOsVersion() + "\n");
         sb.append("-----------\n");
-        sb.append("WiFi IP Address: " + NetworkingUtils.getWiFiIPAddressString()+"\n");
+        sb.append("WiFi IP Address: " + NetworkingUtils.getWiFiIPAddressString() + "\n");
         sb.append("Ethernet IP Address:" + NetworkingUtils.getEthernetIPAddressString() + "\n");
         sb.append("-----------\n");
-        if ( isPairedToSTB() ){
-            sb.append("System Paired to STB at: "+ getPairedSTBIpAddress()+ "\n");
-            if (mCurrentTVShow!=null){
-                sb.append("Showing: "+mCurrentTVShow.toString()+"\n");
+        if (isPairedToSTB()) {
+            sb.append("System Paired to STB at: " + getPairedSTBIpAddress() + "\n");
+            if (mCurrentTVShow != null) {
+                sb.append("Showing: " + mCurrentTVShow.toString() + "\n");
             } else {
                 sb.append("Showing: *** not yet available ***\n");
             }
         } else {
-            sb.append("System is not paired to STB"+ "\n");
+            sb.append("System is not paired to STB" + "\n");
         }
 
-        sb.append("Output Resolution: " + getTVResolution().toString()+ "\n");
+        sb.append("Output Resolution: " + getTVResolution().toString() + "\n");
 
         return sb.toString();
 
@@ -378,13 +378,13 @@ public class OGSystem {
         return getStringFromPrefs("venueId", "");
     }
 
-    public static void fetchVenueName(){
+    public static void fetchVenueName() {
         BelliniDMAPI.getVenueByUUID(getVenueUUID())
                 .done(new DoneCallback<JSONObject>() {
                     @Override
                     public void onDone(JSONObject result) {
                         String vname = result.optString("name", "unknown");
-                        Log.d(TAG, "Got a new venue name: "+vname);
+                        Log.d(TAG, "Got a new venue name: " + vname);
                         putStringToPrefs("venueName", vname);
                     }
                 })
@@ -396,7 +396,7 @@ public class OGSystem {
                 });
     }
 
-    public static String getVenueName(){
+    public static String getVenueName() {
         return getStringFromPrefs("venueName", "???");
     }
 
@@ -413,32 +413,32 @@ public class OGSystem {
         return getBoolFromPrefs("firstTimeSetup", true);
     }
 
-    public static void setFirstTimeSetup(boolean isFirst){
+    public static void setFirstTimeSetup(boolean isFirst) {
         putBoolToPrefs("firstTimeSetup", isFirst);
     }
 
-    public static void updateSystemFromCloudObject(JSONObject cloudOGJson){
+    public static void updateSystemFromCloudObject(JSONObject cloudOGJson) {
 
         String venueUUID = cloudOGJson.optString("atVenueUUID", null);
-        if (venueUUID!=null){
+        if (venueUUID != null) {
             Log.d(TAG, "Updating local venue ID from OG Cloud");
             setVenueUUID(venueUUID);
         }
 
         String name = cloudOGJson.optString("name", "No Name");
-        if (name!=null){
+        if (name != null) {
             Log.d(TAG, "Updating local system name from OG Cloud");
             setSystemName(name);
         }
 
-        if (cloudOGJson.optBoolean("isNew", false)){
-                Log.d(TAG, "This is a NEW device, setting firstTimeSetup to true");
-                OGSystem.setFirstTimeSetup(true);
+        if (cloudOGJson.optBoolean("isNew", false)) {
+            Log.d(TAG, "This is a NEW device, setting firstTimeSetup to true");
+            OGSystem.setFirstTimeSetup(true);
         }
 
     }
 
-    public static void updateFromOGCloud(){
+    public static void updateFromOGCloud() {
 
         BelliniDMAPI.getMe()
                 .done(new DoneCallback<JSONObject>() {
@@ -487,12 +487,12 @@ public class OGSystem {
     public static void setCurrentTVShow(TVShow currentlyOnTV) {
 
         // FIXME this must be a bug in the poll service!!
-        if (currentlyOnTV == null){
+        if (currentlyOnTV == null) {
             Log.wtf(TAG, "Who the fuck is sending null tv updates??? FIXME");
             return;
         }
 
-        if (mCurrentTVShow==null || !mCurrentTVShow.equals(currentlyOnTV)){
+        if (mCurrentTVShow == null || !mCurrentTVShow.equals(currentlyOnTV)) {
             mCurrentTVShow = currentlyOnTV;
             ABApplication.ottobus.post(mCurrentTVShow);
             // Send it upstream
@@ -501,7 +501,7 @@ public class OGSystem {
                 @Override
                 public void run() {
                     BelliniDMAPI.programChange(mCurrentTVShow)
-                        .fail(new BelliniNetworkFailureCallback("Failed sending current TV show to Bellini", 1099));
+                            .fail(new BelliniNetworkFailureCallback("Failed sending current TV show to Bellini", 1099));
                 }
             }).start();
 
@@ -528,18 +528,18 @@ public class OGSystem {
         return mCurrentTVShow;
     }
 
-    public static void changeTVChannel(final int channel){
+    public static void changeTVChannel(final int channel) {
 
-        if (isPairedToSTB()){
+        if (isPairedToSTB()) {
 
-            switch (mPairedSTB.carrier){
+            switch (mPairedSTB.carrier) {
 
                 case DIRECTV:
 
                     new Thread(new Runnable() {
                         @Override
                         public void run() {
-                            Log.d(TAG, "Changing channel to: "+channel);
+                            Log.d(TAG, "Changing channel to: " + channel);
                             DirecTVAPI.changeChannel(getPairedSTBIpAddress(), channel);
                         }
                     }).start();
@@ -552,6 +552,7 @@ public class OGSystem {
             }
         }
     }
+
     /* Checks if external storage is available for read and write */
     public static boolean isExternalStorageWritable() {
         String state = Environment.getExternalStorageState();
@@ -565,10 +566,10 @@ public class OGSystem {
     // Crazy UDID nonsense!!
 
 
-    public static String getUDID(){
+    public static String getUDID() {
 
         String udid = getStringFromPrefs("devUDID", null);
-        if (udid == null){
+        if (udid == null) {
             Log.d(TAG, "Got a null UDID. Checking for one saved to SDCARD.");
             Storage storage = new Storage(ABApplication.sharedContext);
             String udidpath = storage.getExternalStorageDirectory() + "/udid.txt";
@@ -587,7 +588,7 @@ public class OGSystem {
 
     }
 
-    public static void synchronizeDeviceStateWithCloud(){
+    public static void synchronizeDeviceStateWithCloud() {
 
         BelliniDMAPI.getAppStatusFromCloud()
                 .done(new DoneCallback<JSONObject>() {
@@ -604,7 +605,7 @@ public class OGSystem {
                         Log.e(TAG, "FAILED getting app status from cloud!");
                         OGLogMessage.newOGLog("network_issue")
                                 .addFieldToMessage("description", "Failure getting saved app status in MainframeActivity")
-                                .addFieldToMessage("exception", result.toString()  )
+                                .addFieldToMessage("exception", result.toString())
                                 .addFieldToMessage("issue_code", 1004)  // this is just some BS to test the generics
                                 .post();
 
@@ -612,6 +613,43 @@ public class OGSystem {
                     }
                 });
 
+
+    }
+
+
+    public static MemInfo getOSMemory() {
+
+        long freeSize = 0L;
+        long totalSize = 0L;
+        long usedSize = -1L;
+        try {
+            Runtime info = Runtime.getRuntime();
+            freeSize = info.freeMemory();
+            totalSize = info.totalMemory();
+            usedSize = totalSize - freeSize;
+        } catch (Exception e) {
+            e.printStackTrace();
+        }
+
+        MemInfo rval = new MemInfo();
+        rval.availableMegs = freeSize;
+        rval.totalMegs = totalSize;
+        return rval;
+
+    }
+
+    public static MemInfo getOSMemory2(){
+
+        ActivityManager.MemoryInfo mi = new ActivityManager.MemoryInfo();
+        ActivityManager activityManager = (ActivityManager) ABApplication.sharedContext.getSystemService(ACTIVITY_SERVICE);
+        activityManager.getMemoryInfo(mi);
+
+        MemInfo rval = new MemInfo();
+        rval.availableMegs = mi.availMem;
+        rval.totalMegs = mi.totalMem;
+        rval.lowMemory = mi.lowMemory;
+
+        return rval;
 
     }
 

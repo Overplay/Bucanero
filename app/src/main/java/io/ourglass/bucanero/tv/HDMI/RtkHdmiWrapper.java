@@ -230,7 +230,7 @@ public class RtkHdmiWrapper {
         hdmiConnectedState = pluggedStatus.getBooleanExtra(HDMIRxStatus.EXTRA_HDMIRX_PLUGGED_STATE, false);
         Log.v(TAG, "registerBroadcastRx Connected state read directly is " + hdmiConnectedState);
 
-        // Watch it.
+        // Register to watch it watch HDMI.
         mContext.registerReceiver(mHdmiRxHotPlugReceiver, hdmiRxFilter);
 
     }
@@ -305,7 +305,8 @@ public class RtkHdmiWrapper {
     }
 
 
-    public void initHDMIDriver() {
+    // Adding synchronized to help with races
+    public synchronized void initHDMIDriver() {
 
         if (mHDMIRX == null) {
             Log.d(TAG, "initHDMIDriver called and there is no HDMIRxManager (null), creating");
@@ -419,11 +420,11 @@ public class RtkHdmiWrapper {
     /**
      * SHUTDOWN ORDER:
      * 1. Remove the preview display
-     * 2. .release() the manager
+     * 2. .releaseRtkHDMI() the manager
      * 3. null the driver
      */
 
-    public void releaseHDMI() {
+    public synchronized void releaseHDMI() {
         Log.d(TAG, "releaseHDMI() called.");
         fyiCallback("releaseHDMI() called");
         if (mHDMIRX != null) {

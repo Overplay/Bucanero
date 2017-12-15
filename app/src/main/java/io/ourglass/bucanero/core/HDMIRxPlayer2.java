@@ -55,7 +55,7 @@ public class HDMIRxPlayer2 {
         public void run() {
 
 
-            //mHDMIRX.release(); // force a release? Probably tied to package name tho...
+            //mHDMIRX.releaseRtkHDMI(); // force a releaseRtkHDMI? Probably tied to package name tho...
 
             Log.d(TAG, "PlayWhenHDMIReady: Checking for HDMI Ready and openable.");
             rxStatus = mHDMIRX.getHDMIRxStatus();

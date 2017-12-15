@@ -10,6 +10,7 @@ import android.util.Log;
 import android.widget.TextView;
 
 import io.ourglass.bucanero.R;
+import io.ourglass.bucanero.messages.OGLogMessage;
 
 
 public class PermissionGateActivity extends BaseFullscreenActivity {
@@ -23,6 +24,11 @@ public class PermissionGateActivity extends BaseFullscreenActivity {
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
+
+        Intent launchIntent = getIntent();
+        boolean restart = launchIntent.getBooleanExtra("restart", false);
+        String logMsg = restart ? "LAUNCH-RESTART" : "LAUNCH-BOOT";
+        OGLogMessage.newOGLog(logMsg).post();
 
         Log.d(TAG, "onCreate in PermissionGate");
         setContentView(R.layout.activity_permission_gate);

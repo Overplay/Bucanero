@@ -3,6 +3,7 @@ package io.ourglass.bucanero.tv.HDMI;
 import android.annotation.TargetApi;
 import android.content.Context;
 import android.os.Handler;
+import android.support.v4.content.ContextCompat;
 import android.util.AttributeSet;
 import android.util.Log;
 import android.view.LayoutInflater;
@@ -25,7 +26,7 @@ import io.ourglass.bucanero.messages.OGLogMessage;
 
 public class HDMIView extends RelativeLayout {
 
-    private static final String TAG = "HDMIView2";
+    private static final String TAG = "HDMIView";
 
     private Context mContext;
 
@@ -33,8 +34,8 @@ public class HDMIView extends RelativeLayout {
 
     public RtkHdmiWrapper rtkHdmiWrapper;
 
-    RelativeLayout mHdmiHolder, mDebugHolder;
-    TextView mHdmiErrorTextView, mDebugStateTV, mDebugErrorTV, mDebugMsgTV;
+    RelativeLayout mHdmiHolder, mDebugHolder, mMainHdmiView;
+    TextView mHdmiErrorTextView, mDebugStateTV, mDebugErrorTV, mDebugMsgTV, mGPMsgTV;
     ImageView mPhyStatusIV;
 
     // Surface View stuff
@@ -48,7 +49,7 @@ public class HDMIView extends RelativeLayout {
     public boolean hdmiSurfaceReady = false;
     public boolean hdmiDriverReady = false;
     public boolean hdmiPHYConnected = false;
-    private Runnable mTeadownRunnable;
+    private Runnable mHDMIDownHardRunnable;
 
     public boolean enableAutoManageMode = true;
     public boolean mDebugMode = false;
@@ -63,9 +64,13 @@ public class HDMIView extends RelativeLayout {
 
     public interface HDMIViewListener {
         public void surfaceReady();
+
         public void ready();
+
         public void error(RtkHdmiWrapper.OGHdmiError error);
+
         void hdmiLOS();
+
         void hdmiActive();
     }
 
@@ -100,12 +105,11 @@ public class HDMIView extends RelativeLayout {
             mHdmiErrorTextView.setVisibility(View.VISIBLE);
         }
 
-        private void startHDMI(){
+        private void startHDMI() {
             addDebugMessage("startHDMI() called");
-            hdmiPHYConnected = true;
             mListener.hdmiActive();
             //animateHdmiSurfaceAlpha(1.0f);
-            if (enableAutoManageMode){
+            if (enableAutoManageMode) {
                 addDebugMessage("Autostarting HDMI Wrapper");
                 rtkHdmiWrapper.initHDMIDriver();
             }
@@ -115,7 +119,7 @@ public class HDMIView extends RelativeLayout {
         public void hdmiStateChange(RtkHdmiWrapper.OGHdmiState state) {
 
             Log.d(TAG, "HDMI state change: " + state.name());
-            OGLogMessage.newOGLog("HDMI_STATE/"+state.name()).post();
+            OGLogMessage.newOGLog("HDMI_STATE/" + state.name()).post();
 
             if (mDebugMode) {
                 addDebugStateMessage(state.name());
@@ -125,28 +129,36 @@ public class HDMIView extends RelativeLayout {
 
                 case HDMI_DRIVER_READY:
                     hdmiDriverReady = true;
-                    if (enableAutoManageMode){
+                    if (enableAutoManageMode) {
                         rtkHdmiWrapper.playHDMI();
                     }
                     break;
 
 
                 case HDMI_PHY_CONNECTED:
+
+                    hdmiPHYConnected = true;
+
                     // In case we've reconnected while a teardown is pending
-                    if (mTeadownRunnable!=null){
-                        addDebugMessage("Reconnected while teardown pending. Clearing teardown.");
-                        mHandler.removeCallbacks(mTeadownRunnable);
-                        mTeadownRunnable = null;
+                    if (mHDMIDownHardRunnable != null) {
+                        addDebugMessage("Reconnected while down msg pending. Clearing.");
+                        mHandler.removeCallbacks(mHDMIDownHardRunnable);
+                        mHDMIDownHardRunnable = null;
                     }
 
                     mHdmiHolder.setVisibility(View.VISIBLE);
+                    addDebugMessage("PHY Link, starting HDMI");
                     startHDMI();
                     break;
 
                 case HDMI_PHY_NOT_CONNECTED:
                     hdmiPHYConnected = false;
-                    if (enableAutoManageMode){
-                        startTeardownTimer(1500);
+                    setErrorScreenText("");
+                    if (enableAutoManageMode) {
+                        // This had a race situation, show just tear down now
+                        startHDMIDownHardTimer(5000);
+                        addDebugMessage("PHY Los, tearing down HDMI");
+                        tearDownHDMI();
                     }
                     break;
 
@@ -192,18 +204,17 @@ public class HDMIView extends RelativeLayout {
      */
 
 
-
     /**
      * Turn on/off debug overlays
      *
      * @param debugModeOn
      */
-    public void setmDebugMode(boolean debugModeOn) {
+    public void setDebugMode(boolean debugModeOn) {
         mDebugMode = debugModeOn;
         updateDebugViews();
     }
 
-    public boolean getmDebugMode(){
+    public boolean getmDebugMode() {
         return mDebugMode;
     }
 
@@ -267,9 +278,14 @@ public class HDMIView extends RelativeLayout {
         updateDebugViews();
     }
 
+    public void setGPMessage(String msg) {
+        mGPMsgTV.setText(msg);
+    }
+
 
     /**
      * Init does NOT prepare to play HDMI. You must call one of the prepare methods.
+     *
      * @param context
      */
     public void init(Context context) {
@@ -284,6 +300,9 @@ public class HDMIView extends RelativeLayout {
         View v = mInflater.inflate(R.layout.hdmi_view_plus, this, true);
 
         mHdmiHolder = (RelativeLayout) v.findViewById(R.id.home_ac_hdmi_textureView);
+        mMainHdmiView = (RelativeLayout) v.findViewById(R.id.hdmi_main_view);
+        mMainHdmiView.setBackgroundColor( ContextCompat.getColor(context, R.color.OGGREEN));
+
         mHdmiErrorTextView = (TextView) v.findViewById(R.id.home_ac_hdmi_nosignal_text_view);
 
         mDebugErrorTV = (TextView) v.findViewById(R.id.textViewHDMIErr);
@@ -291,7 +310,10 @@ public class HDMIView extends RelativeLayout {
         mDebugStateTV = (TextView) v.findViewById(R.id.textViewHDMIState);
         mDebugStateTV.setText("");
         mDebugMsgTV = (TextView) v.findViewById(R.id.textViewHDMIMsg);
-        mDebugMsgTV.setText("Eat a bag of dookie.");
+        mDebugMsgTV.setText("");
+
+        mGPMsgTV = (TextView) v.findViewById(R.id.textViewGPMsg);
+        mGPMsgTV.setText("");
 
         mPhyStatusIV = (ImageView) v.findViewById(R.id.phyStatusIV);
         mPhyStatusIV.setVisibility(View.INVISIBLE);
@@ -303,14 +325,15 @@ public class HDMIView extends RelativeLayout {
 
     /**
      * Convenience method that starts the Surface and inits the driver
+     *
      * @param listener
      */
-    public void prepareManual(HDMIViewListener listener)  throws HDMIStateException {
+    public void prepareManual(HDMIViewListener listener) throws HDMIStateException {
         enableAutoManageMode = false;
         prepare(listener, false);
     }
 
-    public void prepareAuto(HDMIViewListener listener)  throws HDMIStateException {
+    public void prepareAuto(HDMIViewListener listener) throws HDMIStateException {
         enableAutoManageMode = true;
         prepare(listener, true);
     }
@@ -323,7 +346,7 @@ public class HDMIView extends RelativeLayout {
 
         mListener = listener;
 
-        addDebugMessage("Prepare called with initDriverWrapper = " + andInitDriverWrapper );
+        addDebugMessage("Prepare called with initDriverWrapper = " + andInitDriverWrapper);
 
         mSurfaceView = new SurfaceView(mContext);
         mSurfaceHolder = mSurfaceView.getHolder();
@@ -344,7 +367,7 @@ public class HDMIView extends RelativeLayout {
                 // We *want* to crash if no listener passed, so no null check
                 mListener.surfaceReady();
 
-                if (andInitDriverWrapper){
+                if (andInitDriverWrapper) {
                     createDriverWrapper(); // we're going to init when we get an attach message
                 }
             }
@@ -373,12 +396,12 @@ public class HDMIView extends RelativeLayout {
             @Override
             public void run() {
                 Log.d(TAG, "Checking PHY Status directly...");
-                if (rtkHdmiWrapper!=null){
+                if (rtkHdmiWrapper != null) {
                     HDMIRxStatus rxs = rtkHdmiWrapper.getStatusDirect();
                     boolean statusOK = rxs.status == HDMIRxStatus.STATUS_READY;
                     Log.d(TAG, "Direct PHY Status: " + statusOK);
                     mPhyStatusIV.setVisibility(View.VISIBLE);
-                    if (statusOK){
+                    if (statusOK) {
                         mPhyStatusIV.setImageResource(R.drawable.hdmion);
                     } else {
                         mPhyStatusIV.setImageResource(R.drawable.hdmioff);
@@ -391,51 +414,56 @@ public class HDMIView extends RelativeLayout {
 
 
     // Activity Lifecycle Methods. Correspond to Activity Lifecycle states
-    public void activityResume(){
+    public void activityResume() {
         Log.d(TAG, "activityResume() called.");
         // Receiving a PHY connected should re-init the underlying driver
-        if (rtkHdmiWrapper!=null){
+        if (rtkHdmiWrapper != null) {
             rtkHdmiWrapper.registerBroadcastRx();
         }
 
     }
 
-    public void activityPause(){
+    public void activityPause() {
         Log.d(TAG, "activityPause() called.");
 
         // Get rid of broadcasts
-        if (rtkHdmiWrapper!=null){
+        if (rtkHdmiWrapper != null) {
             rtkHdmiWrapper.unregisterBroadcastRx();
         }
 
         // Dump the hdmiManager
-        release();
+        releaseRtkHDMI();
+
+    }
+
+    private void tearDownHDMI() {
+        mListener.hdmiLOS();
+        releaseRtkHDMI();
+        //TODO the animation does not work...
+        //animateHdmiSurfaceAlpha(0.25f);
+        mHdmiHolder.setVisibility(View.INVISIBLE);
 
     }
 
     // Automanage Methods
-    private void startTeardownTimer(int ms){
-        addDebugMessage("Starting Teardown Timer");
-        mTeadownRunnable = new Runnable() {
+    private void startHDMIDownHardTimer(int ms) {
+        addDebugMessage("Starting HDMI Down Hard Timer");
+        mHDMIDownHardRunnable = new Runnable() {
             @Override
             public void run() {
-                addDebugMessage("Auto Teardown Process Starting");
-                if (hdmiPHYConnected){
-                    addDebugErrorMessage("Looks like HDMI PHY is back up, aborting teardown.");
+                addDebugMessage("HDMI DOWN HARD Starting");
+                if (hdmiPHYConnected) {
+                    addDebugErrorMessage("Looks like HDMI PHY is back up, aborting.");
                 } else {
-                    addDebugMessage("HDMI PHY is still down after 1.5s. Initiating teardown.");
+                    addDebugMessage("HDMI PHY is still down after 5s. Changing on-screen messaging.");
                     mListener.hdmiLOS();
-                    release();
-                    //TODO the animation does not work...
-                    //animateHdmiSurfaceAlpha(0.25f);
-                    mHdmiHolder.setVisibility(View.INVISIBLE);
                     setErrorScreenText("HDMI Input Signal Lost");
                     //startHdmiPHYChecker();
                 }
 
             }
         };
-        mHandler.postDelayed(mTeadownRunnable, ms);
+        mHandler.postDelayed(mHDMIDownHardRunnable, ms);
     }
 
     // It seems like we can have a race where we can get teardown and not come back up,
@@ -445,7 +473,7 @@ public class HDMIView extends RelativeLayout {
     // PHY coming back up. So the up code now kills the teardown Runnable and as a backup, the runnable
     // checks the PHY state before proceeding. If this doesn't work, then will add the third layer of
     // protection.
-    private void startHdmiPHYChecker(){
+    private void startHdmiPHYChecker() {
 
 
     }
@@ -459,11 +487,21 @@ public class HDMIView extends RelativeLayout {
 //        });
 //    }
 
-    private void setErrorScreenText(final String msg){
+    private void setErrorScreenText(final String msg) {
         mHdmiHolder.post(new Runnable() {
             @Override
             public void run() {
-                mHdmiErrorTextView.setText(msg);
+                if (!msg.isEmpty()) {Log.d(TAG, "Setting background to green");
+                    mHdmiErrorTextView.setText(msg);
+                    mMainHdmiView.setBackgroundColor( ContextCompat.getColor(mContext, R.color.OGGREEN));
+
+
+                } else {
+                    Log.d(TAG, "Setting background to gray");
+                    mHdmiErrorTextView.setText("");
+                    mMainHdmiView.setBackgroundColor( ContextCompat.getColor(mContext, R.color.OGDARKGRAY));
+
+                }
             }
         });
 
@@ -494,7 +532,7 @@ public class HDMIView extends RelativeLayout {
         }
     }
 
-    public void pause()  throws HDMIStateException {
+    public void pause() throws HDMIStateException {
         if (rtkHdmiWrapper != null) {
             rtkHdmiWrapper.pauseHDMI();
         } else {
@@ -508,7 +546,7 @@ public class HDMIView extends RelativeLayout {
     /**
      * Stops the playback, nulls driver. Only safe way to stop playback.
      */
-    public void release() {
+    public void releaseRtkHDMI() {
         if (rtkHdmiWrapper != null) {
             rtkHdmiWrapper.releaseHDMI();
         }

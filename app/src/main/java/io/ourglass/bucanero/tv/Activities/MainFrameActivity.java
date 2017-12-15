@@ -1,5 +1,6 @@
 package io.ourglass.bucanero.tv.Activities;
 
+import android.app.ActivityManager;
 import android.content.Context;
 import android.content.Intent;
 import android.graphics.Point;
@@ -8,6 +9,7 @@ import android.os.Handler;
 import android.os.PowerManager;
 import android.support.v4.app.Fragment;
 import android.support.v4.app.FragmentTransaction;
+import android.text.format.DateUtils;
 import android.util.Log;
 import android.view.KeyEvent;
 import android.view.SurfaceView;
@@ -26,11 +28,13 @@ import org.json.JSONException;
 import org.json.JSONObject;
 
 import java.util.ArrayList;
+import java.util.Date;
 
 import io.ourglass.bucanero.R;
 import io.ourglass.bucanero.Support.OGShellE;
 import io.ourglass.bucanero.api.BelliniDMAPI;
 import io.ourglass.bucanero.core.ABApplication;
+import io.ourglass.bucanero.core.MemInfo;
 import io.ourglass.bucanero.core.OGConstants;
 import io.ourglass.bucanero.core.OGHardware;
 import io.ourglass.bucanero.core.OGSettings;
@@ -73,6 +77,8 @@ public class MainFrameActivity extends BaseFullscreenActivity implements Overlay
     public Socket mSocket;
     private boolean mDebouncing = false;
 
+    Date startedAtDate;
+
     private static OGWebViewFragment mCrawlerWebViewFrag;
     private static OGWebViewFragment mWidgetWebViewFrag;
 
@@ -103,6 +109,8 @@ public class MainFrameActivity extends BaseFullscreenActivity implements Overlay
 
         super.onCreate(savedInstanceState);
 
+        startedAtDate = new Date();
+
         Log.d(TAG, "OS Level: " + OGSystem.getOsVersion());
         Log.d(TAG, "Is demo H/W? " + (OGSystem.isTronsmart() ? "YES" : "NO"));
         Log.d(TAG, "Is real OG H/W? " + (OGSystem.isRealOG() ? "YES" : "NO"));
@@ -119,7 +127,7 @@ public class MainFrameActivity extends BaseFullscreenActivity implements Overlay
             setContentView(R.layout.activity_main_frame_zidoo_og);
             mHDMIView = (HDMIView)findViewById(R.id.home_hdmi_parent);
 
-            mHDMIView.setmDebugMode(OGSettings.getHDMIDebugOverlayMode());
+            mHDMIView.setDebugMode(OGSettings.getHDMIDebugOverlayMode());
 
             try {
                 mHDMIView.prepareAuto(new HDMIView.HDMIViewListener() {
@@ -138,23 +146,8 @@ public class MainFrameActivity extends BaseFullscreenActivity implements Overlay
                         Log.e(TAG, "HDMI Driver error: " + error.name());
                         if (error== RtkHdmiWrapper.OGHdmiError.HDMI_CANT_OPEN_DRIVER){
                             Log.wtf(TAG, "We're fucked, need to reboot. HDMI driver is locked.");
-                            OGShellE.execRoot("reboot", new OGShellE.OGShellEListener() {
-                                @Override
-                                public void stdout(ArrayList<String> results) {
-                                    Log.d(TAG, "Reboot responded with stdout: " + results);
-                                }
+                            rebootIn(5000);
 
-                                @Override
-                                public void stderr(ArrayList<String> errors) {
-                                    Log.d(TAG, "Reboot responded with stderr: " + errors);
-
-                                }
-
-                                @Override
-                                public void fail(Exception e) {
-                                    Log.wtf(TAG, "Could not reboot");
-                                }
-                            });
                         }
 
                     }
@@ -243,13 +236,41 @@ public class MainFrameActivity extends BaseFullscreenActivity implements Overlay
 
 
 
-        // WAG at releasing HDMI when shit really gets fucked
-//        if (OGConstants.ENABLE_RESTART_ON_UNCAUGHT_EXCEPTIONS) {
-//            Log.d(TAG, "Should be catching all exceptions, commented out");
-//            //Thread.setDefaultUncaughtExceptionHandler(new OGHygenicExceptionHander(mHDMIView));
-//        }
+        //WAG at releasing HDMI when shit really gets fucked
+        if (OGConstants.ENABLE_RESTART_ON_UNCAUGHT_EXCEPTIONS) {
+            Log.d(TAG, "Should be catching all exceptions, commented out");
+            rebootIn(100);
+        }
 
         Log.d(TAG, "onCreate done");
+
+    }
+
+    private void rebootIn(int milliSecs){
+
+        mHandler.postDelayed(new Runnable() {
+            @Override
+            public void run() {
+                OGShellE.execRoot("reboot", new OGShellE.OGShellEListener() {
+                    @Override
+                    public void stdout(ArrayList<String> results) {
+                        Log.d(TAG, "Reboot responded with stdout: " + results);
+                    }
+
+                    @Override
+                    public void stderr(ArrayList<String> errors) {
+                        Log.d(TAG, "Reboot responded with stderr: " + errors);
+
+                    }
+
+                    @Override
+                    public void fail(Exception e) {
+                        Log.wtf(TAG, "Could not reboot");
+                    }
+                });
+            }
+        }, milliSecs);
+
 
     }
 
@@ -414,12 +435,54 @@ public class MainFrameActivity extends BaseFullscreenActivity implements Overlay
 
         mHDMIView.activityResume();
 
+        mHandler.postDelayed(new Runnable() {
+            @Override
+            public void run() {
+                MemInfo method1 = OGSystem.getOSMemory();
+                MemInfo method2 = OGSystem.getOSMemory2();
+                CharSequence time = DateUtils.getRelativeTimeSpanString(startedAtDate.getTime());
+
+                StringBuilder sb = new StringBuilder();
+                sb.append(time+ "\n\n");
+                sb.append("Method 1\n");
+                sb.append("Total: " + method1.totalMegs + "\n");
+                sb.append("Free: " + method1.availableMegs + "\n");
+                sb.append("% free: " + method1.getAvailablePctString()+ "\n\n");
+                sb.append("Method 2\n");
+                sb.append("Total: " + method2.totalMegs + "\n");
+                sb.append("Free: " + method2.availableMegs + "\n");
+                sb.append("% free: " + method2.getAvailablePctString()+ "\n");
+                sb.append("Low Mem?: " + method2.lowMemory + "\n\n");
+
+                ActivityManager.RunningAppProcessInfo rapi = new ActivityManager.RunningAppProcessInfo();
+                ActivityManager.getMyMemoryState(rapi);
+
+                sb.append("Last trim lvl: " + rapi.lastTrimLevel);
+
+                mHDMIView.setGPMessage(sb.toString());
+
+                mHandler.postDelayed(this, 5000);
+            }
+        }, 1000);
+
+
+        // This sends a boradcast to Wort every 5000 ms if MFA is alive
+        mHandler.postDelayed(new Runnable() {
+            @Override
+            public void run() {
+                kickWDT();
+                mHandler.postDelayed(this, 5000);
+            }
+        }, 5000);
+
     }
 
     @Override
     public void onPause() {
+        mHandler.removeCallbacksAndMessages(null);
         stbPoller.stop();
         mHDMIView.activityPause();
+
         super.onPause();
     }
 
@@ -442,6 +505,12 @@ public class MainFrameActivity extends BaseFullscreenActivity implements Overlay
                 }
             }, 6000);
         }
+    }
+
+    @Override
+    public void onTrimMemory(int level){
+        mHDMIView.addDebugMessage("Mem Trim: "+level);
+        Log.d(TAG, "Memory trim requested at level: " + level);
     }
 
     public void endBoot() {
@@ -813,12 +882,12 @@ public class MainFrameActivity extends BaseFullscreenActivity implements Overlay
 
             case SHOW_HDMI_DEBUG_LAYER:
                 Log.d(TAG, "Received message to turn on HDMI debug layer.");
-                mHDMIView.setmDebugMode(true);
+                mHDMIView.setDebugMode(true);
                 break;
 
             case HIDE_HDMI_DEBUG_LAYER:
                 Log.d(TAG, "Received message to turn off HDMI debug layer.");
-                mHDMIView.setmDebugMode(false);
+                mHDMIView.setDebugMode(false);
                 break;
         }
 
@@ -829,6 +898,12 @@ public class MainFrameActivity extends BaseFullscreenActivity implements Overlay
         mDebouncing = false;
         //removeOverlayFragment();
         dismissOverlayFragment();
+    }
+
+    private void kickWDT(){
+        Intent ackIntent = new Intent();
+        ackIntent.setAction("io.ourglass.MF_WDT_KICK");
+        sendBroadcast(ackIntent);
     }
 
 

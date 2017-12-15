@@ -1,7 +1,8 @@
 <RelativeLayout xmlns:android="http://schemas.android.com/apk/res/android"
     xmlns:tools="http://schemas.android.com/tools"
     android:layout_width="match_parent"
-    android:layout_height="match_parent">
+    android:layout_height="match_parent"
+    android:id="@+id/hdmi_main_view">
 
     <TextView
         android:id="@+id/home_ac_hdmi_nosignal_text_view"
@@ -11,7 +12,7 @@
         android:text=""
         android:textColor="#ffffff"
         android:textSize="64sp"
-        tools:text="NO HDMI" />
+        tools:text="YOINK!!" />
 
     <RelativeLayout
         android:id="@+id/home_ac_hdmi_textureView"
@@ -24,6 +25,7 @@
         android:layout_height="match_parent"
         android:layout_margin="200px">
 
+        <!-- State -->
         <TextView
             android:id="@+id/textViewHDMIStateLabel"
             android:layout_width="300px"
@@ -51,6 +53,7 @@
             android:textColor="#ffffff"
             android:textSize="12sp" />
 
+        <!-- Message -->
         <TextView
             android:id="@+id/textViewHDMIMsgLabel"
             android:layout_width="300px"
@@ -79,7 +82,7 @@
             android:visibility="visible"
             android:alpha="1.0"/>
 
-
+        <!-- ERROR -->
         <TextView
             android:id="@+id/textViewHDMIErrLabel"
             android:layout_width="300px"
@@ -106,6 +109,35 @@
             android:textColor="#ffffff"
             android:textSize="12sp"
             android:visibility="visible" />
+
+        <!-- GP Messages -->
+        <TextView
+            android:id="@+id/textViewGPDebugLabel"
+            android:layout_width="300px"
+            android:layout_height="wrap_content"
+            android:layout_marginStart="20dp"
+            android:layout_marginTop="30dp"
+            android:layout_toRightOf="@+id/textViewHDMIErrLabel"
+            android:background="#bf000000"
+            android:padding="10dp"
+            android:text="GP MSG"
+            android:textAlignment="center"
+            android:textColor="#f9a825"
+            android:textSize="12sp" />
+
+        <TextView
+            android:id="@+id/textViewGPMsg"
+            android:layout_width="300px"
+            android:layout_height="wrap_content"
+            android:layout_alignStart="@+id/textViewGPDebugLabel"
+            android:layout_below="@+id/textViewGPDebugLabel"
+            android:background="#7f000000"
+            android:padding="10dp"
+            android:text=""
+            android:textColor="#ffffff"
+            android:textSize="12sp"
+            android:visibility="visible" />
+
 
         <ImageView
             android:id="@+id/phyStatusIV"

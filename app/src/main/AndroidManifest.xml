@@ -77,9 +77,9 @@
             <!--android:exported="false" />-->
 
 
-        <service
-            android:name=".services.OGLog.OGLogService"
-            android:exported="false" />
+        <!--<service-->
+            <!--android:name=".services.OGLog.OGLogService"-->
+            <!--android:exported="false" />-->
 
         <service
             android:name=".services.FFmpeg.FFmpegBinaryService"
