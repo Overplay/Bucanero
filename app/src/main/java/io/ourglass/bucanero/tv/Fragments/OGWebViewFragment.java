@@ -17,6 +17,8 @@ import android.webkit.WebView;
 import android.webkit.WebViewClient;
 import android.webkit.WebViewFragment;
 
+import com.crashlytics.android.answers.Answers;
+import com.crashlytics.android.answers.CustomEvent;
 import com.squareup.otto.Subscribe;
 
 import org.json.JSONObject;
@@ -313,6 +315,8 @@ public class OGWebViewFragment extends WebViewFragment {
     public void launchApp(String appId) {
         mAppId = appId;
         loadUrl(BelliniDMAPI.fullUrlForApp(appId));
+        Answers.getInstance().logCustom(new CustomEvent("App Launch")
+                .putCustomAttribute("appId", appId));
     }
 
     class SystemJsonObject {
@@ -343,6 +347,9 @@ public class OGWebViewFragment extends WebViewFragment {
                 }
             }, 1000);
             BelliniDMAPI.appKillAck(mAppId);
+            Answers.getInstance().logCustom(new CustomEvent("App Kill")
+                .putCustomAttribute("appId", killMsg.appId));
+
         }
     }
 
@@ -354,6 +361,7 @@ public class OGWebViewFragment extends WebViewFragment {
             moveToNextLayoutSlot();
             OGSystem.screenMap.put(appType, new AppMapEntry(mAppId, mLayoutSlot, AppMapEntry.mapFromString(appType)));
             BelliniDMAPI.appMoveAck(mAppId, mLayoutSlot);
+            Answers.getInstance().logCustom(new CustomEvent("App Move"));
         }
     }
 
@@ -385,6 +393,7 @@ public class OGWebViewFragment extends WebViewFragment {
 
         if (slot != mLayoutSlot){
             Log.d(TAG, "Moving " + appType + " app in response to BestPosition message!");
+            Answers.getInstance().logCustom(new CustomEvent("Best Position Move"));
             setFrameForSlot(slot);
         }
     }

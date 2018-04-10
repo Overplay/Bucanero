@@ -8,12 +8,16 @@ import android.os.Handler;
 import android.util.Log;
 import android.widget.Toast;
 
+import com.crashlytics.android.Crashlytics;
+import com.crashlytics.android.answers.Answers;
+
 import net.danlew.android.joda.JodaTimeAndroid;
 
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
 
+import io.fabric.sdk.android.Fabric;
 import io.ourglass.bucanero.api.OGHeaderInterceptor;
 import io.ourglass.bucanero.messages.MainThreadBus;
 import io.ourglass.bucanero.services.Connectivity.ConnectivityCenter;
@@ -24,6 +28,8 @@ import okhttp3.Cookie;
 import okhttp3.CookieJar;
 import okhttp3.HttpUrl;
 import okhttp3.OkHttpClient;
+
+//
 
 /**
  * Created by mkahn on 5/18/16.
@@ -72,8 +78,16 @@ public class ABApplication extends Application {
         thisApplication = this;
         sharedContext = getApplicationContext();
 
+        Fabric.with(this, new Crashlytics());
+        Fabric.with(this, new Answers());
+
+        logUser();
+
         Log.d(TAG, "Package name is: " + getApplicationContext().getPackageName());
-        RealmConfiguration config = new RealmConfiguration.Builder(this)
+
+        Realm.init(getApplicationContext());
+
+        RealmConfiguration config = new RealmConfiguration.Builder()
                 .name("ab.realm")
                 .schemaVersion(1)
                 .build();
@@ -104,6 +118,14 @@ public class ABApplication extends Application {
         if (OGConstants.SHOW_DB_TOASTS) {
             Toast.makeText(sharedContext, message, Toast.LENGTH_SHORT).show();
         }
+    }
+
+    private void logUser() {
+        // TODO: Use the current user's information
+        // You can call any combination of these three methods
+        Crashlytics.setUserIdentifier(OGSystem.getUDID());
+        Crashlytics.setUserName("@VENUE: "+OGSystem.getVenueName());
+
     }
 
 

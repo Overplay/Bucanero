@@ -31,6 +31,8 @@ public class SSDPHandlerThread extends HandlerThread {
     HashSet<String> addresses = new HashSet<>();
     HashMap<String, String> devices = new HashMap<>();
 
+    private static final int WAIT_TIMEOUT = 30 * 1000;
+
     public interface SSDPListener {
         public void foundDevices(HashMap<String, String> devices, HashSet<String> addresses);
         public void encounteredError(String errString);
@@ -91,7 +93,7 @@ public class SSDPHandlerThread extends HandlerThread {
                     socket.send(dgram);
 
                     // 6 seconds of inactivity and we're out
-                    socket.setSoTimeout(4000);
+                    socket.setSoTimeout(WAIT_TIMEOUT);
 
                     // Let's consider all the responses we can get in 1 second
                     while ( true ) {

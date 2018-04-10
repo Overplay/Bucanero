@@ -2,6 +2,9 @@ package io.ourglass.bucanero.services.SocketIO.SIOActions;
 
 import android.util.Log;
 
+import com.crashlytics.android.answers.Answers;
+import com.crashlytics.android.answers.CustomEvent;
+
 import org.json.JSONException;
 import org.json.JSONObject;
 
@@ -26,6 +29,7 @@ public class CloudUpdateAction extends SIOAction {
             JSONObject change = inboundObject.getJSONObject("change");
             if (change.has("atVenueUUID")) {
                 (new VenuePairCompleteMessage()).post();
+                Answers.getInstance().logCustom(new CustomEvent("VenuePairDone"));
             }
         } catch (JSONException e) {
             e.printStackTrace();

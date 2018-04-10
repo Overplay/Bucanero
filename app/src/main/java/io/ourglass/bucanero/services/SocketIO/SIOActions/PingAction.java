@@ -2,6 +2,9 @@ package io.ourglass.bucanero.services.SocketIO.SIOActions;
 
 import android.util.Log;
 
+import com.crashlytics.android.answers.Answers;
+import com.crashlytics.android.answers.CustomEvent;
+
 import org.json.JSONObject;
 
 import io.ourglass.bucanero.services.SocketIO.SIOMessages.PingAckMessage;
@@ -22,5 +25,6 @@ public class PingAction extends SIOAction {
     public void process(JSONObject inboundObject) {
         Log.d("PingAction", "Socket ping received");
         sailsSIODeviceMessage(new PingAckMessage().toJson(), null);
+        Answers.getInstance().logCustom(new CustomEvent("PingRX"));
     }
 }

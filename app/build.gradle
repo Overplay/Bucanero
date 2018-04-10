@@ -1,5 +1,6 @@
 apply plugin: 'com.android.application'
 apply plugin: 'realm-android'
+apply plugin: 'io.fabric'
 
 android {
     signingConfigs {
@@ -24,8 +25,8 @@ android {
         applicationId "io.ourglass.bucanero"
         minSdkVersion 19
         targetSdkVersion 19
-        versionCode 25
-        versionName "2.0"
+        versionCode 28
+        versionName "2.1"
         testInstrumentationRunner "android.support.test.runner.AndroidJUnitRunner"
         signingConfig signingConfigs.release
     }
@@ -78,4 +79,7 @@ dependencies {
     compile 'com.github.franmontiel:PersistentCookieJar:v1.0.1'
     compile 'com.snatik:storage:2.1.0'
     testCompile 'junit:junit:4.12'
+    compile('com.crashlytics.sdk.android:crashlytics:2.9.0@aar') {
+        transitive = true;
+    }
 }

@@ -5,6 +5,7 @@ import android.os.HandlerThread;
 import android.os.Looper;
 import android.util.Log;
 
+import com.crashlytics.android.Crashlytics;
 import com.snatik.storage.Storage;
 import com.squareup.otto.Subscribe;
 
@@ -128,6 +129,11 @@ public class OGLogWorker {
                 Log.d(TAG, "Uploading heartbeat.");
                 OGLogMessage.newHeartbeatLog().post();
                 mOGLogHandler.postDelayed(this, 1 * 1000 * 60);
+                try {
+                    Crashlytics.setString("last_sysinfo", OGSystem.getSystemInfoString());
+                } catch (Exception e){
+                    // the above can crash during boot, not a big deal
+                }
             }
         };
 

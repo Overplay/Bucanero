@@ -11,6 +11,9 @@ import android.widget.Button;
 import android.widget.ProgressBar;
 import android.widget.TextView;
 
+import com.crashlytics.android.answers.Answers;
+import com.crashlytics.android.answers.ContentViewEvent;
+import com.crashlytics.android.answers.CustomEvent;
 import com.squareup.otto.Subscribe;
 
 import org.jdeferred.DoneCallback;
@@ -21,6 +24,7 @@ import io.ourglass.bucanero.R;
 import io.ourglass.bucanero.api.BelliniDMAPI;
 import io.ourglass.bucanero.core.ABApplication;
 import io.ourglass.bucanero.core.OGConstants;
+import io.ourglass.bucanero.core.OGSettings;
 import io.ourglass.bucanero.core.OGSystem;
 import io.ourglass.bucanero.core.OGUi;
 import io.ourglass.bucanero.messages.MainThreadBus;
@@ -122,6 +126,10 @@ public class PairVenueFragment extends OverlayFragment {
         mAlreadyPairedHolder = getView().findViewById(R.id.alreadyPairedHolder);
         mPairDoneHolder = getView().findViewById(R.id.pairDoneHolder);
 
+        Answers.getInstance().logContentView(new ContentViewEvent()
+                .putContentType("Menu")
+                .putContentName("Venue Pair Menu"));
+
         // TODO this should actually be self-resetting based on activity in the fragment
         //dismissMeAfter(5*60*1000);
     }
@@ -200,6 +208,10 @@ public class PairVenueFragment extends OverlayFragment {
                                 .addFieldToMessage("exception", result.toString()  )
                                 .addFieldToMessage("issue_code", 1003)  // this is just some BS to test the generics
                                 .post();
+
+                        Answers.getInstance().logCustom(new CustomEvent("Venue Pair Failure")
+                            .putCustomAttribute("details", "Couldn't get a Registration Code from server.")
+                            .putCustomAttribute("server", OGSettings.getBelliniDMAddress()));
 
                         SystemStatusMessage.sendStatusMessageWithException(NETWORK_ISSUE, result);
                     }

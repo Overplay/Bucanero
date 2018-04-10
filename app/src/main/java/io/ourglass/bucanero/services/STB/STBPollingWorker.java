@@ -63,7 +63,7 @@ public class STBPollingWorker  {
                         Log.d(TAG, "System thinks it is hard paired, but no response from STB, unpairing.");
                         OGSystem.unpairSTB();
                     }
-                    Log.d(TAG, "Gonna twiddle the routing table a tiny bit, see if I can some action.");
+                    Log.d(TAG, "Gonna twiddle the routing table a tiny bit, see if I can get some action.");
                     ConnectivityCenter.ipRoute();
 
                 }

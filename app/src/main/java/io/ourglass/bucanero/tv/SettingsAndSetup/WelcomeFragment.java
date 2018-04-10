@@ -9,6 +9,9 @@ import android.view.ViewGroup;
 import android.widget.Button;
 import android.widget.TextView;
 
+import com.crashlytics.android.answers.Answers;
+import com.crashlytics.android.answers.ContentViewEvent;
+
 import io.ourglass.bucanero.R;
 import io.ourglass.bucanero.core.OGUi;
 import io.ourglass.bucanero.tv.Activities.MainFrameActivity;
@@ -82,6 +85,10 @@ public class WelcomeFragment extends OverlayFragment {
             }
         });
 
+
+        Answers.getInstance().logContentView(new ContentViewEvent()
+            .putContentType("Menu")
+            .putContentName("Welcome/Setup Menu"));
 
         // TODO this should actually be self-resetting based on activity in the fragment
         dismissMeAfter(5*60*1000);

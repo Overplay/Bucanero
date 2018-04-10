@@ -19,16 +19,24 @@ import android.widget.ImageView;
 import android.widget.RelativeLayout;
 import android.widget.TextView;
 
+import com.crashlytics.android.answers.Answers;
+import com.crashlytics.android.answers.CustomEvent;
 import com.squareup.otto.Subscribe;
 
 import org.jdeferred.DoneCallback;
 import org.jdeferred.FailCallback;
+import org.joda.time.DateTime;
+import org.joda.time.format.DateTimeFormatter;
+import org.joda.time.format.ISODateTimeFormat;
 import org.json.JSONArray;
 import org.json.JSONException;
 import org.json.JSONObject;
 
 import java.util.ArrayList;
 import java.util.Date;
+import java.util.concurrent.Executors;
+import java.util.concurrent.ScheduledExecutorService;
+import java.util.concurrent.TimeUnit;
 
 import io.ourglass.bucanero.R;
 import io.ourglass.bucanero.Support.OGShellE;
@@ -102,12 +110,19 @@ public class MainFrameActivity extends BaseFullscreenActivity implements Overlay
     // Replacing Android Services;
     STBPollingWorker stbPoller;
 
+    private ScheduledExecutorService scheduledExecutorService = Executors.newScheduledThreadPool(1);;
+    private static final int REBOOT_HOUR = 4;
+    private static final int REBOOT_MIN = 30;
+
 
 
     @Override
     protected void onCreate(final Bundle savedInstanceState) {
 
         super.onCreate(savedInstanceState);
+
+        Answers.getInstance().logCustom(new CustomEvent("Boot")
+            .putCustomAttribute("systemType", OGSystem.isRealOG() ? "RealOG" : "Emu"));
 
         startedAtDate = new Date();
 
@@ -242,11 +257,30 @@ public class MainFrameActivity extends BaseFullscreenActivity implements Overlay
             rebootIn(100);
         }
 
-        Log.d(TAG, "onCreate done");
+
+        if (OGConstants.DO_HYGIENE_REBOOT){
+            DateTime now = new DateTime();
+            DateTime rebootTime = now.plusDays(0).withHourOfDay(REBOOT_HOUR).withMinuteOfHour(REBOOT_MIN);
+            DateTimeFormatter fmt = ISODateTimeFormat.dateTime();
+            Log.d(TAG, "Set to reboot at: "+ fmt.print(rebootTime));
+
+            long diffInMillis = rebootTime.getMillis() - now.getMillis();
+
+            scheduledExecutorService.schedule(new Runnable() {
+                @Override
+                public void run() {
+                    rebootIn(5000);
+                }
+            }, diffInMillis, TimeUnit.MILLISECONDS);
+
+        }
+
 
     }
 
     private void rebootIn(int milliSecs){
+
+        showSystemToast("Rebooting in "+milliSecs/1000+" seconds.");
 
         mHandler.postDelayed(new Runnable() {
             @Override
@@ -421,7 +455,7 @@ public class MainFrameActivity extends BaseFullscreenActivity implements Overlay
         }
 
 
-        if (OGConstants.AUTO_START_AUDIO_STREAMER){
+        if (OGConstants.AUTO_START_AUDIO_STREAMER && OGSystem.isRealOG()){
 
             mHandler.postDelayed(new Runnable() {
                 @Override
@@ -433,7 +467,10 @@ public class MainFrameActivity extends BaseFullscreenActivity implements Overlay
 
         }
 
-        mHDMIView.activityResume();
+        if (mHDMIView!=null){
+            // should only be null in the emulator
+            mHDMIView.activityResume();
+        }
 
         mHandler.postDelayed(new Runnable() {
             @Override
@@ -459,7 +496,9 @@ public class MainFrameActivity extends BaseFullscreenActivity implements Overlay
 
                 sb.append("Last trim lvl: " + rapi.lastTrimLevel);
 
-                mHDMIView.setGPMessage(sb.toString());
+                if (mHDMIView!=null){
+                    mHDMIView.setGPMessage(sb.toString());
+                }
 
                 mHandler.postDelayed(this, 5000);
             }
@@ -481,7 +520,9 @@ public class MainFrameActivity extends BaseFullscreenActivity implements Overlay
     public void onPause() {
         mHandler.removeCallbacksAndMessages(null);
         stbPoller.stop();
-        mHDMIView.activityPause();
+        if (mHDMIView!=null){
+            mHDMIView.activityPause();
+        }
 
         super.onPause();
     }
@@ -509,7 +550,9 @@ public class MainFrameActivity extends BaseFullscreenActivity implements Overlay
 
     @Override
     public void onTrimMemory(int level){
-        mHDMIView.addDebugMessage("Mem Trim: "+level);
+        if (mHDMIView!=null){
+            mHDMIView.addDebugMessage("Mem Trim: "+level);
+        }
         Log.d(TAG, "Memory trim requested at level: " + level);
     }
 
@@ -573,6 +616,9 @@ public class MainFrameActivity extends BaseFullscreenActivity implements Overlay
 
         Log.d(TAG, "Button with this code being processed: " + keyCode);
 
+        Answers.getInstance().logCustom(new CustomEvent("Remote Control Keypress")
+                .putCustomAttribute("keyCode", "KEY: "+keyCode )); //force string otherwise Fabric draws stupid conclusions and graphs
+
 
         if (keyCode == KeyEvent.KEYCODE_BACK) {
             Log.d(TAG, "Pressed back button.");
@@ -584,7 +630,9 @@ public class MainFrameActivity extends BaseFullscreenActivity implements Overlay
 
         if ( keyCode == KeyEvent.KEYCODE_MEDIA_PLAY_PAUSE && !OGConstants.AUTO_START_AUDIO_STREAMER) {
             Log.d(TAG, "Pressed play-pause button.");
-            mHDMIView.streamAudio();
+            if (mHDMIView!=null){
+                mHDMIView.streamAudio();
+            }
         }
 
         // Launch settings from button 0 on remote
@@ -620,8 +668,9 @@ public class MainFrameActivity extends BaseFullscreenActivity implements Overlay
             return true;
         }
 
-        if ((keyCode == 16) && OGConstants.CRASH_TEST_DUMMY) {
-            //int zed = 1 / 0;
+        if ((keyCode == KeyEvent.KEYCODE_9) && OGConstants.CRASH_TEST_DUMMY) {
+            Answers.getInstance().logCustom(new CustomEvent("Manual Crash Test"));
+                throw new RuntimeException("This is a crash");
         }
 
 //        if (keyCode == KeyEvent.KEYCODE_5) {
@@ -807,6 +856,7 @@ public class MainFrameActivity extends BaseFullscreenActivity implements Overlay
                 OGAnimations.animateAlphaTo(mPopupSystemMessageTV, 0.0f);
             }
         }, 2000);
+
     }
 
     @Subscribe
@@ -820,6 +870,10 @@ public class MainFrameActivity extends BaseFullscreenActivity implements Overlay
         target.setSizeAsPctOfScreen(launchMsg.appSize);
 
         BelliniDMAPI.appLaunchAck(launchMsg.appId, target.mLayoutSlot);
+
+        Answers.getInstance().logCustom(new CustomEvent("OGApp Launch")
+                .putCustomAttribute("AppId", launchMsg.appId)
+                .putCustomAttribute("AppType", launchMsg.appType));
 
     }
 
@@ -882,12 +936,16 @@ public class MainFrameActivity extends BaseFullscreenActivity implements Overlay
 
             case SHOW_HDMI_DEBUG_LAYER:
                 Log.d(TAG, "Received message to turn on HDMI debug layer.");
-                mHDMIView.setDebugMode(true);
+                if (mHDMIView!=null){
+                    mHDMIView.setDebugMode(true);
+                }
                 break;
 
             case HIDE_HDMI_DEBUG_LAYER:
                 Log.d(TAG, "Received message to turn off HDMI debug layer.");
-                mHDMIView.setDebugMode(false);
+                if (mHDMIView!=null){
+                    mHDMIView.setDebugMode(false);
+                }
                 break;
         }
 

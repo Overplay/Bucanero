@@ -3,6 +3,8 @@ package io.ourglass.bucanero.services.SocketIO;
 import android.os.Handler;
 import android.util.Log;
 
+import com.crashlytics.android.answers.Answers;
+import com.crashlytics.android.answers.CustomEvent;
 import com.squareup.otto.Bus;
 import com.squareup.otto.Subscribe;
 
@@ -156,6 +158,8 @@ public class SocketIOManager {
                 Log.d(TAG, "Socket Connected!");
                 OGLogMessage.newSIOStatusLog(SIONetworkState.SIONetState.SIO_CONNECTED).post();
                 joinDeviceRoom();
+                Answers.getInstance().logCustom(new CustomEvent("SIO Event")
+                        .putCustomAttribute("detail", "Connected"));
                 keepAlive();
             }
         });
@@ -168,6 +172,8 @@ public class SocketIOManager {
             public void call(Object... args) {
                 Log.wtf(TAG, "Socket DISConnected!");
                 OGLogMessage.newSIOStatusLog(SIONetworkState.SIONetState.SIO_DISCONNECTED).post();
+                Answers.getInstance().logCustom(new CustomEvent("SIO Event")
+                        .putCustomAttribute("detail", "Disconnected"));
                 //mKeepAliveThread.interrupt();
                 //setupSocketIO();
             }
@@ -206,6 +212,9 @@ public class SocketIOManager {
 
                     OGLogMessage.newSIOStatusLog(SIONetworkState.SIONetState.SIO_LOS_RED).post();
 
+                    Answers.getInstance().logCustom(new CustomEvent("SIO LoS")
+                            .putCustomAttribute("severity", 2));
+
                     Log.d(TAG, "~~~ LOS LEVEL: 2 ~~~~");
                     Log.d(TAG, "~~~ SHUTTING DOWN SOCKETS ~~~~");
                     shutDownSockets();
@@ -237,6 +246,8 @@ public class SocketIOManager {
                         (new OnScreenNotificationMessage("We seem to have a slight network issue...")).post();
                         losLevel = 1;
                         OGLogMessage.newSIOStatusLog(SIONetworkState.SIONetState.SIO_LOS_YELLOW).post();
+                        Answers.getInstance().logCustom(new CustomEvent("SIO LoS")
+                                .putCustomAttribute("severity", 1));
 
                     }
 
@@ -277,12 +288,14 @@ public class SocketIOManager {
         String action = robj.optString("action", "noop");
         Log.d(TAG, "Inbound command: " + action);
 
-        Long ts = robj.optLong("ts", 0L);
+        Long ts = (Long) robj.optLong("ts", 0L);
         if (deDedup(ts)) {
 
             Log.d(TAG, "Inbound command accepted: " + action);
             boolean actionResult = mDispatcher.processAction(action, robj);
             Log.d(TAG, actionResult ? "Command processed." : "Command not recognized.");
+            Answers.getInstance().logCustom(new CustomEvent("SIO RX Action")
+                    .putCustomAttribute("action", action));
 
         }
 
@@ -322,8 +335,8 @@ public class SocketIOManager {
     // Hail Mary
     private boolean deDedup(Long timeStamp) {
 
-        Long now = System.currentTimeMillis();
-        Long stale = now - 10000; // 10 seconds ago
+        Long now = (Long) System.currentTimeMillis();
+        Long stale = (Long) (now - 10000); // 10 seconds ago
         ArrayList<Long> staleEntries = new ArrayList<>();
 
         for (Long ts : mDedupMap.keySet()) {
@@ -338,7 +351,7 @@ public class SocketIOManager {
         }
 
         if (mDedupMap.get(timeStamp) == null) {
-            mDedupMap.put(timeStamp, System.currentTimeMillis());
+            mDedupMap.put(timeStamp, Long.valueOf(System.currentTimeMillis()));
             return true;
         }
 
