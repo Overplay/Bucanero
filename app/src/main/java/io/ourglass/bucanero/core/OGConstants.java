@@ -27,7 +27,7 @@ public class OGConstants {
     public static final String BELLINI_DM_EMU_LOCAL_ADDRESS = "http://10.0.2.2:2001";
     //when debugging with a local instance of Bellini running on a Mac. Set this to true and set IP
     //to your workstation IP address
-    public static final Boolean USE_LOCAL_DM_SERVER = true;
+    public static final Boolean USE_LOCAL_DM_SERVER = false;
     public static final String BELLINI_DM_LAN_LOCAL_ADDRESS = "http://192.168.1.173:2001";
 
     // Force automatic venue registration to the OG Office in Campbell

@@ -16,8 +16,8 @@ import android.widget.RelativeLayout;
 import android.widget.TextView;
 import android.widget.Toast;
 
-import com.crashlytics.android.answers.Answers;
-import com.crashlytics.android.answers.CustomEvent;
+//import com.crashlytics.android.answers.Answers;
+//import com.crashlytics.android.answers.CustomEvent;
 import com.realtek.server.HDMIRxStatus;
 
 import java.util.ArrayList;
@@ -93,8 +93,8 @@ public class HDMIView extends RelativeLayout {
                     mHdmiHolder.setVisibility(View.INVISIBLE);
                     mHdmiErrorTextView.setText("CAN'T ACQUIRE DRIVER");
                     mListener.error(error);
-                    Answers.getInstance().logCustom(new CustomEvent("HDMI Fatal")
-                            .putCustomAttribute("details", "Can't acquire driver"));
+//                    Answers.getInstance().logCustom(new CustomEvent("HDMI Fatal")
+//                            .putCustomAttribute("details", "Can't acquire driver"));
                     break;
 
                 case FYI:
@@ -153,14 +153,14 @@ public class HDMIView extends RelativeLayout {
                     mHdmiHolder.setVisibility(View.VISIBLE);
                     addDebugMessage("PHY Link, starting HDMI");
                     startHDMI();
-                    Answers.getInstance().logCustom(new CustomEvent("HDMI State")
-                            .putCustomAttribute("state", 1));
+//                    Answers.getInstance().logCustom(new CustomEvent("HDMI State")
+//                            .putCustomAttribute("state", 1));
                     break;
 
                 case HDMI_PHY_NOT_CONNECTED:
                     hdmiPHYConnected = false;
-                    Answers.getInstance().logCustom(new CustomEvent("HDMI State")
-                            .putCustomAttribute("state", 0));
+//                    Answers.getInstance().logCustom(new CustomEvent("HDMI State")
+//                            .putCustomAttribute("state", 0));
                     setErrorScreenText("");
                     if (enableAutoManageMode) {
                         // This had a race situation, show just tear down now

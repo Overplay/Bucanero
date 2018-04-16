@@ -1,7 +1,7 @@
 package io.ourglass.bucanero.tv.Fragments;
 
-import com.crashlytics.android.answers.Answers;
-import com.crashlytics.android.answers.ContentViewEvent;
+//import com.crashlytics.android.answers.Answers;
+//import com.crashlytics.android.answers.ContentViewEvent;
 
 import io.ourglass.bucanero.core.OGSystem;
 
@@ -28,10 +28,10 @@ public class SystemInfoFragment extends SimpleHeaderTextFragment {
         mBody = OGSystem.getSystemInfoString();
         dismissMeAfter(60000);
         super.onStart();
-
-        Answers.getInstance().logContentView(new ContentViewEvent()
-                .putContentType("Menu")
-                .putContentName("System Info Menu"));
+//
+//        Answers.getInstance().logContentView(new ContentViewEvent()
+//                .putContentType("Menu")
+//                .putContentName("System Info Menu"));
     }
 
 

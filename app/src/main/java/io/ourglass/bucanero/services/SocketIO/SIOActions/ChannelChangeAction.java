@@ -2,8 +2,8 @@ package io.ourglass.bucanero.services.SocketIO.SIOActions;
 
 import android.util.Log;
 
-import com.crashlytics.android.answers.Answers;
-import com.crashlytics.android.answers.CustomEvent;
+//import com.crashlytics.android.answers.Answers;
+//import com.crashlytics.android.answers.CustomEvent;
 
 import org.json.JSONObject;
 
@@ -29,8 +29,8 @@ public class ChannelChangeAction extends SIOAction {
         ABApplication.ottobus.post(tvcm); // in case anyone cares
         OGSystem.changeTVChannel(tvcm.toChannel);
 
-        Answers.getInstance().logCustom(new CustomEvent("ChannelChange")
-                .putCustomAttribute("newChannel", inboundObject.optInt("channel", 0)));
+//        Answers.getInstance().logCustom(new CustomEvent("ChannelChange")
+//                .putCustomAttribute("newChannel", inboundObject.optInt("channel", 0)));
 
 //        // TODO: Hack Alert!!
 //

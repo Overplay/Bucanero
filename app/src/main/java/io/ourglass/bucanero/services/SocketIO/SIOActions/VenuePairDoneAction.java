@@ -2,8 +2,8 @@ package io.ourglass.bucanero.services.SocketIO.SIOActions;
 
 import android.util.Log;
 
-import com.crashlytics.android.answers.Answers;
-import com.crashlytics.android.answers.CustomEvent;
+//import com.crashlytics.android.answers.Answers;
+//import com.crashlytics.android.answers.CustomEvent;
 
 import org.json.JSONObject;
 
@@ -26,6 +26,6 @@ public class VenuePairDoneAction extends SIOAction {
     public void process(JSONObject inboundObject) {
         Log.d(TAG, "Socket venue_pair_done command received");
         (new SystemCommandMessage(SystemCommandMessage.SystemCommand.VENUE_PAIR_DONE)).post();
-        Answers.getInstance().logCustom(new CustomEvent("VenuePairDone"));
+//        Answers.getInstance().logCustom(new CustomEvent("VenuePairDone"));
     }
 }

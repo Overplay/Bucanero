@@ -3,22 +3,26 @@
 buildscript {
     repositories {
         jcenter()
+        google()
     }
     dependencies {
-        classpath 'com.android.tools.build:gradle:2.3.3'
+        classpath 'com.android.tools.build:gradle:3.1.1'
 
         // NOTE: Do not place your application dependencies here; they belong
         // in the individual module build.gradle files
 
         // Except Realm which wants to be here (MAK)
-        classpath "io.realm:realm-gradle-plugin:0.90.0"
+        classpath "io.realm:realm-gradle-plugin:5.0.0"
     }
+
 }
 
 allprojects {
     repositories {
         jcenter()
         maven { url "https://jitpack.io" }
+        google()
+
     }
 }
 

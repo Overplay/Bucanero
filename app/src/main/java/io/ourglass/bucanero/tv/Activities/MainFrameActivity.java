@@ -19,8 +19,8 @@ import android.widget.ImageView;
 import android.widget.RelativeLayout;
 import android.widget.TextView;
 
-import com.crashlytics.android.answers.Answers;
-import com.crashlytics.android.answers.CustomEvent;
+//import com.crashlytics.android.answers.Answers;
+//import com.crashlytics.android.answers.CustomEvent;
 import com.squareup.otto.Subscribe;
 
 import org.jdeferred.DoneCallback;
@@ -121,8 +121,8 @@ public class MainFrameActivity extends BaseFullscreenActivity implements Overlay
 
         super.onCreate(savedInstanceState);
 
-        Answers.getInstance().logCustom(new CustomEvent("Boot")
-            .putCustomAttribute("systemType", OGSystem.isRealOG() ? "RealOG" : "Emu"));
+//        Answers.getInstance().logCustom(new CustomEvent("Boot")
+//            .putCustomAttribute("systemType", OGSystem.isRealOG() ? "RealOG" : "Emu"));
 
         startedAtDate = new Date();
 
@@ -616,8 +616,8 @@ public class MainFrameActivity extends BaseFullscreenActivity implements Overlay
 
         Log.d(TAG, "Button with this code being processed: " + keyCode);
 
-        Answers.getInstance().logCustom(new CustomEvent("Remote Control Keypress")
-                .putCustomAttribute("keyCode", "KEY: "+keyCode )); //force string otherwise Fabric draws stupid conclusions and graphs
+//        Answers.getInstance().logCustom(new CustomEvent("Remote Control Keypress")
+//                .putCustomAttribute("keyCode", "KEY: "+keyCode )); //force string otherwise Fabric draws stupid conclusions and graphs
 
 
         if (keyCode == KeyEvent.KEYCODE_BACK) {
@@ -669,8 +669,8 @@ public class MainFrameActivity extends BaseFullscreenActivity implements Overlay
         }
 
         if ((keyCode == KeyEvent.KEYCODE_9) && OGConstants.CRASH_TEST_DUMMY) {
-            Answers.getInstance().logCustom(new CustomEvent("Manual Crash Test"));
-                throw new RuntimeException("This is a crash");
+//            Answers.getInstance().logCustom(new CustomEvent("Manual Crash Test"));
+//                throw new RuntimeException("This is a crash");
         }
 
 //        if (keyCode == KeyEvent.KEYCODE_5) {
@@ -871,9 +871,9 @@ public class MainFrameActivity extends BaseFullscreenActivity implements Overlay
 
         BelliniDMAPI.appLaunchAck(launchMsg.appId, target.mLayoutSlot);
 
-        Answers.getInstance().logCustom(new CustomEvent("OGApp Launch")
-                .putCustomAttribute("AppId", launchMsg.appId)
-                .putCustomAttribute("AppType", launchMsg.appType));
+//        Answers.getInstance().logCustom(new CustomEvent("OGApp Launch")
+//                .putCustomAttribute("AppId", launchMsg.appId)
+//                .putCustomAttribute("AppType", launchMsg.appType));
 
     }
 

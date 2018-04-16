@@ -14,8 +14,8 @@ import android.widget.ListView;
 import android.widget.TextView;
 import android.widget.Toast;
 
-import com.crashlytics.android.answers.Answers;
-import com.crashlytics.android.answers.CustomEvent;
+//import com.crashlytics.android.answers.Answers;
+//import com.crashlytics.android.answers.CustomEvent;
 import com.squareup.otto.Subscribe;
 
 import java.util.ArrayList;
@@ -134,8 +134,8 @@ public class PairDirecTVFragment extends OverlayFragment {
                 Toast.makeText(getContext(), "Set Top Box Paired", Toast.LENGTH_LONG).show();
                 mMode = PairMode.LIST;
                 updateUI();
-                Answers.getInstance().logCustom(new CustomEvent("STB Paired")
-                    .putCustomAttribute("pairedTo", lastSTBClicked.ipAddress));
+//                Answers.getInstance().logCustom(new CustomEvent("STB Paired")
+//                    .putCustomAttribute("pairedTo", lastSTBClicked.ipAddress));
             }
         });
 
@@ -168,7 +168,7 @@ public class PairDirecTVFragment extends OverlayFragment {
 //            getActivity().startService(ssdpi);
             SSDPWorker ssdp = new SSDPWorker();
             ssdp.discover("DIRECTV");
-            Answers.getInstance().logCustom(new CustomEvent("STB Search"));
+//            Answers.getInstance().logCustom(new CustomEvent("STB Search"));
         }
 
         updateUI();

@@ -8,8 +8,8 @@ import android.os.Handler;
 import android.util.Log;
 import android.widget.Toast;
 
-import com.crashlytics.android.Crashlytics;
-import com.crashlytics.android.answers.Answers;
+//import com.crashlytics.android.Crashlytics;
+//import com.crashlytics.android.answers.Answers;
 
 import net.danlew.android.joda.JodaTimeAndroid;
 
@@ -17,7 +17,7 @@ import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
 
-import io.fabric.sdk.android.Fabric;
+//import io.fabric.sdk.android.Fabric;
 import io.ourglass.bucanero.api.OGHeaderInterceptor;
 import io.ourglass.bucanero.messages.MainThreadBus;
 import io.ourglass.bucanero.services.Connectivity.ConnectivityCenter;
@@ -78,8 +78,8 @@ public class ABApplication extends Application {
         thisApplication = this;
         sharedContext = getApplicationContext();
 
-        Fabric.with(this, new Crashlytics());
-        Fabric.with(this, new Answers());
+//        Fabric.with(this, new Crashlytics());
+//        Fabric.with(this, new Answers());
 
         logUser();
 
@@ -123,8 +123,8 @@ public class ABApplication extends Application {
     private void logUser() {
         // TODO: Use the current user's information
         // You can call any combination of these three methods
-        Crashlytics.setUserIdentifier(OGSystem.getUDID());
-        Crashlytics.setUserName("@VENUE: "+OGSystem.getVenueName());
+//        Crashlytics.setUserIdentifier(OGSystem.getUDID());
+//        Crashlytics.setUserName("@VENUE: "+OGSystem.getVenueName());
 
     }
 
