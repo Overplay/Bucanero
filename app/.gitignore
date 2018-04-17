@@ -3,6 +3,7 @@
 
 #releases
 /*/release
+*.apk
 
 # Crashlytics configuations
 com_crashlytics_export_strings.xml
