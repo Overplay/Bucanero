@@ -83,7 +83,17 @@ public class OGSettings {
         putBoolToPrefs("hdmiDebugOverlay", showOverlay);
     }
 
-    ;
+    /**********
+     * WDT Settings
+     **********/
+
+    public static void setWDTDisabled(boolean disable){
+        putBoolToPrefs("wdtDisabled", disable);
+    }
+
+    public static boolean getWDTDisabled() {
+        return getBoolFromPrefs( "wdtDisabled", false );
+    }
 
     /*
      *

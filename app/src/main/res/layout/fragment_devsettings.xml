@@ -100,6 +100,17 @@
             android:layout_marginTop="20sp"
             android:textSize="@dimen/overlay_subtitle_font_size"/>
 
+        <Switch
+            android:id="@+id/switchDisableWDT"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:layout_marginTop="20sp"
+            android:showText="false"
+            android:text="Disable Watchdog"
+            android:textSize="@dimen/overlay_subtitle_font_size"
+            android:thumb="@drawable/switch_knob"
+            android:track="@drawable/switch_track" />
+
     </LinearLayout>
 
 

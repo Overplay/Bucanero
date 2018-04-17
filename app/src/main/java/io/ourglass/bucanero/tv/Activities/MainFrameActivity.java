@@ -961,6 +961,7 @@ public class MainFrameActivity extends BaseFullscreenActivity implements Overlay
     private void kickWDT(){
         Intent ackIntent = new Intent();
         ackIntent.setAction("io.ourglass.MF_WDT_KICK");
+        ackIntent.putExtra("watchdogEnabled", !OGSettings.getWDTDisabled());
         sendBroadcast(ackIntent);
     }
 

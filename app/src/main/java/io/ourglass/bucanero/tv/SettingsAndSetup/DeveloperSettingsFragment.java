@@ -35,6 +35,7 @@ public class DeveloperSettingsFragment extends OverlayFragment {
     Switch switchVerbose;
     Switch switchLogcat;
     Switch switchHdmiDebug;
+    Switch switchDisableWDT;
 
     ViewGroup mButtonHolder;
 
@@ -119,6 +120,22 @@ public class DeveloperSettingsFragment extends OverlayFragment {
         });
 
         switchHdmiDebug.setChecked(OGSettings.getHDMIDebugOverlayMode());
+
+
+
+        switchDisableWDT = (Switch)getView().findViewById(R.id.switchDisableWDT);
+        switchDisableWDT.setOnCheckedChangeListener(new CompoundButton.OnCheckedChangeListener() {
+            @Override
+            public void onCheckedChanged(CompoundButton buttonView, boolean isChecked) {
+                OGSettings.setWDTDisabled( isChecked );
+            }
+        });
+
+        switchDisableWDT.setChecked(OGSettings.getWDTDisabled());
+
+
+
+
 
         // TODO this should actually be self-resetting based on activity in the fragment
         //dismissMeAfter(5*60*1000);
