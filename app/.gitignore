@@ -2,7 +2,7 @@
 /*/build/
 
 #releases
-/*/release
+app/release
 *.apk
 
 # Crashlytics configuations
